@@ -269,6 +269,22 @@ function xn_html_safe($doc, $arg = array()) {
 	return $result;
 }
 
+/*
+	api_output(0, 'OK', array('uid'=>1));
+*/
+function api_output($code, $message, $extra = array()) {
+	global $conf;
+	$arr = $extra;
+	$arr['code'] = $code;
+	$arr['message'] = $message;
+	
+	// hook model_api_output_start.php
+	
+	header('Content-Type: application/json; charset=UTF-8');
+	echo xn_json_encode($arr);
+	exit;
+}
+
 // hook model_misc_end.php
 
 ?>
