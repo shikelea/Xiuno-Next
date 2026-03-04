@@ -17,11 +17,11 @@
 		
 		<div class="card card-thread">
 			<div class="card-body">
-				<div class="media">
+				<div class="d-flex">
 					<a href="<?php echo url("user-$thread[uid]");?>" tabindex="-1">
-						<img class="avatar-3 mr-3" src="<?php echo $thread['user_avatar_url'];?>">
+						<img class="avatar-3 me-3" src="<?php echo $thread['user_avatar_url'];?>">
 					</a>
-					<div class="media-body">
+					<div class="flex-grow-1">
 						<!--{hook thread_subject_before.htm}-->
 						<h4 class="break-all">
 							<!--{hook thread_subject_start.htm}-->
@@ -35,14 +35,14 @@
 								<span class="username">
 									<a href="<?php echo url("user-$thread[uid]");?>" class="text-muted font-weight-bold"><?php echo $thread['username'];?></a>
 								</span>
-								<span class="date text-grey ml-2"><?php echo $thread['create_date_fmt'];?></span>
-								<span class="text-grey ml-2"><i class="icon-eye"></i> <?php echo $thread['views'];?></span>
+								<span class="date text-grey ms-2"><?php echo $thread['create_date_fmt'];?></span>
+								<span class="text-grey ms-2"><i class="icon-eye"></i> <?php echo $thread['views'];?></span>
 								<!--{hook thread_views_after.htm}-->
 							</div>
 							<div>
 								<!--{hook thread_update_before.htm}-->
 								<?php if($allowupdate || $first['allowupdate']) { ?>
-								<a href="<?php echo url("post-update-$thread[firstpid]");?>" class="text-grey mr-2 post_update"><i class="icon-edit"></i> <?php echo lang('edit');?></a>
+								<a href="<?php echo url("post-update-$thread[firstpid]");?>" class="text-grey me-2 post_update"><i class="icon-edit"></i> <?php echo lang('edit');?></a>
 								<?php } ?>
 								
 								<?php if($allowdelete || $first['allowdelete']) { ?>
@@ -101,11 +101,11 @@
 					<?php include _include(APP_PATH.'view/htm/post_list.inc.htm'); ?>
 					
 					<?php if(!empty($user)) { ?>
-					<li class="post newpost media">
-						<a href="<?php echo url("user-$user[uid]");?>" class="mr-3" tabindex="-1">
+					<li class="post newpost d-flex">
+						<a href="<?php echo url("user-$user[uid]");?>" class="me-3" tabindex="-1">
 							<img class="avatar-3" src="<?php echo $user['avatar_url'];?>">
 						</a>
-						<div class="media-body">
+						<div class="flex-grow-1">
 							<div class="d-flex justify-content-between small text-muted">
 								<div>
 									<div><?php echo $user['username'];?></div>
