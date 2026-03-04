@@ -1,30 +1,37 @@
 {
-    "name": "xiuno/xiunobbs",
-    "description": "Xiuno BBS 4.0 - A lightweight, high-performance PHP forum software",
+    "name": "xiuno/xiuno-next",
+    "description": "The Next Generation of Xiuno BBS - Lightweight, Fast, and Modern.",
     "type": "project",
     "license": "MIT",
     "authors": [
         {
-            "name": "Xiuno Team",
-            "email": "xiuno@gmail.com"
+            "name": "Xiuno Contributors",
+            "homepage": "https://github.com/shikelea/Xiuno-Next"
         }
     ],
     "require": {
-        "php": ">=7.2"
+        "php": ">=8.0",
+        "ext-pdo": "*",
+        "ext-json": "*",
+        "ext-pdo_mysql": "*",
+        "phpmailer/phpmailer": "^6.9"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Xiuno\\": "src/"
+        },
+        "files": [
+            "xiunophp/xiunophp.php"
+        ]
     },
     "config": {
         "optimize-autoloader": true,
         "sort-packages": true,
         "allow-plugins": {
-            "php-http/discovery": true
+            "composer/package-versions-deprecated": true
         }
-    },
-    "autoload": {
-        "files": [
-            "xiunophp/xiunophp.php"
-        ]
     }
 }

@@ -15,6 +15,12 @@ $conf['log_path'] = APP_PATH.$conf['log_path'];
 $conf['tmp_path'] = APP_PATH.$conf['tmp_path']; 
 
 include APP_PATH.'xiunophp/xiunophp.php';
+
+// 引入 Composer 自动加载
+if (file_exists(APP_PATH.'vendor/autoload.php')) {
+    require APP_PATH.'vendor/autoload.php';
+}
+
 include APP_PATH.'model/misc.func.php';
 include APP_PATH.'model/plugin.func.php';
 include APP_PATH.'model/user.func.php';
