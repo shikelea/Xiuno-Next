@@ -90,6 +90,53 @@ if($action == 'list') {
 		'posts' => $postlist
 	));
 
+} elseif($action == 'create') {
+	
+	// 校验登录
+	if($uid == 0) api_output(-1, lang('please_login'));
+	
+	if($method != 'POST') api_output(-1, 'Method Not Allowed');
+	
+	$fid = param('fid', 0);
+	$subject = param('subject');
+	$message = param('message');
+	$doctype = param('doctype', 0);
+	
+	if(empty($fid)) api_output(-1, lang('fid_is_empty'));
+	if(empty($subject)) api_output(-1, lang('subject_is_empty'));
+	if(empty($message)) api_output(-1, lang('message_is_empty'));
+	
+	$forum = forum_read($fid);
+	if(empty($forum)) api_output(-1, lang('forum_not_exists'));
+	
+	// 权限校验
+	if(!forum_access_user($fid, $gid, 'allowthread')) {
+		api_output(-1, lang('insufficient_privilege'));
+	}
+	
+	// 长度校验
+	if(mb_strlen($subject, 'UTF-8') > 128) api_output(-1, lang('subject_too_long'));
+	if(mb_strlen($message, 'UTF-8') > 2028000) api_output(-1, lang('message_too_long'));
+	
+	$thread = array(
+		'fid' => $fid,
+		'uid' => $uid,
+		'subject' => $subject,
+		'message' => $message,
+		'time' => $time,
+		'longip' => $longip,
+		'doctype' => $doctype
+	);
+	
+	$pid = 0;
+	$tid = thread_create($thread, $pid);
+	if($tid === FALSE) {
+		api_output(-1, lang('create_thread_failed'));
+	}
+	
+	$thread = thread_read($tid);
+	api_output(0, lang('create_thread_sucessfully'), thread_safe_info($thread));
+
 } else {
 	api_output(-1, 'Unknown Action');
 }
