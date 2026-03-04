@@ -14,6 +14,9 @@ RUN apk add --no-cache \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd pdo_mysql mysqli zip opcache intl pcntl bcmath sockets
 
+# 安装 Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
 # 配置 PHP
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 

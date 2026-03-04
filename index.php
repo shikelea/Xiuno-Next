@@ -19,6 +19,11 @@ define('APP_PATH', dirname(__FILE__).'/'); // __DIR__
 !defined('ADMIN_PATH') AND define('ADMIN_PATH', APP_PATH.'admin/');
 !defined('XIUNOPHP_PATH') AND define('XIUNOPHP_PATH', APP_PATH.'xiunophp/');
 
+// 引入 Composer 自动加载
+if (file_exists(APP_PATH.'vendor/autoload.php')) {
+    require APP_PATH.'vendor/autoload.php';
+}
+
 // !ini_get('zlib.output_compression') AND ob_start('ob_gzhandler');
 
 //ob_start('ob_gzhandler');
