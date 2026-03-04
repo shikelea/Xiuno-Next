@@ -74,6 +74,33 @@
 
 ---
 
+## 🔌 API 开发指南
+
+我们使用 RESTful 风格的 API，代码位于 `route/api/` 目录下。
+
+*   **响应格式**: 所有 API 统一返回 JSON 格式：
+    ```json
+    {
+        "code": 0,          // 0: 成功, <0: 错误
+        "message": "OK",    // 提示信息
+        "data": {}          // 数据载荷
+    }
+    ```
+*   **新增接口**:
+    1.  在 `route/api/` 下创建或修改对应的控制器文件（如 `user.php`）。
+    2.  使用 `param()` 获取参数。
+    3.  使用 `api_output($code, $message, $data)` 输出结果。
+
+## 💻 CLI 工具开发
+
+CLI 工具基于 Symfony Console 组件。
+
+*   **入口文件**: `bin/xiuno`
+*   **命令位置**: `src/Console/Command/`
+*   **新增命令**:
+    1.  继承 `Symfony\Component\Console\Command\Command` 类。
+    2.  在 `bin/xiuno` 中注册新命令。
+
 ## 💾 Git 提交规范
 
 我们推荐使用 **Conventional Commits** 规范，并**建议使用中文**描述。
