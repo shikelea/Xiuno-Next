@@ -27,6 +27,10 @@
             "xiunophp/xiunophp.php"
         ]
     },
+    "scripts": {
+        "fix": "php-cs-fixer fix",
+        "check": "php-cs-fixer fix --dry-run --diff"
+    },
     "config": {
         "optimize-autoloader": true,
         "sort-packages": true,
