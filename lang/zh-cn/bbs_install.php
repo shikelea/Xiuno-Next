@@ -39,17 +39,15 @@ return array(
 	'admin_username' => '管理员用户名',
 	'admin_pw' => '管理员密码',
 	'installing_about_moment' => '正在安装，大概需要一分钟左右',
-	'license_title' => 'Xiuno BBS 4.0 中文版授权协议',
-	'license_content' => '感谢您选择 Xiuno BBS 4.0，它是一款国产、小巧、稳定、支持在大数据量下仍然保持高负载能力的轻论坛。它只有 20 多个表，源代码压缩后 1M 左右，运行速度非常快，处理单次请求在 0.01 秒级别，在有 APC、Yac、XCache 的环境下可以跑到 0.00x 秒，对第三方类库依赖极少，仅仅前端依赖 jquery.js，作者认为它就像一辆纯手工打造的法拉利，动力强劲，没有一丝赘肉，方便部署和维护，是一个非常好的二次开发的基石。
-	
-Xiuno BBS 4.0 采用 Bootstrap 4 + JQuery 3 作为前端类库，全面支持移动端浏览器；后端 XiunoPHP 4.0 支持了 NoSQL 的方式操作各种数据库，这个版本是一个巨大的飞跃。
-	
-Xiuno 发音“修罗”，英文为 Shura，在佛教里面为六道之一"修罗道"，处于人道和天道之间。
+	'license_title' => 'Xiuno Next 授权协议',
+	'license_content' => '感谢您选择 Xiuno Next，它基于 Xiuno BBS 4.0 开发，致力于打造一个轻量、极速、现代化的 PHP 论坛引擎。
 
-Xiuno BBS 4.0 采用 MIT 协议发布，您可以自由修改、派生版本、商用而不用担心任何法律风险（修改后应保留原来的版权信息）。',
-	'license_date' => '发布时间：2018年1月22日',
+Xiuno Next 继承了 Xiuno BBS 的高性能基因，融入了现代 PHP 生态（Composer, PSR 标准），并对移动端体验进行了全面升级。
+
+Xiuno Next 采用 MIT 协议发布，您可以自由修改、派生版本、商用而不用担心任何法律风险（修改后应保留原来的版权信息）。',
+	'license_date' => '发布时间：2026年3月4日',
 	'agree_license_to_continue' => '同意协议继续安装',
-	'install_title' => 'Xiuno BBS 4.0 安装向导',
+	'install_title' => 'Xiuno Next 安装向导',
 	'install_guide' => '安装向导',
 	
 	'function_check' => '函数依赖检查',

@@ -39,15 +39,15 @@ return array(
 	'admin_username' => 'Administrator Username',
 	'admin_pw' => 'Administrator Password',
 	'installing_about_moment' => 'Installing, it takes about a minute or so',
-	'license_title' => 'Xiuno BBS 4.0 License Agreement',
-	'license_content' => 'Thank you to choose BBS Xiuno 4, it is a domestic, compact, stable, support in the large amount of data is still maintained a high load capacity of light forum. It is only more than 20 table, 1M compression source code about running very fast, processing a single request in 0.01 second level, in APC, Xcache, Yac environment can ran to the 0.00x seconds, to third-party library, very few dependencies, the front only dependent jquery.js, as thought it is just like a car handmade Ferrari, the power is strong, without the slightest throatiness, convenient deployment and maintenance is the cornerstone of a very good secondary development.
-Xiuno BBS (bulletin board system) 4.0 using bootstrap 4 + jQuery 3 as a front-end library, full support for mobile browser; the back-end XiunoPHP 4.0 support NoSQL way to operate a variety of databases, this version is a great leap forward.
-Xiuno pronunciation "Shura", English Shura, which is one of the six Buddhist "Shura", in between humanity and heaven.
-BBS Xiuno 4 using the MIT agreement, you can freely modify, derived version, commercial without fear of any legal risks (the original copyright information should be retained after the modification)。
-	',
-	'license_date' => 'Release date: Jan 22, 2018',
+	'license_title' => 'Xiuno Next License Agreement',
+	'license_content' => 'Thank you for choosing Xiuno Next, a lightweight, fast, and modern PHP forum engine developed based on Xiuno BBS 4.0.
+
+Xiuno Next inherits the high-performance DNA of Xiuno BBS, integrates the modern PHP ecosystem (Composer, PSR standards), and fully upgrades the mobile experience.
+
+Xiuno Next is released under the MIT license, you can freely modify, distribute, and use it commercially without worrying about any legal risks (the original copyright information should be retained after modification).',
+	'license_date' => 'Release date: Mar 4, 2026',
 	'agree_license_to_continue' => 'Agree to continue to install the agreement',
-	'install_title' => 'Xiuno BBS 4.0 Installation wizard',
+	'install_title' => 'Xiuno Next Installation wizard',
 	'install_guide' => 'Installation Wizard',
 
 	
