@@ -47,12 +47,35 @@
 3. 设置 `conf/`, `log/`, `tmp/`, `upload/` 目录为可写权限 (777)。
 4. 访问网站首页进行安装。
 
+## 🛡️ 安全审计 (Security Audit)
+
+本项目定期进行代码审查和安全评估。最新的审查报告请参阅 [REVIEW.md](REVIEW.md)。
+
+我们正在逐步改进旧有的安全机制（如 MD5 哈希、SQL 注入防护），欢迎社区提交 PR 协助修复。
+
 ## 🗺️ 路线图 (Roadmap)
 
 - [x] **v4.0.5 (Reborn)**: 修复 PHP 8 兼容性，移除过时函数，Docker 化。
 - [x] **v4.1.0 (Standard)**: 引入 Composer，规范化依赖管理。
 - [x] **v4.2.0 (API)**: 提供 RESTful API，支持前后端分离 (已实现登录、帖子列表、发帖)。
+- [ ] **v4.3.0 (Experience)**: 重构默认主题，CLI 脚手架。
 - [ ] **v5.0.0 (Next)**: 全新的插件市场和主题引擎。
+
+## 🔌 API 文档
+
+本项目提供了一套标准的 RESTful API，方便开发移动端或单页应用。
+
+**基础 URL**: `http://your-domain.com/?api-{controller}-{action}` (伪静态) 或 `http://your-domain.com/?route=api/{controller}/{action}`
+
+**可用接口**:
+*   `GET /api/user/read`: 获取当前或指定用户信息
+*   `POST /api/user/login`: 用户登录
+*   `GET /api/thread/list`: 获取帖子列表 (支持分页、版块筛选)
+*   `GET /api/thread/read`: 获取帖子详情及回复
+*   `POST /api/thread/create`: 发布新帖
+*   `POST /api/post/create`: 发布回复
+
+更多详情请参考 [route/api/](route/api/) 目录下的源码。
 
 ## 🤝 参与贡献
 
