@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # 应用服务 (PHP)
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    image: xiuno-app:latest
+    container_name: xiuno-app
+    restart: always
+    volumes:
+      - ./:/var/www/html
+    environment:
+      # 设置 PHP 配置
+      PHP_OPCACHE_ENABLE: 1
+    networks:
+      - xiuno-net
+
+  # Web 服务 (Nginx)
+  web:
+    image: nginx:alpine
+    container_name: xiuno-web
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - app
+    networks:
+      - xiuno-net
+
+  # 数据库服务 (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: xiuno-db
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_changeme # 生产环境请修改！
+      MYSQL_DATABASE: xiunobbs
+      MYSQL_USER: xiuno
+      MYSQL_PASSWORD: xiuno_password_changeme # 生产环境请修改！
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - xiuno-net
+
+networks:
+  xiuno-net:
+    driver: bridge
+
+volumes:
+  db-data:
