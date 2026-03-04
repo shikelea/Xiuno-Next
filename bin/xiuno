@@ -1,0 +1,20 @@
+#!/usr/bin/env php
+<?php
+
+// 尝试加载 Composer 自动加载器
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require __DIR__ . '/../vendor/autoload.php';
+} else {
+    fwrite(STDERR, '请先运行 "composer install" 以安装依赖。' . PHP_EOL);
+    exit(1);
+}
+
+use Symfony\Component\Console\Application;
+use Xiuno\Console\Command\MakePluginCommand;
+
+$application = new Application('Xiuno CLI', '1.0.0');
+
+// 注册命令
+$application->add(new MakePluginCommand());
+
+$application->run();

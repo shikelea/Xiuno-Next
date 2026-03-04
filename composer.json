@@ -14,7 +14,8 @@
         "ext-pdo": "*",
         "ext-json": "*",
         "ext-pdo_mysql": "*",
-        "phpmailer/phpmailer": "^6.9"
+        "phpmailer/phpmailer": "^6.9",
+        "symfony/console": "^6.0"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.0"
