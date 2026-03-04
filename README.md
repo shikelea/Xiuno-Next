@@ -50,8 +50,8 @@
 ## 🗺️ 路线图 (Roadmap)
 
 - [x] **v4.0.5 (Reborn)**: 修复 PHP 8 兼容性，移除过时函数，Docker 化。
-- [ ] **v4.1.0 (Standard)**: 引入 Composer，规范化依赖管理。
-- [ ] **v4.2.0 (API)**: 提供 RESTful API，支持前后端分离。
+- [x] **v4.1.0 (Standard)**: 引入 Composer，规范化依赖管理。
+- [ ] **v4.2.0 (API)**: 提供 RESTful API，支持前后端分离 (进行中)。
 - [ ] **v5.0.0 (Next)**: 全新的插件市场和主题引擎。
 
 ## 🤝 参与贡献
