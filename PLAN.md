@@ -41,8 +41,9 @@
   - [x] 实现核心 API (用户登录)。
   - [x] 实现帖子列表 API (列表与详情)。
   - [x] 实现发帖与回帖 API。
-- [ ] **默认主题重构**：
-  - 移除 Bootstrap 3/4 混用代码，引入 Tailwind CSS 或 Bootstrap 5，实现真正的移动端优先。
+- [x] **默认主题重构**：
+  - 移除 Bootstrap 3/4 混用代码，升级至 Bootstrap 5，实现真正的移动端优先。
+  - 重构核心模板 (`header`, `footer`, `thread_list`, `post_list`) 以适配 BS5 语法 (Flexbox, Utility Classes)。
 
 ### 阶段四：生态重建 (Ecosystem Phase)
 **目标**：激活社区，建立良性循环。

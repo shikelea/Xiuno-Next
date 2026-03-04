@@ -56,9 +56,9 @@
 					
 					<!--{hook post_fid_before.htm}-->
 					<?php if($isfirst) { ?>
-					<div class="form-group">
+					<div class="mb-3">
 						<!--{hook post_fid_select_before.htm}-->
-						<select class="custom-select mr-1 w-auto" name="fid">
+						<select class="custom-select me-1 w-auto" name="fid">
 							<?php foreach ($forumlist_allowthread as $forum) { ?>
 							<option value="<?php echo $forum['fid']; ?>"><?php echo $forum['name']; ?></option>
 							<?php } ?>
@@ -66,13 +66,13 @@
 						<!--{hook post_fid_select_after.htm}-->
 					</div>
 					<!--{hook post_subject_before.htm}-->
-					<div class="form-group">
+					<div class="mb-3">
 						<input type="text" class="form-control" placeholder="<?php echo lang('subject');?>" name="subject" value="<?php echo $form_subject;?>" id="subject">
 					</div>
 					<!--{hook post_subject_after.htm}-->
 					<?php } ?>
 					
-					<div class="form-group">
+					<div class="mb-3">
 						<textarea class="form-control" placeholder="<?php echo lang('message');?>" name="message" id="message" style="height: 300px;"><?php echo $form_message;?></textarea>
 					</div>
 					
@@ -80,7 +80,7 @@
 
 					<div class="d-flex justify-content-between">
 						<div class="attachlist_parent">
-							<a class="small text-left" href="javascript:void(0)">
+							<a class="small text-start" href="javascript:void(0)">
 								<label class="addattach" id="addattach">
 									<i class="icon-folder-open-o"></i> 
 									<?php echo lang('add_attach');?>
@@ -90,7 +90,7 @@
 							<?php echo post_file_list_html($filelist, TRUE);?>
 							<!--{hook post_bottom_right.htm}-->
 						</div>
-						<div class="text-right">
+						<div class="text-end">
 							<button type="submit" class="btn btn-primary" id="submit" data-loading-text="<?php echo lang('submiting');?>..."> <?php echo $form_submit_txt;?> </button>
 							<!--{hook post_bottom_left.htm}-->
 						</div>
@@ -155,7 +155,7 @@ $('#addattach').on('change', function(e) {
 			var url = message.url;
 			var filetype = message.filetype;
 			var aid = message.aid;
-			$('.attachlist').append('<li aid="' + aid + '"><a href="' + message.url + '" target="_blank"><i class="icon filetype ' + filetype + '"></i> ' + message.orgfilename + '</a> <a href="javascript:void(0);" class="delete ml-2"><i class="icon-remove"></i> <?php echo lang('delete');?></a></li>');
+			$('.attachlist').append('<li aid="' + aid + '"><a href="' + message.url + '" target="_blank"><i class="icon filetype ' + filetype + '"></i> ' + message.orgfilename + '</a> <a href="javascript:void(0);" class="delete ms-2"><i class="icon-remove"></i> <?php echo lang('delete');?></a></li>');
 			callback();
 			jprogress.hide();
 		}, function(percent) {
