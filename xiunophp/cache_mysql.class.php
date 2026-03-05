@@ -23,10 +23,17 @@ class cache_mysql {
         public function __construct($dbconf = array()) {
         	
         	// 可以复用全局的 $db
-                if(is_object($dbconf['db'])) {
+                if(isset($dbconf['db']) && is_object($dbconf['db'])) {
                         $this->db = $dbconf['db']; // 可以直接传 $db 进来
                 } else {
                         $this->conf = $dbconf;
+			if(empty($dbconf['type'])) {
+				// Fallback or error, but let's try to grab global db if available and valid?
+				// Or just fail gracefully
+				$this->errno = -1;
+				$this->errstr = 'cache_mysql: missing db config type';
+				return;
+			}
                         $this->db = db_new($dbconf);
                 }
 		$this->cachepre = isset($dbconf['cachepre']) ? $dbconf['cachepre'] : 'pre_';

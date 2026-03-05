@@ -23,6 +23,9 @@ function error_handle($errno, $errstr, $errfile, $errline) {
 	// PHP 内部默认处理
 	if(DEBUG == 0)  return FALSE;
 	
+	// 如果错误被 @ 抑制，则不处理
+	if (error_reporting() === 0) return FALSE;
+	
 	// 如果放在 register_shutdown_function 里面，文件句柄会被关闭，然后这里就写入不了文件了！
 	// if(strpos($s, 'error_log(') !== FALSE) return TRUE;
 	$time = $_SERVER['time'];
@@ -667,6 +670,7 @@ function get__browser() {
 		'version'=>30,
 	);
 	$agent = _SERVER('HTTP_USER_AGENT');
+    if (empty($agent)) $agent = '';
 	// 主要判断是否为垃圾 IE6789
 	if(strpos($agent, 'msie') !== FALSE || stripos($agent, 'trident') !== FALSE) {
 		$browser['name'] = 'ie';

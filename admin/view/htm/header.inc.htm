@@ -29,6 +29,29 @@
 	
 	<!--{hook admin_header_bootstrap_bbs_before.htm}-->
 	<link rel="stylesheet" href="../view/css/bootstrap-bbs.css<?php echo $static_version;?>">
+	<link rel="stylesheet" href="../view/css/font-awesome.min.css<?php echo $static_version;?>">
+	<style>
+		/* FontAwesome Compatibility for Xiuno */
+		[class^="icon-"], [class*=" icon-"] { display: inline-block; font: normal normal normal 14px/1 FontAwesome; font-size: inherit; text-rendering: auto; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+		.icon-user:before { content: "\f007"; }
+		.icon-lock:before { content: "\f023"; }
+		.icon-home:before { content: "\f015"; }
+		.icon-circle-o:before { content: "\f10c"; }
+		.icon-warning-sign:before { content: "\f071"; }
+		.icon-edit:before { content: "\f044"; }
+		.icon-sign-out:before { content: "\f08b"; }
+		.icon-comment:before { content: "\f075"; }
+		.icon-eye:before { content: "\f06e"; }
+		.icon-comment-o:before { content: "\f0e5"; }
+		.icon-top-1:before { content: "\f062"; color: #17a2b8; }
+		.icon-top-2:before { content: "\f062"; color: #ffc107; }
+		.icon-top-3:before { content: "\f062"; color: #dc3545; }
+		.icon-filetype:before { content: "\f15b"; }
+		/* Bootstrap 5 Compatibility Fixes */
+		.input-group-prepend { display: flex; }
+		.input-group-text { display: flex; align-items: center; padding: .375rem .75rem; margin-bottom: 0; font-size: 1rem; font-weight: 400; line-height: 1.5; color: #495057; text-align: center; white-space: nowrap; background-color: #e9ecef; border: 1px solid #ced4da; border-radius: .25rem; }
+		.btn-block { display: block; width: 100%; }
+	</style>
 	<!--{hook admin_header_bootstrap_bbs_after.htm}-->
 	
 	<!--{hook admin_header_admin_css_before.htm}-->

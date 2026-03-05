@@ -2,6 +2,7 @@
 
 ![PHP Version](https://img.shields.io/badge/php-8.0%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Bootstrap](https://img.shields.io/badge/bootstrap-5.0-purple)
 
 > **"不破不立，在保持轻量的基础上拥抱未来。"**
 
@@ -13,8 +14,9 @@
 
 - **⚡️ 极速响应**：继承 Xiuno 的高性能基因，基于过程式编程和静态编译 Hook，性能远超同类产品。
 - **🐘 PHP 8 兼容**：完全修复了在 PHP 8.0+ 下的 Fatal Errors，并为旧插件提供了兼容层。
+- **🎨 现代 UI**：默认主题全面升级至 Bootstrap 5，移动端优先设计，体验更佳。
 - **🐳 Docker Ready**：内置标准的 Docker 开发环境，一键启动，开箱即用。
-- **🛠️ 现代化改造**：(进行中) 逐步引入 Composer、PSR 标准和 CLI 工具链。
+- **🔌 RESTful API**：内置标准 API 接口，支持前后端分离开发。
 
 ## 📦 快速开始
 
@@ -42,7 +44,7 @@
 
 ### 方式二：传统部署
 
-1. 确保服务器环境满足：PHP 8.0+ (需安装 PDO_MySQL, GD, Zip 扩展), MySQL 5.7+.
+1. 确保服务器环境满足：PHP 8.0+ (需安装 PDO_MySQL, GD, Zip 扩展), MySQL 5.7+ / 8.0+.
 2. 将代码上传至 Web 目录。
 3. 设置 `conf/`, `log/`, `tmp/`, `upload/` 目录为可写权限 (777)。
 4. 访问网站首页进行安装。
@@ -58,7 +60,7 @@
 - [x] **v4.0.5 (Reborn)**: 修复 PHP 8 兼容性，移除过时函数，Docker 化。
 - [x] **v4.1.0 (Standard)**: 引入 Composer，规范化依赖管理。
 - [x] **v4.2.0 (API)**: 提供 RESTful API，支持前后端分离 (已实现登录、帖子列表、发帖)。
-- [x] **v4.3.0 (Experience)**: 重构默认主题 (Bootstrap 5)，CLI 脚手架。
+- [x] **v4.3.0 (Experience)**: 重构默认主题 (Bootstrap 5)，修复后台样式，CLI 脚手架，建立核心场景性能基准，完善 SEO 基础。
 - [ ] **v5.0.0 (Next)**: 全新的插件市场和主题引擎。
 
 ## 💻 命令行工具 (CLI)

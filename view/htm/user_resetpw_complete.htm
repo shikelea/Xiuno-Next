@@ -7,26 +7,20 @@
 			<!--{hook user_create_card_title.htm}-->
 			<div class="card-body">
 				<form action="<?php echo url('user-resetpw_complete');?>" method="post" id="form">
-					<div class="form-group input-group">
-						<div class="input-group-prepend">
-							<span class="input-group-text"><i class="icon icon-envelope icon-fw"></i></span>
-						</div>
+					<div class="input-group mb-3">
+						<span class="input-group-text"><i class="icon icon-envelope icon-fw"></i></span>
 						<input type="text" class="form-control" placeholder="<?php echo lang('email');?>" name="email" id="email" value="<?php echo $email;?>" disabled>
 					</div>
-					<div class="form-group input-group">
-						<div class="input-group-prepend">
-							<span class="input-group-text"><i class="icon icon-lock icon-fw"></i></span>
-						</div>
+					<div class="input-group mb-3">
+						<span class="input-group-text"><i class="icon icon-lock icon-fw"></i></span>
 						<input type="password" class="form-control" placeholder="<?php echo lang('password_new');?>" id="password" name="password">
 					</div>
-					<div class="form-group input-group">
-						<div class="input-group-prepend">
-							<span class="input-group-text"><i class="icon icon-lock icon-fw"></i></span>
-						</div>
+					<div class="input-group mb-3">
+						<span class="input-group-text"><i class="icon icon-lock icon-fw"></i></span>
 						<input type="password" class="form-control" placeholder="<?php echo lang('password_new_repeat');?>" id="password2">
 					</div>
 					<p>
-						<button type="submit" class="btn btn-primary btn-block" id="submit" data-loading-text="<?php echo lang('submiting');?>..." <?php if(!$conf['user_resetpw_on']) { ?>disabled<?php } ?>><?php echo lang('next_step');?></button>
+						<button type="submit" class="btn btn-primary w-100" id="submit" data-loading-text="<?php echo lang('submiting');?>..." <?php if(!$conf['user_resetpw_on']) { ?>disabled<?php } ?>><?php echo lang('next_step');?></button>
 					</p>
 				</form>
 			</div>

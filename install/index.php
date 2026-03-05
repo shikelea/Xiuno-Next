@@ -1,6 +1,6 @@
 <?php
 
-define('DEBUG', 2);
+define('DEBUG', 0);
 define('APP_PATH', realpath(dirname(__FILE__).'/../').'/');
 define('INSTALL_PATH', dirname(__FILE__).'/');
 
@@ -107,13 +107,14 @@ if(empty($action)) {
 		$adminuser = param('adminuser');
 		$adminpass = param('adminpass');
 		
+		// 强制使用 pdo_mysql，防止意外
+		if($type == 'mysql') $type = 'pdo_mysql';
+		
 		empty($host) AND message('host', lang('dbhost_is_empty'));
 		empty($name) AND message('name', lang('dbname_is_empty'));
 		empty($user) AND message('user', lang('dbuser_is_empty'));
 		empty($adminpass) AND message('adminpass', lang('adminuser_is_empty'));
 		empty($adminemail) AND message('adminemail', lang('adminpass_is_empty'));
-		
-		
 		
 		// 设置超时尽量短一些
 		//set_time_limit(60);
@@ -134,7 +135,9 @@ if(empty($action)) {
 		
 		$_SERVER['db'] = $db = db_new($conf['db']);
 		// 此处可能报错
+		
 		$r = db_connect($db);
+		
 		if($r === FALSE) {
 			if($errno == 1049 || $errno == 1045) {
 				if($type == 'pdo_mysql') {

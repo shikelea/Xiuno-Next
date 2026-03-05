@@ -22,7 +22,7 @@ function form_radio($name, $arr, $checked = 0) {
 
 function form_checkbox($name, $checked = 0, $txt = '') {
 	$add = $checked ? ' checked="checked"' : '';
-	$s = "<label class=\"custom-input custom-checkbox mr-4\"><input type=\"checkbox\" name=\"$name\" value=\"1\" $add /> $txt</label>";
+	$s = "<label class=\"custom-input custom-checkbox me-4\"><input type=\"checkbox\" name=\"$name\" value=\"1\" $add /> $txt</label>";
 	return $s;
 }
 

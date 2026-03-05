@@ -4,22 +4,22 @@
 	<div class="card-header"><?php echo lang('top_thread');?></div>
 	<div class="card-body ajax-body">
 		<form action="<?php echo url("mod-top");?>" method="post" id="mod_top_form">
-			<div class="form-group row">
-				<label class="col-4 form-control-label text-right"><?php echo lang('total');?>：</label>
+			<div class="mb-3 row">
+				<label class="col-4 col-form-label text-end"><?php echo lang('total');?>：</label>
 				<div class="col-8">
-					<span class="total font-weight-bold text-danger"></span> <?php echo lang('piece');?>
+					<span class="total fw-bold text-danger"></span> <?php echo lang('piece');?>
 				</div>
 			</div>
-			<div class="form-group row">
-				<label class="col-4 form-control-label text-right"><?php echo lang('top_range');?>：</label>
+			<div class="mb-3 row">
+				<label class="col-4 col-form-label text-end"><?php echo lang('top_range');?>：</label>
 				<div class="col-8">
 					<label class="custom-input custom-radio"><input type="radio" name="top" value="0" /><?php echo lang('top_0');?></label>　
 					<label class="custom-input custom-radio"><input type="radio" name="top" value="1" /><?php echo lang('top_1');?></label>　
 					<label class="custom-input custom-radio"><input type="radio" name="top" value="3" /><?php echo lang('top_3');?></label>　
 				</div>
 			</div>
-			<div class="form-group row">
-				<label class="col-4 form-control-label text-right"></label>
+			<div class="mb-3 row">
+				<label class="col-4 col-form-label text-end"></label>
 				<div class="col-8">
 					<button type="submit" class="btn btn-primary" data-loading-text="<?php echo lang('submiting');?>..."><?php echo lang('confirm');?></button>
 					<button type="button" class="btn btn-secondary"><?php echo lang('close');?></button>

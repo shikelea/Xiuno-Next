@@ -8,44 +8,44 @@
 			<div class="card-body">
 				<form action="<?php echo url("forum-update-$_fid");?>" method="post" id="form">
 					<h4 class="card-title"><?php echo lang('forum_edit');?> - <?php echo $_forum['name'];?></h4>
-					<div class="form-group row">
-						<label class="col-sm-2 form-control-label" for="name"><?php echo lang('forum_name');?>：</label>
+					<div class="row mb-3">
+						<label class="col-sm-2 form-control-label" for="name"><?php echo lang('forum_name');?>:</label>
 						<div class="col-sm-10">
 							<?php echo $input['name'];?>
 						</div>
 					</div>
 					<!--{hook admin_forum_update_forum_name_after.htm}-->
-					<div class="form-group row">
-						<label class="col-sm-2 form-control-label" for="name"><?php echo lang('rank');?>：</label>
+					<div class="row mb-3">
+						<label class="col-sm-2 form-control-label" for="name"><?php echo lang('rank');?>:</label>
 						<div class="col-sm-3">
 							<?php echo $input['rank'];?>
 						</div>
 					</div>
 					<!--{hook admin_forum_update_forum_rank_after.htm}-->
-					<div class="form-group row">
-						<label class="col-sm-2 form-control-label" for="brief"><?php echo lang('forum_brief');?>：</label>
+					<div class="row mb-3">
+						<label class="col-sm-2 form-control-label" for="brief"><?php echo lang('forum_brief');?>:</label>
 						<div class="col-sm-10">
 							<?php echo $input['brief'];?>
 						</div>
 					</div>
 					<!--{hook admin_forum_update_forum_brief_after.htm}-->
-					<div class="form-group row">
-						<label class="col-sm-2 form-control-label" for="announcement"><?php echo lang('forum_announcement');?>：</label>
+					<div class="row mb-3">
+						<label class="col-sm-2 form-control-label" for="announcement"><?php echo lang('forum_announcement');?>:</label>
 						<div class="col-sm-10">
 							<?php echo $input['announcement'];?>
 						</div>
 					</div>
 					<!--{hook admin_forum_update_forum_announcement_after.htm}-->
-					<div class="form-group row">
-						<label class="col-sm-2 form-control-label" for="moduids"><?php echo lang('moderator');?>：</label>
+					<div class="row mb-3">
+						<label class="col-sm-2 form-control-label" for="moduids"><?php echo lang('moderator');?>:</label>
 						<div class="col-sm-10">
 							<?php echo $input['modnames'];?>
 							<p class="small text-muted mt-2" id="modnames"><?php echo lang('forum_moduid_format_tips');?></p>
 						</div>
 					</div>
 					<!--{hook admin_forum_update_privilete_before.htm}-->
-					<div class="form-group row">
-						<label class="col-sm-2 form-control-label" for="accesson"><?php echo lang('user_privilege');?>：</label>
+					<div class="row mb-3">
+						<label class="col-sm-2 form-control-label" for="accesson"><?php echo lang('user_privilege');?>:</label>
 						<div class="col-sm-10">
 							<p><label><?php echo $input['accesson'];?> <?php echo lang('enable');?></label></p>
 							<div class="table-responsive <?php echo $_forum['accesson'] ? '' : 'collapse';?>" id="accesslist_div">
@@ -82,11 +82,11 @@
 						</div>
 					</div>
 					<!--{hook admin_forum_update_privilete_after.htm}-->
-					<div class="form-group row">
+					<div class="row mb-3">
 						<label class="col-sm-2 form-control-label"></label>
 						<div class="col-sm-10">
-							<button type="submit" class="btn btn-primary btn-block" id="submit" data-loading-text="<?php echo lang('submiting');?>..."><?php echo lang('confirm');?></button>
-							<a role="button" class="btn btn-secondary btn-block mt-3" href="javascript:history.back();"><?php echo lang('back');?></a>
+							<button type="submit" class="btn btn-primary d-block w-100" id="submit" data-loading-text="<?php echo lang('submiting');?>..."><?php echo lang('confirm');?></button>
+							<a role="button" class="btn btn-secondary d-block w-100 mt-3" href="javascript:history.back();"><?php echo lang('back');?></a>
 						</div>
 					</div>
 					<!--{hook admin_forum_update_submit_after.htm}-->
@@ -132,7 +132,7 @@ jform.find('input[name="accesson"]').on('click', function() {
 	return true;
 });
 
-// 全选
+// 全?
 jaccesslist.find('tr').each(function(k, v) {
 	var jtr = $(v);
 	jtr.find('td').eq(0).find('input[type="checkbox"]').on('click', function() {
@@ -140,7 +140,7 @@ jaccesslist.find('tr').each(function(k, v) {
 	});
 });
 
-// 版主姓名：
+// 版主姓名?
 /*
 var jmoduids = jform.find('input[name="moduids"]');
 var jmodnames = $('#modnames');

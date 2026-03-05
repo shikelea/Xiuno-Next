@@ -8,7 +8,7 @@
 					<?php echo admin_tab_active($menu['plugin']['tab'], $action);?>
 				</div>
 			</div>
-			<div class="col-md-8 text-right">
+			<div class="col-md-8 text-end">
 				<div class="btn-group mb-3" role="group">
 					<?php echo $pugin_cate_html;?>
 				</div>
@@ -38,7 +38,7 @@
 								<a href="<?php echo url("plugin-read-$dir");?>"><b><?php echo $plugin['name']; ?> </b></a>
 								<span class="small">v<?php echo $plugin['version_fmt']; ?> </span>
 								<?php if($plugin['have_upgrade']) { ?>
-								<span class="small text-danger font-weight-bold">v<?php echo array_value($plugin, 'official_version'); ?> </span>
+								<span class="small text-danger fw-bold">v<?php echo array_value($plugin, 'official_version'); ?> </span>
 								<?php } ?>
 	
 								<br /><span class="small text-muted"><?php echo $dir; ?></span>

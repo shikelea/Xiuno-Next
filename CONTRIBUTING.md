@@ -71,6 +71,9 @@
 3.  **安全性**：
     *   所有 SQL 操作必须使用预处理语句（PDO Prepared Statements）或框架提供的安全封装。
     *   输出到 HTML 时必须进行转义（XSS 防护）。
+4.  **性能基线要求**：
+    *   我们在 `docs/performance_baseline.md` 维护了各个核心页面的基础性能指标。
+    *   提交影响全局渲染或路由的新代码前，建议运行 `bin/benchmark.bat` 进行压测比对，保证 TTFB 退化不超过 15%。
 
 ---
 

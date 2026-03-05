@@ -50,7 +50,13 @@ class db_mysql {
 	}
 	
 	public function real_connect($host, $user, $password, $name, $charset = '', $engine = '') {
-		$link = @mysql_connect($host, $user, $password); // 如果用户名相同，则返回同一个连接。 fastcgi 持久连接更省资源
+		if (function_exists('mysql_connect')) {
+			$link = @mysql_connect($host, $user, $password); // 如果用户名相同，则返回同一个连接。 fastcgi 持久连接更省资源
+		} else {
+			// 兼容 PHP 7+ 移除 mysql_connect
+			$this->error(2003, 'PHP 7+ removed mysql_* functions, please use pdo_mysql or mysqli');
+			return FALSE;
+		}
 		if(!$link) { $this->error(mysql_errno(), '连接数据库服务器失败:'.mysql_error()); return FALSE; }
 		if(!mysql_select_db($name, $link)) { $this->error(mysql_errno(), '选择数据库失败:'.mysql_error()); return FALSE; }
 		//strtolower($engine) == 'innodb' AND $this->query("SET innodb_flush_log_at_trx_commit=no", $link);
@@ -162,13 +168,13 @@ class db_mysql {
 	
 	public function maxid($table, $field, $cond = array()) {
 		$sqladd = db_cond_to_sqladd($cond);
-		$sql = "SELECT MAX($field) AS maxid FROM `$table` $sqladd";
+		$sql = "SELECT MAX(`$field`) AS maxid FROM `$table` $sqladd";
 		$arr = $this->sql_find_one($sql);
 		return !empty($arr) ? intval($arr['maxid']) : $arr;
 	}
 	
 	public function truncate($table) {
-		return $this->exec("TRUNCATE $table");
+		return $this->exec("TRUNCATE `$table`");
 	}
 	
 	public function close() {
