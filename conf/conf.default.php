@@ -10,7 +10,7 @@
 */
 return array (
 	'db' => array (
-		'type' => 'mysql',	
+		'type' => 'pdo_mysql',	
 		'mysql' => array (
 			'master' => array (
 				'host' => 'localhost',
@@ -75,7 +75,7 @@ return array (
 	'logo_pc_url' => 'view/img/logo.png',			// PC 的 LOGO URL
 	'logo_water_url' => 'view/img/water-small.png',		// 水印的 LOGO URL
 	
-	'sitename' => 'Xiuno BBS',
+	'sitename' => 'Xiuno Next',
 	'sitebrief' => 'Site Brief',
 	'timezone' => 'Asia/Shanghai',	// 时区，默认中国
 	'lang' => 'zh-cn',

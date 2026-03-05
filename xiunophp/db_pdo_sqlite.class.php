@@ -132,13 +132,13 @@ class db_pdo_sqlite {
 	
 	public function maxid($table, $field, $cond = array()) {
 		$sqladd = db_cond_to_sqladd($cond);
-		$sql = "SELECT MAX($field) AS maxid FROM `$table` $sqladd";
+		$sql = "SELECT MAX(`$field`) AS maxid FROM `$table` $sqladd";
 		$arr = $this->sql_find_one($sql);
 		return !empty($arr) ? intval($arr['maxid']) : $arr;
 	}
 	
 	public function truncate($table) {
-		return $this->exec("TRUNCATE $table");
+		return $this->exec("TRUNCATE `$table`");
 	}
 	
 	public function last_insert_id() {

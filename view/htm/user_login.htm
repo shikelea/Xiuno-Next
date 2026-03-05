@@ -11,35 +11,31 @@
 			</div>
 			<div class="card-body ajax_modal_body">
 				<form action="<?php echo url('user-login');?>" method="post" id="form">
-					<div class="form-group input-group">
-						<div class="input-group-prepend">
-							<span class="input-group-text"><i class="icon icon-user icon-fw"></i></span>
-						</div>
+					<div class="input-group mb-3">
+						<span class="input-group-text"><i class="icon icon-user icon-fw"></i></span>
 						<input type="text" class="form-control" placeholder="<?php echo lang('email');?>" id="email" name="email">
 						<div class="invalid-feedback"></div>
 					</div>
 					<!--{hook user_login_email_after.htm}-->
-					<div class="form-group input-group">
-						<div class="input-group-prepend">
-							<span class="input-group-text"><i class="icon icon-lock icon-fw"></i></span>
-						</div>
+					<div class="input-group mb-3">
+						<span class="input-group-text"><i class="icon icon-lock icon-fw"></i></span>
 						<input type="password" class="form-control" placeholder="<?php echo lang('password');?>" id="password" name="password">
 						<div class="invalid-feedback"></div>
 					</div>
 					<!--{hook user_login_password_after.htm}-->
-					<div class="form-group">
-						<button type="submit" class="btn btn-primary btn-block" id="submit" data-loading-text="<?php echo lang('submiting');?>..."><?php echo lang('login');?></button>
+					<div class="mb-3">
+						<button type="submit" class="btn btn-primary w-100" id="submit" data-loading-text="<?php echo lang('submiting');?>..."><?php echo lang('login');?></button>
 					</div>
 					<!--{hook user_login_submit_after.htm}-->
 					<div class="media">
 						<div>
 							<!--{hook user_login_form_footer_left.htm}-->
 						</div>
-						<div class="media-body text-right">
+						<div class="media-body text-end">
 							<!--{hook user_login_form_footer_right_start.htm}-->
 							<a href="<?php echo url('user-create');?>" class="text-muted"><small><?php echo lang('user_create');?></small></a>
 							<?php if(!empty($conf['user_resetpw_on'])) { ?>
-							<a href="<?php echo url('user-resetpw');?>" class="text-muted ml-3"><small><?php echo lang('forgot_pw');?></small></a>
+							<a href="<?php echo url('user-resetpw');?>" class="text-muted ms-3"><small><?php echo lang('forgot_pw');?></small></a>
 							<?php } ?>
 							<!--{hook user_login_form_footer_right_end.htm}-->
 						</div>

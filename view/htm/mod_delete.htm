@@ -4,16 +4,16 @@
 	<div class="card-header"><?php echo lang('delete_thread');?></div>
 	<div class="card-body ajax-body">
 		<form action="<?php echo url("mod-delete");?>" method="post" id="mod_delete_form">
-			<div class="form-group row">
-				<label class="col-4 form-control-label text-right"><?php echo lang('total');?>：</label>
+			<div class="mb-3 row">
+				<label class="col-4 col-form-label text-end"><?php echo lang('total');?>：</label>
 				<div class="col-8">
-					<span class="total font-weight-bold text-danger"></span> <?php echo lang('piece');?>
+					<span class="total fw-bold text-danger"></span> <?php echo lang('piece');?>
 				</div>
 			</div>
-			<div class="form-group row">
-				<label class="col-4 form-control-label text-right"></label>
+			<div class="mb-3 row">
+				<label class="col-4 col-form-label text-end"></label>
 				<div class="col-8">
-					<button type="submit" class="btn btn-primary mr-2" data-loading-text="<?php echo lang('submiting');?>..."><?php echo lang('confirm');?></button>
+					<button type="submit" class="btn btn-primary me-2" data-loading-text="<?php echo lang('submiting');?>..."><?php echo lang('confirm');?></button>
 					<button type="button" class="btn btn-secondary"><?php echo lang('close');?></button>
 				</div>
 			</div>

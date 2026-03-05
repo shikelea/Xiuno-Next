@@ -79,6 +79,9 @@ function db_exec($sql, $d = NULL) {
 	
 	DEBUG AND xn_log($sql, 'db_exec');
 	
+	// Ensure SQL is not empty
+	if (empty($sql)) return FALSE;
+
 	$n = $d->exec($sql);
 	
 	db_errno_errstr($n, $d, $sql);
@@ -126,7 +129,8 @@ function db_insert($table, $arr, $d = NULL) {
 	
 	$sqladd = db_array_to_insert_sqladd($arr);
 	if(!$sqladd) return FALSE;
-	return db_exec("INSERT INTO {$d->tablepre}$table $sqladd", $d);
+	$sql = "INSERT INTO {$d->tablepre}$table $sqladd";
+	return db_exec($sql, $d);
 }
 
 function db_replace($table, $arr, $d = NULL) {
@@ -136,7 +140,8 @@ function db_replace($table, $arr, $d = NULL) {
 	
 	$sqladd = db_array_to_insert_sqladd($arr);
 	if(!$sqladd) return FALSE;
-	return db_exec("REPLACE INTO {$d->tablepre}$table $sqladd", $d);
+	$sql = "REPLACE INTO {$d->tablepre}$table $sqladd";
+	return db_exec($sql, $d);
 }
 
 function db_update($table, $cond, $update, $d = NULL) {
@@ -147,7 +152,8 @@ function db_update($table, $cond, $update, $d = NULL) {
 	$condadd = db_cond_to_sqladd($cond);
 	$sqladd = db_array_to_update_sqladd($update);
 	if(!$sqladd) return FALSE;
-	return db_exec("UPDATE {$d->tablepre}$table SET $sqladd $condadd", $d);
+	$sql = "UPDATE {$d->tablepre}$table SET $sqladd $condadd";
+	return db_exec($sql, $d);
 }
 
 function db_delete($table, $cond, $d = NULL) {
@@ -156,7 +162,8 @@ function db_delete($table, $cond, $d = NULL) {
 	if(!$d) return FALSE;
 	
 	$condadd = db_cond_to_sqladd($cond);
-	return db_exec("DELETE FROM {$d->tablepre}$table $condadd", $d);
+	$sql = "DELETE FROM {$d->tablepre}$table $condadd";
+	return db_exec($sql, $d);
 }
 
 function db_truncate($table, $d = NULL) {
@@ -303,6 +310,9 @@ function db_orderby_to_sqladd($orderby) {
 function db_array_to_update_sqladd($arr) {
 	$s = '';
 	foreach($arr as $k=>$v) {
+		if ($v === null) {
+			$v = '';
+		}
 		$v = addslashes($v);
 		$op = substr($k, -1);
 		if($op == '+' || $op == '-') {
@@ -330,6 +340,9 @@ function db_array_to_insert_sqladd($arr) {
 	$values = array();
 	foreach($arr as $k=>$v) {
 		$k = addslashes($k);
+		if ($v === null) {
+			$v = '';
+		}
 		$v = addslashes($v);
 		$keys[] = '`'.$k.'`';
 		$v = (is_int($v) || is_float($v)) ? $v : "'$v'";

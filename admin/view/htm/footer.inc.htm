@@ -17,15 +17,15 @@
 
 	<!--{hook admin_footer_footer_before.htm}-->
 	
-	<footer class="text-muted small bg-dark py-4" id="footer">
+	<footer class="text-white-50 small bg-dark py-4" id="footer">
 		<div class="container">
 			<div class="row">
 				<div class="col">
 					<!--{hook footer_footer_left_start.htm}-->
-					Powered by <b>Xiuno BBS <span><?php echo $conf['version'];?></span></b>
+					Powered by <b>Xiuno Next <span><?php echo $conf['version'];?></span></b>
 					<!--{hook footer_footer_left_end.htm}-->
 				</div>
-				<div class="col text-right">
+				<div class="col text-end">
 					<!--{hook footer_footer_right_start.htm}-->
 					Time: <b><?php echo substr(microtime(1) - $starttime, 0, 5);?></b>, SQL: <b><?php echo count($db->sqls);?></b>
 					<!--{hook footer_footer_right_end.htm}-->

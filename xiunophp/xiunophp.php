@@ -16,6 +16,10 @@
 
 function_exists('ini_set') AND ini_set('display_errors', DEBUG ? '1' : '0');
 error_reporting(DEBUG ? E_ALL : 0);
+if(DEBUG == 0) {
+	error_reporting(0);
+	ini_set('display_errors', 0);
+}
 version_compare(PHP_VERSION, '5.3.0', '<') AND set_magic_quotes_runtime(0);
 $get_magic_quotes_gpc = 0;
 $starttime = microtime(1);
@@ -38,9 +42,9 @@ if(IN_CMD) {
 
 // ----------------------------------------------------------> db cache class
 
-include XIUNOPHP_PATH.'db_mysql.class.php';
 include XIUNOPHP_PATH.'db_pdo_mysql.class.php';
 include XIUNOPHP_PATH.'db_pdo_sqlite.class.php';
+include XIUNOPHP_PATH.'db_mysql.class.php';
 include XIUNOPHP_PATH.'cache_apc.class.php';
 include XIUNOPHP_PATH.'cache_memcached.class.php';
 include XIUNOPHP_PATH.'cache_mysql.class.php';

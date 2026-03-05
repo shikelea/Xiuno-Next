@@ -147,6 +147,7 @@ function user_read_by_email($email) {
 	global $g_static_users;
 	// hook model_user_read_by_email_start.php
 	$user = db_find_one('user', array('email'=>$email));
+	if(empty($user)) return array();
 	user_format($user);
 	$g_static_users[$user['uid']] = $user;
 	// hook model_user_read_by_email_end.php
@@ -157,6 +158,7 @@ function user_read_by_username($username) {
 	global $g_static_users;
 	// hook model_user_read_by_username_start.php
 	$user = db_find_one('user', array('username'=>$username));
+	if(empty($user)) return array();
 	user_format($user);
 	$g_static_users[$user['uid']] = $user;
 	// hook model_user_read_by_username_end.php

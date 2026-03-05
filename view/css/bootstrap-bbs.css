@@ -14,11 +14,22 @@ body {
   background: #dee2e6;
 }
 
-html, body {
+html {
   height: 100%;
+}
+
+body {
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   font-family: "Helvetica Neue", Helvetica, "Microsoft Yahei", "Hiragino Sans GB", "WenQuanYi Micro Hei", "微软雅黑", "华文细黑", STHeiti, sans-serif;
+}
+
+/* 两栏布局：在 md 断点(768px)激活，而非 lg(992px) */
+@media (min-width: 768px) {
+  .row > .col-lg-9 { flex: 0 0 auto; width: 75%; }
+  .row > .col-lg-3 { flex: 0 0 auto; width: 25%; }
+  .row > .aside.d-none.d-lg-block { display: block !important; }
 }
 
 /* 页脚固定在底部 */
@@ -38,9 +49,12 @@ html, body {
   flex: 0 0 auto;
 }
 
+/*
 #body > .container > .row > .aside {
   padding-left: 0;
 }
+*/
+
 
 .table th {
   border-top: none;
@@ -132,9 +146,11 @@ html, body {
   #body {
     padding-top: 0.5rem;
   }
-  #body > .container > .row > div {
-    padding: 0.5rem;
-  }
+  /*
+#body > .container > .row > div {
+  padding: 0.5rem;
+}
+*/
 }
 
 /* 小屏 + 中屏: small + middle */
@@ -234,6 +250,21 @@ li.quote {
   width: 1%;
 }
 
+.text-grey {
+  color: #868e96 !important;
+}
+
+.break-all {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.postlist .flex-grow-1,
+.card-thread .flex-grow-1 {
+  min-width: 0;
+}
+
 .message p {
   margin: 0.2rem 0;
   line-height: 1.7;
@@ -292,3 +323,33 @@ li.quote {
   color: #fff;
   font-weight: 800;
 }
+
+/* Avatar sizes */
+.avatar-1 { width: 1.5rem; height: 1.5rem; border-radius: 50%; vertical-align: middle; }
+.avatar-2 { width: 2rem; height: 2rem; border-radius: 50%; vertical-align: middle; }
+.avatar-3 { width: 3rem; height: 3rem; border-radius: 50%; vertical-align: middle; }
+.avatar-4 { width: 4rem; height: 4rem; border-radius: 50%; vertical-align: middle; }
+.avatar-5 { width: 5rem; height: 5rem; border-radius: 50%; vertical-align: middle; }
+
+/* Logo sizes */
+.logo-1 { height: 1.5rem; width: auto; vertical-align: middle; }
+.logo-2 { height: 2.5rem; width: auto; vertical-align: middle; }
+.logo-3 { height: 3.5rem; width: auto; vertical-align: middle; }
+.logo-4 { height: 4.5rem; width: auto; vertical-align: middle; }
+.logo-5 { height: 5.5rem; width: auto; vertical-align: middle; }
+
+/* Bootstrap 4 Compatibility Layer for legacy plugins */
+.font-weight-bold { font-weight: 700 !important; }
+.font-weight-normal { font-weight: 400 !important; }
+.font-weight-light { font-weight: 300 !important; }
+.text-left { text-align: left !important; }
+.text-right { text-align: right !important; }
+.float-left { float: left !important; }
+.float-right { float: right !important; }
+.border-left { border-left: 1px solid #dee2e6 !important; }
+.border-right { border-right: 1px solid #dee2e6 !important; }
+.badge-pill { border-radius: 50rem; padding-right: .6em; padding-left: .6em; }
+.close { float: right; font-size: 1.5rem; font-weight: 700; line-height: 1; color: #000; text-shadow: 0 1px 0 #fff; opacity: .5; background: transparent; border: 0; padding: 0; }
+.close:hover { color: #000; text-decoration: none; opacity: .75; }
+.w-sm-auto { width: auto !important; }
+.w-md-auto { width: auto !important; }

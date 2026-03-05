@@ -33,14 +33,36 @@ function get_env(&$env, &$write) {
 function install_sql_file($sqlfile) {
 	global $errno, $errstr;
 	$s = file_get_contents($sqlfile);
-	$s = str_replace(";\r\n", ";\n", $s);
-	//$s = preg_replace('/#(.*?)\r\n/i', "", $s);
+	if ($s === false) {
+		message(-1, "Failed to read SQL file: $sqlfile");
+	}
+	$s = str_replace(array("\r\n", "\r"), "\n", $s);
+	// Remove comments starting with #
+	$s = preg_replace('/^#.*$/m', '', $s);
+	
 	$arr = explode(";\n", $s);
-	foreach ($arr as $sql) {
+	foreach ($arr as $i => $sql) {
 		$sql = trim($sql);
 		if(empty($sql)) continue;
-		$arr = explode(";\n", $s);
-		db_exec($sql) === FALSE AND message(-1, "sql: $sql, errno: $errno, errstr: $errstr");
+		try {
+			// Check if $sql is valid string before exec
+			if (!is_string($sql)) {
+				continue;
+			}
+			
+			// 某些 SQL 语句可能包含 USE `dbname`; 这种语句在 db_exec 中可能会有问题，或者不需要执行
+			if (strncasecmp($sql, 'USE ', 4) === 0) {
+				continue;
+			}
+
+			if(db_exec($sql) === FALSE) {
+				message(-1, "sql: $sql, errno: $errno, errstr: $errstr");
+			}
+		} catch (Exception $e) {
+			message(-1, "sql exception: " . $e->getMessage());
+		} catch (Error $e) {
+			message(-1, "sql fatal error: " . $e->getMessage());
+		}
 	}
 }
 

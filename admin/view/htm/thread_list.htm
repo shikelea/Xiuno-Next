@@ -17,8 +17,8 @@
 				<h4 class="card-title"><?php echo lang('search_condition');?></h4>
 				<div class="row">
 					<div class="col-md-6">
-						<fieldset class="form-group">
-							<label for="fid"><?php echo lang('forum');?>：</label>
+						<fieldset class="mb-3">
+							<label for="fid"><?php echo lang('forum');?>:</label>
 							<select class="form-control" name="fid" id="fid">
 								<option value="0"></option>
 								<?php foreach ($forumlist as $forum) { ?>
@@ -28,36 +28,36 @@
 						</fieldset>
 					</div>
 					<div class="col-md-6">
-						<fieldset class="form-group">
-							<label for="keyword"><?php echo lang('keyword');?>：</label>
+						<fieldset class="mb-3">
+							<label for="keyword"><?php echo lang('keyword');?>:</label>
 							<input class="form-control" type="text" id="keyword" name="keyword" placeholder="<?php echo lang('keyword');?>" value="" />
 						</fieldset>
 					</div>
 				</div>
 				<div class="row">
 					<div class="col-md-6">
-						<fieldset class="form-group">
-							<label for="create_date_start"><?php echo lang('start_date');?>：</label>
+						<fieldset class="mb-3">
+							<label for="create_date_start"><?php echo lang('start_date');?>:</label>
 							<input class="form-control" type="date" id="create_date_start" name="create_date_start" placeholder="<?php echo lang('start_date');?>" value="" />
 						</fieldset>
 					</div>
 					<div class="col-md-6">
-						<fieldset class="form-group">
-							<label for="create_date_end"><?php echo lang('end_date');?>：</label>
+						<fieldset class="mb-3">
+							<label for="create_date_end"><?php echo lang('end_date');?>:</label>
 							<input class="form-control" type="date" id="create_date_end" name="create_date_end" placeholder="<?php echo lang('end_date');?>" value="" />
 						</fieldset>
 					</div>
 				</div>
 				<div class="row">
 					<div class="col-md-6">
-						<fieldset class="form-group">
-							<label for="create_date_end"><?php echo lang('thread_userip');?>：</label>
+						<fieldset class="mb-3">
+							<label for="create_date_end"><?php echo lang('thread_userip');?>:</label>
 							<input class="form-control" type="text" id="userip" name="userip" placeholder="<?php echo lang('thread_userip');?>" value="" />
 						</fieldset>
 					</div>
 					<div class="col-md-6">
-						<fieldset class="form-group">
-							<label for="create_date_end"><?php echo lang('user');?> ID：</label>
+						<fieldset class="mb-3">
+							<label for="create_date_end"><?php echo lang('user');?> ID:</label>
 							<input class="form-control" type="text" id="uid" name="uid" placeholder="<?php echo lang('uid');?>" value="" />
 						</fieldset>
 					</div>
@@ -103,7 +103,7 @@ var jprogress = $('#progress');
 var jthreads = $('#threads');
 var joperation = $('#operation');
 var jfid = $('#fid');
-var threads = 0; // 符合的条数
+var threads = 0; // 符合的条?
 var page = 1;
 var pagesize = <?php echo $pagesize;?>;
 var totalpage = <?php echo $totalpage;?>;
