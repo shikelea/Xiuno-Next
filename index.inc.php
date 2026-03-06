@@ -48,6 +48,11 @@ check_runlevel();
 
 $route = param(0, 'index');
 
+// CSRF 校验：对所有 POST 请求校验 token（API 路由使用自身鉴权机制，跳过 CSRF）
+if ($method == 'POST' && $route != 'api') {
+	csrf_check();
+}
+
 // hook index_inc_route_before.php
 
 if (!defined('SKIP_ROUTE')) {

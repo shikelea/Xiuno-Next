@@ -62,11 +62,14 @@ function form_text($name, $value, $width = FALSE, $holdplacer = '') {
 		is_numeric($width) AND $width .= 'px';
 		$style = " style=\"width: $width\"";
 	}
+	$value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+	$holdplacer = htmlspecialchars($holdplacer, ENT_QUOTES, 'UTF-8');
 	$s = "<input type=\"text\" name=\"$name\" id=\"$name\" placeholder=\"$holdplacer\" value=\"$value\" class=\"form-control\"$style />";
 	return $s;
 }
 
 function form_hidden($name, $value) {
+	$value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 	$s = "<input type=\"hidden\" name=\"$name\" id=\"$name\" value=\"$value\" />";
 	return $s;
 }
@@ -78,6 +81,7 @@ function form_textarea($name, $value, $width = FALSE,  $height = FALSE) {
 		is_numeric($height) AND $height .= 'px';
 		$style = " style=\"width: $width; height: $height; \"";
 	}
+	$value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 	$s = "<textarea name=\"$name\" id=\"$name\" class=\"form-control\" $style>$value</textarea>";
 	return $s;
 }

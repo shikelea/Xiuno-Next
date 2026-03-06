@@ -23,6 +23,10 @@ if(DEBUG < 3) {
 
 $route = param(0, 'index');
 
+if ($method == 'POST') {
+	csrf_check();
+}
+
 switch ($route) {
 	// hook admin_index_route_case_start.php
 	case 'index':		include _include(ADMIN_PATH.'route/index.php'); 	break;

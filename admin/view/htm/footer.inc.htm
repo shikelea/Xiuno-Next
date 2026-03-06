@@ -54,6 +54,8 @@
 	var debug = DEBUG = <?php echo DEBUG; ?>;
 	var url_rewrite_on = <?php echo $conf['url_rewrite_on'];?>;
 	var fid = <?php echo $fid;?>;
+	var csrf_token = '<?php echo csrf_token();?>';
+	$.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN',csrf_token);}});
 	</script>
 	<script src="../view/js/bbs.js<?php echo $static_version;?>"></script>
 	
