@@ -88,12 +88,12 @@ JSON;
         if (!is_dir($hookPath)) {
             mkdir($hookPath, 0755);
         }
-        $content = <<<PHP
-<?php exit;
-// 这是一个 Hook 示例
-// This is a hook example
+        $content = <<<'PHP'
+<?php
+// 这是一个 Hook 示例 / This is a hook example
 // 在这里写入 PHP 代码，它将被插入到 index_inc_start.php 的钩子位置
-echo "Hello Plugin";
+// Write your PHP code here; it will be injected at the index_inc_start.php hook point.
+
 ?>
 PHP;
         file_put_contents($path . '/hook/index_inc_start.php', $content);

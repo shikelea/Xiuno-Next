@@ -272,11 +272,13 @@ function xn_html_safe($doc, $arg = array()) {
 /*
 	api_output(0, 'OK', array('uid'=>1));
 */
-function api_output($code, $message, $extra = array()) {
+function api_output($code, $message, $data = array()) {
 	global $conf;
-	$arr = $extra;
-	$arr['code'] = $code;
-	$arr['message'] = $message;
+	$arr = array(
+		'code' => $code,
+		'message' => $message,
+		'data' => $data,
+	);
 	
 	// hook model_api_output_start.php
 	

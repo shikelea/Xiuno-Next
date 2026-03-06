@@ -64,7 +64,15 @@
   - 为帖子页添加 Open Graph / Twitter Card meta 标签（标题、描述、首图）。
 - [x] **建立性能基线**（在任何进一步改动之前，先记录当前状态）：
   - 编写标准化压测脚本（基于 `ab` 或 `wrk`），覆盖首页、帖子列表、帖子详情等核心场景（已提供 `bin/benchmark.bat` 和 `docs/performance_baseline.md`）。
-  - 记录 QPS、TTFB、内存占用等核心指标，作为后续所有优化的参照基准。
+  - ⚠️ 压测脚本框架已就位，实际基准数据待部署后采集填入。
+
+**代码审查修复（v4.3.1）：**
+- [x] **移除 BS4 残留文件**：删除 `view/js/bootstrap.bundle.js`（Bootstrap 4.0.0），避免与 BS5 产生混淆。
+- [x] **安全模式路径判断加固**：将 `index.php` 中的崩溃检测逻辑从宽松的子串匹配改为基于 `APP_PATH` 的精确前缀匹配，防止部署路径含 `tmp`/`plugin` 时误触发安全模式。
+- [x] **API 响应结构规范化**：`api_output()` 输出从扁平结构改为标准 `{code, message, data}` 嵌套结构，与文档描述一致。
+- [x] **BS5 语法清理**：将项目自有文件 `bootstrap-plugin.js` 中残留的 `data-dismiss` 更新为 `data-bs-dismiss`。
+- [x] **模板注释修正**：修正 `header_nav.inc.htm` 中过时的 "Bootstrap 4.0" 注释。
+- [x] **CLI 脚手架修复**：移除 `make:plugin` 生成的 Hook 示例文件中的 `<?php exit;`，避免误导开发者。
 
 ### 阶段四：安全加固 (Security Phase)
 **目标**：修补历史遗留安全隐患，达到现代 Web 应用安全基线。

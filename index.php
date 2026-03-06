@@ -29,14 +29,11 @@ if (file_exists(APP_PATH . 'vendor/autoload.php')) {
 // 注册致命错误处理函数，实现插件崩溃自动隔离
 register_shutdown_function(function () {
 	$error = error_get_last();
-	// 如果是严重错误
 	if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-		// 检查路径是否包含 tmp/ 或 plugin/，代表可能是插件相关代码崩溃
-		if (strpos($error['file'], DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR) !== false ||
-		strpos($error['file'], 'tmp' . DIRECTORY_SEPARATOR) !== false ||
-		strpos($error['file'], DIRECTORY_SEPARATOR . 'plugin' . DIRECTORY_SEPARATOR) !== false ||
-		strpos($error['file'], 'plugin' . DIRECTORY_SEPARATOR) !== false) {
-
+		$error_file = str_replace('\\', '/', $error['file']);
+		$app_plugin_path = str_replace('\\', '/', APP_PATH . 'plugin/');
+		$app_tmp_path = str_replace('\\', '/', APP_PATH . 'tmp/');
+		if (strpos($error_file, $app_plugin_path) === 0 || strpos($error_file, $app_tmp_path) === 0) {
 			$safe_file = APP_PATH . 'tmp/safe_mode.php';
 			if (!is_file($safe_file)) {
 				$msg = "<?php\n// 自动进入安全模式\n// 错误信息: {$error['message']}\n// 文件: {$error['file']}\n// 行数: {$error['line']}\n";
@@ -56,7 +53,7 @@ $conf = (@include APP_PATH . 'conf/conf.php') or exit('<script>window.location="
 !isset($conf['logo_mobile_url']) and $conf['logo_mobile_url'] = 'view/img/logo.png';
 !isset($conf['logo_pc_url']) and $conf['logo_pc_url'] = 'view/img/logo.png';
 !isset($conf['logo_water_url']) and $conf['logo_water_url'] = 'view/img/water-small.png';
-$conf['version'] = '4.3.0'; // 定义版本号！避免手工修改 conf/conf.php
+$conf['version'] = '4.3.1'; // 定义版本号！避免手工修改 conf/conf.php
 
 // 转换为绝对路径，防止被包含时出错。
 substr($conf['log_path'], 0, 2) == './' and $conf['log_path'] = APP_PATH . $conf['log_path'];
