@@ -122,7 +122,27 @@ php bin/xiuno upgrade
 - **密码渐进升级**：用户下次登录时，密码自动从 MD5+salt 升级为 bcrypt，无需重置
 - **缓存清理**：清理编译缓存、插件 Hook 缓存和安全模式标记
 
-## 🔌 API 文档
+## � 性能测试 (Benchmark)
+
+项目内置了性能压测脚本，用于采集基线数据和检测性能退化。
+
+```bash
+# Linux（需要 Apache Benchmark）
+sudo apt install apache2-utils   # Ubuntu/Debian
+sudo yum install httpd-tools     # CentOS/RHEL
+
+chmod +x bin/benchmark.sh
+bash bin/benchmark.sh http://你的域名或IP/
+
+# Windows
+bin\benchmark.bat
+```
+
+脚本会自动压测 3 个核心页面（首页、帖子列表、帖子详情），输出 QPS 和 TTFB 汇总，结果保存在 `tmp/bench_*.txt`。
+
+详细基线数据见 [docs/performance_baseline.md](docs/performance_baseline.md)。
+
+## �🔌 API 文档
 
 本项目提供了一套标准的 RESTful API，方便开发移动端或单页应用。
 
