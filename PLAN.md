@@ -104,6 +104,17 @@
 - [x] **表单辅助函数 XSS 补全**：`form_password()` 和 `form_time()` 遗漏了 `htmlspecialchars()` 转义，与已修复的 `form_text/form_hidden/form_textarea` 保持一致。
 - [x] **`thread_inc_views()` 表前缀修复**：将硬编码的 `bbs_thread` 改为 `{$GLOBALS['db']->tablepre}thread`，支持自定义表前缀。
 
+**安全加固与兼容性修复（v4.4.2）：**
+- [x] **BS4→BS5 自动兼容垫片**：`view/js/bs4-compat.js` 自动将旧插件的 `data-toggle` 等 BS4 属性转换为 BS5 格式，含 MutationObserver 监听动态插入元素。
+- [x] **Token 生成加固**：密钥派生从 `md5(xn_key())` 升级为 `hash('sha256', xn_key())`，提升 Token 安全强度。
+- [x] **`$_REQUEST` 参数注入修复**：合并顺序改为 `COOKIE → GET → URL → POST`，POST 最高优先级，防止 URL 参数覆盖表单数据。
+- [x] **`magic_quotes` 死代码清理**：移除 `set_magic_quotes_runtime()` 调用（PHP 8 已移除该函数）。
+- [x] **后台安全状态面板**：后台首页新增 Xiuno Next 信息卡片，显示版本号、CSRF/Bcrypt/HTTPS/DEBUG 状态。
+- [x] **安装流程修复**：版本号 4.3.0→4.4.1，目录权限检测改用绝对路径 + 自动创建缺失目录。
+- [x] **API 路由修复**：`param('action')` 改为 `param(2)`，修复位置参数解析。
+- [x] **退出页面修复**：XSS 转义移入 `jump()` 内部，`message.htm` 恢复原始 HTML 输出。
+- [x] **首页发帖按钮**：为登录用户在首页侧栏添加发帖入口。
+
 - [x] **旧版升级路径**（社区教训：碎片化的根源之一是没有官方升级方案）：
   - 实现 `php bin/xiuno upgrade` 一键升级工具，支持从 4.0.4/4.0.5/4.0.7 等主流分支迁移到 Xiuno Next。
   - 自动检测旧版版本号、密码字段类型、缺失配置项、待执行迁移，生成升级预检报告。
@@ -137,11 +148,11 @@
   - 自动生成 API 文档：基于代码注释或约定生成接口文档，降低对接成本。
   
   > 🐛 **源代码 BUG 审计发现（阶段四修复重点）**：
-  > 1. **PHP 8 废弃特性残留**：`index.php` 仍在使用 `set_magic_quotes_runtime`(PHP 5.3 废弃，8.0 移除)。
-  > 2. **CSRF 防护缺失**：`route/post.php` 和 `route/user.php` 中的表单提交（如发帖、改密）未见 CSRF Token 校验机制。
-  > 3. **XSS 过滤脆弱**：核心模板直接输出 `$first['message_fmt']`，过度依赖入库前的过滤。
-  > 4. **Token 生成机制较弱**：`user_token_gen` 仅依赖 `md5(xn_key())`，如 `xn_key()` 不够强健则易被伪造。
-  > 5. **全局参数注入风险**：`xiunophp.php` 直接 `$_REQUEST = array_merge($_COOKIE, $_POST, $_GET, ...)`，可能导致变量覆盖攻击。
+  > ~~1. **PHP 8 废弃特性残留**~~ ✅ 已清理 `set_magic_quotes_runtime` 死代码。
+  > ~~2. **CSRF 防护缺失**~~ ✅ 已实现全局 CSRF Token 机制。
+  > ~~3. **XSS 过滤脆弱**~~ ✅ 已修复模板输出转义，`jump()` 内部转义。
+  > ~~4. **Token 生成机制较弱**~~ ✅ 已从 `md5()` 升级为 `hash('sha256')`。
+  > ~~5. **全局参数注入风险**~~ ✅ 已修复 `$_REQUEST` 合并顺序，POST 最高优先级。
 - [ ] **CLI 脚手架**：
   - 开发 `xiuno-cli` 工具，支持 `php xiuno make:plugin` 快速创建插件结构。
 - [ ] **自动化测试 (CI/CD)**：
