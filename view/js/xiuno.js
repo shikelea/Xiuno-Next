@@ -740,7 +740,7 @@ $.xget = function (url, callback, retry) {
 				if (match) {
 					s = xn.json_decode(match[0]);
 				}
-				if (!s) return callback(-101, 'Server Response JSON Decode Failed!');
+				if (!s) return callback(-101, r);
 			}
 			if (s.code === undefined) {
 				if ($.isPlainObject(s)) {
