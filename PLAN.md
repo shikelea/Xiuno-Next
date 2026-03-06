@@ -104,9 +104,11 @@
 - [x] **表单辅助函数 XSS 补全**：`form_password()` 和 `form_time()` 遗漏了 `htmlspecialchars()` 转义，与已修复的 `form_text/form_hidden/form_textarea` 保持一致。
 - [x] **`thread_inc_views()` 表前缀修复**：将硬编码的 `bbs_thread` 改为 `{$GLOBALS['db']->tablepre}thread`，支持自定义表前缀。
 
-- [ ] **旧版升级路径**（社区教训：碎片化的根源之一是没有官方升级方案）：
-  - 提供 `php bin/xiuno upgrade` 一键升级工具，支持从 4.0.4/4.0.5/4.0.7 等主流分支迁移到 Xiuno Next。
-  - 自动检测旧版配置、数据库结构差异并生成迁移报告，让站长升级前心中有数。
+- [x] **旧版升级路径**（社区教训：碎片化的根源之一是没有官方升级方案）：
+  - 实现 `php bin/xiuno upgrade` 一键升级工具，支持从 4.0.4/4.0.5/4.0.7 等主流分支迁移到 Xiuno Next。
+  - 自动检测旧版版本号、密码字段类型、缺失配置项、待执行迁移，生成升级预检报告。
+  - 升级流程：配置补全 → 数据库结构检查 → 执行迁移 → 缓存/安全模式清理。
+  - 配置失败时提供手动修复指引，升级记录存储在 `bbs_kv`（`xn_upgraded_from`、`xn_upgraded_date`）。
 
 ### 阶段五：轻量现代化 (Lightweight Modernization Phase)
 **目标**：在**零臃肿**的前提下引入现代实践，为开发者提供更好的工具。

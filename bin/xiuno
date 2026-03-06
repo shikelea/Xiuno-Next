@@ -12,10 +12,12 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
 use Symfony\Component\Console\Application;
 use Xiuno\Console\Command\MakePluginCommand;
 use Xiuno\Console\Command\MigrateCommand;
+use Xiuno\Console\Command\UpgradeCommand;
 
 $application = new Application('Xiuno CLI', '1.0.0');
 
 $application->add(new MakePluginCommand());
 $application->add(new MigrateCommand());
+$application->add(new UpgradeCommand());
 
 $application->run();
