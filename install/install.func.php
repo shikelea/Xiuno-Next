@@ -26,6 +26,7 @@ function get_env(&$env, &$write) {
 
 	$write = array();
 	foreach($writedir as $label => $dir) {
+		if(!is_dir($dir)) @mkdir($dir, 0777, TRUE);
 		$write[$label] = xn_is_writable($dir);
 	}
 }
