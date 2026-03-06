@@ -27,8 +27,8 @@ class UpgradeCommand extends Command
         'static_version' => '?1.0',
     ];
 
-    // 已知旧版版本号
-    private const KNOWN_OLD_VERSIONS = ['4.0.0', '4.0.1', '4.0.2', '4.0.3', '4.0.4', '4.0.5', '4.0.6', '4.0.7', '4.1.0', '4.2.0', '4.3.0'];
+    // 已知旧版主流版本号
+    private const KNOWN_OLD_VERSIONS = ['4.0.4', '4.0.5', '4.0.7'];
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -132,7 +132,7 @@ class UpgradeCommand extends Command
         // 1. 检查密码字段类型
         $tablepre = $this->getTablepre();
         try {
-            $rows = db_exec("SHOW COLUMNS FROM `{$tablepre}user` LIKE 'password'");
+            $rows = db_sql_find("SHOW COLUMNS FROM `{$tablepre}user` LIKE 'password'");
             if ($rows && is_array($rows) && !empty($rows)) {
                 $type = strtolower($rows[0]['Type'] ?? '');
                 if (strpos($type, 'char(32)') !== false || strpos($type, 'char(64)') !== false) {
@@ -237,7 +237,7 @@ class UpgradeCommand extends Command
         $tablepre = $this->getTablepre();
 
         try {
-            $row = db_exec("SHOW COLUMNS FROM `{$tablepre}user` LIKE 'password'");
+            $row = db_sql_find("SHOW COLUMNS FROM `{$tablepre}user` LIKE 'password'");
             if ($row && is_array($row) && !empty($row)) {
                 $type = strtolower($row[0]['Type'] ?? '');
                 if (strpos($type, 'varchar') === false) {
