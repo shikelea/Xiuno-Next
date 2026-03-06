@@ -316,7 +316,7 @@ function user_token_get_do() {
 	// hook model_user_token_get_do_start.php
 	
 	if(empty($token)) return FALSE;
-	$tokenkey = md5(xn_key());
+	$tokenkey = hash('sha256', xn_key());
 	$s = xn_decrypt($token, $tokenkey);
 	if(empty($s)) return FALSE;
 	$arr = explode("\t", $s);
@@ -352,7 +352,7 @@ function user_token_gen($uid) {
 	
 	// hook model_user_token_gen_start.php
 	
-	$tokenkey = md5(xn_key());
+	$tokenkey = hash('sha256', xn_key());
 	$token = xn_encrypt("$ip	$time	$uid", $tokenkey);
 	
 	// hook model_user_token_gen_end.php

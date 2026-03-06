@@ -20,7 +20,7 @@ if(DEBUG == 0) {
 	error_reporting(0);
 	ini_set('display_errors', 0);
 }
-version_compare(PHP_VERSION, '5.3.0', '<') AND set_magic_quotes_runtime(0);
+// magic_quotes 已在 PHP 5.4 移除，PHP 8 不再需要
 $get_magic_quotes_gpc = 0;
 $starttime = microtime(1);
 $time = time();
