@@ -2,7 +2,7 @@
 
 !defined('DEBUG') AND exit('Access Denied.');
 
-$action = param('action');
+$action = param(2);
 
 // 回帖
 if($action == 'create') {

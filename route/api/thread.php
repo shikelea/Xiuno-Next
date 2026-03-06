@@ -2,7 +2,7 @@
 
 !defined('DEBUG') AND exit('Access Denied.');
 
-$action = param('action');
+$action = param(2);
 
 // 帖子列表
 if($action == 'list') {

@@ -9,7 +9,7 @@
 				<h4 class="card-title text-center mb-0">
 					<i class="icon-<?php echo $code == 0 ? 'ok' : 'warning-sign'; ?>"></i> 
 					<!--{hook message_message_before.htm}-->
-					<?php echo is_array($message) ? htmlspecialchars(print_r($message, 1), ENT_QUOTES, 'UTF-8') : htmlspecialchars($message, ENT_QUOTES, 'UTF-8');?>
+					<?php echo is_array($message) ? htmlspecialchars(print_r($message, 1), ENT_QUOTES, 'UTF-8') : $message;?>
 					<!--{hook message_message_after.htm}-->
 				</h4>
 				<!--{hook message_title_after.htm}-->

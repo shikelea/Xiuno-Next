@@ -34,6 +34,9 @@
 		<!--{hook index_main_end.htm}-->
 	</div>
 	<div class="col-lg-3 d-none d-lg-block aside">
+		<?php if($uid) { ?>
+		<a role="button" class="btn btn-primary d-block w-100 mb-3" href="<?php echo url('thread-create-'.(isset($forumlist_show[0]) ? $forumlist_show[0]['fid'] : 1));?>"><?php echo lang('thread_create_new');?></a>
+		<?php } ?>
 		<!--{hook index_site_brief_before.htm}-->
 		<div class="card card-site-info">
 			<!--{hook index_site_brief_start.htm}-->
