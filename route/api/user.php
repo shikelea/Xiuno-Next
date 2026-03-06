@@ -57,7 +57,8 @@ if($action == 'login') {
 		// 如果未传 uid，尝试获取当前登录用户
 		$token = param('token');
 		if($token) {
-			$uid = user_token_get_do($token);
+			$_REQUEST['bbs_token'] = $token;
+			$uid = user_token_get_do();
 		}
 	}
 	
