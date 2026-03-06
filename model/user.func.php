@@ -372,6 +372,33 @@ function user_login_check() {
 	// hook model_user_login_check_end.php
 }
 
+// 密码哈希：使用 bcrypt 生成密码哈希
+function user_hash_password($password) {
+	return password_hash($password, PASSWORD_BCRYPT);
+}
+
+// 密码校验：支持 bcrypt（新）和 md5+salt（旧）双模式
+function user_verify_password($password, $user) {
+	$hash = $user['password'];
+	if (substr($hash, 0, 4) === '$2y$' || substr($hash, 0, 4) === '$2a$') {
+		return password_verify($password, $hash);
+	}
+	return md5($password . $user['salt']) === $hash;
+}
+
+// 密码升级：将旧 MD5 哈希升级为 bcrypt 并写入数据库
+function user_upgrade_password($uid, $password) {
+	$new_hash = user_hash_password($password);
+	user_update($uid, array('password' => $new_hash));
+	return $new_hash;
+}
+
+// 检测密码是否需要升级（仍为旧 MD5 格式）
+function user_password_needs_upgrade($user) {
+	$hash = $user['password'];
+	return substr($hash, 0, 4) !== '$2y$' && substr($hash, 0, 4) !== '$2a$';
+}
+
 // hook model_user_end.php
 
 ?>

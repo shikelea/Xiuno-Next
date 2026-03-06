@@ -82,11 +82,10 @@ if(empty($action) || $action == 'list') {
 		$_user = user_read_by_username($username);
 		$_user AND message('username', lang('user_already_exists'));
 
-		$salt = xn_rand(16);
 		$r = user_create(array(
 			'username'=>$username,
-			'password'=>md5(md5($password).$salt),
-			'salt'=>$salt,
+			'password'=>user_hash_password($password),
+			'salt'=>'',
 			'gid'=>$_gid,
 			'email'=>$email,
 			'create_ip'=>ip2long(ip()),
@@ -153,9 +152,7 @@ if(empty($action) || $action == 'list') {
 		$arr['gid'] = $_gid;
 		
 		if($password) {
-			$salt = xn_rand(16);
-			$arr['password'] = md5(md5($password).$salt);
-			$arr['salt'] = $salt;
+			$arr['password'] = user_hash_password($password);
 		}
 		
 		// hook admin_user_update_post_exec_before.php

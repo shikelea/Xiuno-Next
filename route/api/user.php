@@ -22,14 +22,14 @@ if($action == 'login') {
 		
 		if(empty($user)) api_output(-1, lang('user_not_exists'));
 		
-		if(md5($password.$user['salt']) != $user['password']) {
+		if(!user_verify_password($password, $user)) {
 			api_output(-1, lang('password_incorrect'));
 		}
 		
-		// 登录成功，生成 token
+		user_password_needs_upgrade($user) AND user_upgrade_password($user['uid'], $password);
+		
 		$token = user_token_gen($user['uid']);
 		
-		// 更新登录时间和 IP
 		user_update($user['uid'], array(
 			'login_ip' => $longip,
 			'login_date' => $time,

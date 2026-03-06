@@ -189,10 +189,8 @@ if(empty($action)) {
 		// 初始化
 		copy(APP_PATH.'conf/conf.default.php', APP_PATH.'conf/conf.php');
 		
-		// 管理员密码
-		$salt = xn_rand(16);
-		$password = md5(md5($adminpass).$salt);
-		$update = array('username'=>$adminuser, 'email'=>$adminemail, 'password'=>$password, 'salt'=>$salt, 'create_date'=>$time, 'create_ip'=>$longip);
+		$password = password_hash($adminpass, PASSWORD_BCRYPT);
+		$update = array('username'=>$adminuser, 'email'=>$adminemail, 'password'=>$password, 'salt'=>'', 'create_date'=>$time, 'create_ip'=>$longip);
 		db_update('user', array('uid'=>1), $update);
 		
 		$replace = array();

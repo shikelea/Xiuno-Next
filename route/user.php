@@ -81,10 +81,11 @@ if(empty($action)) {
 		}
 
 		!is_password($password, $err) AND message('password', $err);
-		md5($password.$_user['salt']) != $_user['password'] AND message('password', lang('password_incorrect'));
+		!user_verify_password($password, $_user) AND message('password', lang('password_incorrect'));
 
-		// 更新登录时间和次数
-		// update login times
+		// 渐进式密码升级：旧 MD5 哈希自动迁移为 bcrypt
+		user_password_needs_upgrade($_user) AND user_upgrade_password($_user['uid'], $password);
+
 		user_update($_user['uid'], array('login_ip'=>$longip, 'login_date' =>$time , 'logins+'=>1));
 
 		// 全局变量 $uid 会在结束后，在函数 register_shutdown_function() 中存入 session (文件: model/session.func.php)
@@ -151,14 +152,13 @@ if(empty($action)) {
 		
 		!is_password($password, $err) AND message('password', $err);
 		
-		$salt = xn_rand(16);
-		$pwd = md5($password.$salt);
+		$pwd = user_hash_password($password);
 		$gid = 101;
 		$_user = array (
 			'username' => $username,
 			'email' => $email,
 			'password' => $pwd,
-			'salt' => $salt,
+			'salt' => '',
 			'gid' => $gid,
 			'create_ip' => $longip,
 			'create_date' => $time,
@@ -273,11 +273,10 @@ if(empty($action)) {
 		$password = param('password');
 		empty($password) AND message('password', lang('please_input_password'));
 		
-		$salt = $_user['salt'];
-		$password = md5($password.$salt);
-		user_update($_uid, array('password'=>$password));
-		
 		!is_password($password, $err) AND message('password', $err);
+		
+		$password = user_hash_password($password);
+		user_update($_uid, array('password'=>$password));
 		
 		unset($_SESSION['user_resetpw_email']);
 		unset($_SESSION['user_resetpw_code']);

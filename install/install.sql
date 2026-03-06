@@ -6,7 +6,7 @@ CREATE TABLE `bbs_user` (
   username char(32) NOT NULL DEFAULT '' COMMENT '用户名',
   realname char(16) NOT NULL DEFAULT '' COMMENT '真实姓名',
   idnumber char(19) NOT NULL DEFAULT '' COMMENT '身份证',
-  `password` char(32) NOT NULL DEFAULT '' COMMENT '密码',
+  `password` varchar(255) NOT NULL DEFAULT '' COMMENT '密码',
   `password_sms` char(16) NOT NULL DEFAULT '' COMMENT '手机验证码',
   salt char(16) NOT NULL DEFAULT '' COMMENT '密码混杂',
   mobile char(11) NOT NULL DEFAULT '' COMMENT '手机号',
@@ -27,7 +27,7 @@ CREATE TABLE `bbs_user` (
   UNIQUE KEY email (email),
   KEY gid (gid)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-INSERT INTO `bbs_user` SET uid=1, gid=1, email='admin@admin.com', username='admin',`password`='d98bb50e808918dd45a8d92feafc4fa3',salt='123456';
+INSERT INTO `bbs_user` SET uid=1, gid=1, email='admin@admin.com', username='admin',`password`='',salt='';
 
 DROP TABLE IF EXISTS `bbs_group`;
 CREATE TABLE `bbs_group` (

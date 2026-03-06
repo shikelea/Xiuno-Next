@@ -104,6 +104,30 @@ CLI 工具基于 Symfony Console 组件。
     1.  继承 `Symfony\Component\Console\Command\Command` 类。
     2.  在 `bin/xiuno` 中注册新命令。
 
+## 💾 数据库迁移
+
+当需要修改数据库表结构时，请使用迁移系统而非手动执行 SQL。
+
+*   **迁移文件位置**: `database/migrations/`
+*   **文件命名**: `{序号}_{描述}.php`，如 `0001_alter_user_password_field.php`
+*   **执行迁移**: `php bin/xiuno migrate`
+*   **编写迁移**:
+    ```php
+    <?php
+    return new class {
+        public function up(string $tablepre): void {
+            db_exec("ALTER TABLE `{$tablepre}your_table` ...");
+        }
+    };
+    ```
+
+## 🔐 密码安全
+
+*   **新代码禁止使用 `md5()` 处理密码**，统一使用以下辅助函数：
+    *   `user_hash_password($password)` — 生成 bcrypt 哈希
+    *   `user_verify_password($password, $user)` — 校验密码（自动兼容旧 MD5 和新 bcrypt）
+    *   `user_upgrade_password($uid, $password)` — 将旧哈希升级为 bcrypt
+
 ## 💾 Git 提交规范
 
 我们推荐使用 **Conventional Commits** 规范，并**建议使用中文**描述。
