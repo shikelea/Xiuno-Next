@@ -148,6 +148,8 @@ function thread_inc_views($tid, $n = 1) {
 	// hook model_thread_inc_views_start.php
 	global $conf;
 	if(!$conf['update_views_on']) return TRUE;
+	$tid = intval($tid);
+	$n = intval($n);
 	$sqladd = strpos($conf['db']['type'], 'mysql') === FALSE ? '' : ' LOW_PRIORITY';
 	$r = db_exec("UPDATE$sqladd `bbs_thread` SET views=views+$n WHERE tid='$tid'");
 	// hook model_thread_inc_views_end.php

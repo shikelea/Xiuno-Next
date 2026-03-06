@@ -90,11 +90,15 @@
 - [x] **安全响应头**（第一批）：
   - 添加 `X-Content-Type-Options: nosniff`、`X-Frame-Options: SAMEORIGIN`、`Referrer-Policy: strict-origin-when-cross-origin`。
   - CSP 和 HSTS 留待下一批（需审计内联脚本和确认 HTTPS 部署）。
-- [ ] **XSS/CSRF 加固**：
-  - 审计所有用户输入输出路径，确保 `htmlspecialchars()` 覆盖完整。
-  - 为所有 POST 表单和 API 接口统一 CSRF Token 校验。
-- [ ] **SQL 注入防护审计**：
-  - 全量扫描 `db_exec()` / `db_query()` 调用，确认参数化查询覆盖率。
+- [x] **XSS/CSRF 加固**：
+  - 实现全局 CSRF token 机制：`csrf_token()` 生成、`csrf_check()` 校验，通过 `$.ajaxSetup` 自动附带到所有 AJAX POST 请求。
+  - 在 `index.inc.php` 和 `admin/index.inc.php` 中对所有 POST 请求统一校验（API 路由除外，使用自身鉴权）。
+  - 修复 `message.htm`（前台/后台/安装）的 XSS：对 `$message` 输出做 `htmlspecialchars`。
+  - 修复 `form_text()`、`form_hidden()`、`form_textarea()` 表单辅助函数，对 value 做 HTML 转义。
+  - 修复 `post.htm` 编辑表单中 `$form_subject` 和 `$form_message` 的 XSS。
+- [x] **SQL 注入防护审计**：
+  - 修复 `thread_inc_views()` 中的直接 SQL 拼接，强制 `intval()` 转换参数。
+  - 审计确认 `db_cond_to_sqladd()` 的 `addslashes` 在 UTF-8 下安全。
 - [ ] **旧版升级路径**（社区教训：碎片化的根源之一是没有官方升级方案）：
   - 提供 `php bin/xiuno upgrade` 一键升级工具，支持从 4.0.4/4.0.5/4.0.7 等主流分支迁移到 Xiuno Next。
   - 自动检测旧版配置、数据库结构差异并生成迁移报告，让站长升级前心中有数。

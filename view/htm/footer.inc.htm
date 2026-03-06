@@ -62,7 +62,9 @@
 	var fid = <?php echo $fid;?>;
 	var uid = <?php echo intval($uid);?>;
 	var gid = <?php echo intval($gid);?>;
-	xn.options.water_image_url = '<?php echo $conf['logo_water_url'];?>';	// 水印图片 / watermark image
+	var csrf_token = '<?php echo csrf_token();?>';
+	xn.options.water_image_url = '<?php echo $conf['logo_water_url'];?>';
+	$.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN',csrf_token);}});
 	</script>
 	<script src="<?php echo $conf['view_url'];?>js/bbs.js<?php echo $static_version;?>"></script>
 	<!--{hook footer_js_after.htm}-->
