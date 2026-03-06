@@ -69,13 +69,13 @@
 - [x] **v4.3.0 (Experience)**: 重构默认主题 (Bootstrap 5)，修复后台样式，CLI 脚手架，建立核心场景性能基准，完善 SEO 基础。
 - [x] **v4.3.1 (Audit)**: 代码审查修复：API 响应结构规范化、安全模式路径加固、BS4 残留清理、CLI 脚手架修复。
 - [x] **v4.4.0 (Security)**: 安全加固第一批：数据库迁移系统、密码哈希迁移 (MD5→bcrypt)、安全响应头。
-- [x] **v4.4.1 (Security)**: 安全加固第二批：CSRF 防护、XSS 修复、SQL 注入加固。
+- [x] **v4.4.1 (Security)**: 安全加固第二批：CSRF 防护、XSS 修复、SQL 注入加固、旧版一键升级工具。
 - [ ] **v4.5.0 (Modernization)**: 轻量现代化：HTMX 渐进增强、API 扩展、CLI 工具完善。
 - [ ] **v5.0.0 (Next)**: 全新的插件市场和主题引擎。
 
 ## 💻 命令行工具 (CLI)
 
-本项目内置了 `xiuno` 命令行工具，用于辅助开发。
+本项目内置了 `xiuno` 命令行工具，用于辅助开发和运维。
 
 **使用方法**:
 
@@ -83,12 +83,44 @@
 # 确保已安装依赖
 composer install
 
-# 查看帮助
+# 查看所有可用命令
 php bin/xiuno list
 
 # 创建新插件
 php bin/xiuno make:plugin <plugin_name>
+
+# 执行数据库迁移
+php bin/xiuno migrate
+
+# 从旧版 Xiuno BBS 升级到 Xiuno Next
+php bin/xiuno upgrade
 ```
+
+### 升级指南 (从 4.0.x 升级)
+
+支持从 Xiuno BBS 4.0.4 / 4.0.5 / 4.0.7 等主流版本一键升级到 Xiuno Next。
+
+```bash
+# 1. 备份！备份数据库和所有文件
+mysqldump -u root -p your_db > backup.sql
+cp -r /path/to/xiuno /path/to/xiuno_backup
+
+# 2. 将 Xiuno Next 代码覆盖到站点目录（保留 conf/conf.php 和 upload/ 目录）
+
+# 3. 安装 Composer 依赖
+composer install
+
+# 4. 运行升级工具
+php bin/xiuno upgrade
+```
+
+升级工具会自动完成以下操作：
+- **版本检测**：识别当前安装的旧版版本号
+- **升级预检报告**：列出所有待执行的变更（配置补全、数据库迁移等），确认后再执行
+- **配置迁移**：自动添加旧版缺失的配置项（如 `csrf_on`、`disabled_plugin` 等）
+- **数据库迁移**：扩展 `password` 字段至 `varchar(255)` 以支持 bcrypt 哈希
+- **密码渐进升级**：用户下次登录时，密码自动从 MD5+salt 升级为 bcrypt，无需重置
+- **缓存清理**：清理编译缓存、插件 Hook 缓存和安全模式标记
 
 ## 🔌 API 文档
 
