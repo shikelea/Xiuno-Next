@@ -92,6 +92,7 @@ function form_password($name, $value, $width = FALSE) {
 		is_numeric($width) AND $width .= 'px';
 		$style = " style=\"width: $width\"";
 	}
+	$value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 	$s = "<input type=\"password\" name=\"$name\" id=\"$name\" class=\"form-control\" value=\"$value\" $style />";
 	return $s;
 }
@@ -102,6 +103,7 @@ function form_time($name, $value, $width = FALSE) {
 		is_numeric($width) AND $width .= 'px';
 		$style = " style=\"width: $width\"";
 	}
+	$value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 	$s = "<input type=\"text\" name=\"$name\" id=\"$name\" class=\"form-control\" value=\"$value\" $style />";
 	return $s;
 }
