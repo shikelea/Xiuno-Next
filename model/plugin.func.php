@@ -416,20 +416,8 @@ function plugin_official_list($cond = array(), $orderby = array('pluginid'=>-1),
 }
 
 function plugin_official_list_cache() {
-	$s = DEBUG == 3 ? NULL : cache_get('plugin_official_list');
-	if($s === NULL) {
-		$url = PLUGIN_OFFICIAL_URL."plugin-all-4.htm"; // 获取所有的插件，匹配到3.0以上的。
-		$s = http_get($url, '', 3, 1); // 短超时，避免死服务器阻塞页面
-		
-		// 检查返回值是否正确
-		if(empty($s)) { cache_set('plugin_official_list', array(), 300); return array(); }
-		$r = xn_json_decode($s);
-		if(empty($r)) { cache_set('plugin_official_list', array(), 300); return array(); }
-		
-		$s = $r;
-		cache_set('plugin_official_list', $s, 3600); // 缓存时间 1 小时。
-	}
-	return $s;
+	// 官方插件市场已关闭，直接返回空数组
+	return array();
 }
 
 function plugin_official_read($dir) {
