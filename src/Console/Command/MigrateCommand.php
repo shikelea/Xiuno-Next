@@ -58,8 +58,7 @@ class MigrateCommand extends Command
             $io->text("执行: $name ...");
             try {
                 $migration = require $file;
-                $conf = $GLOBALS['conf'];
-                $tablepre = $conf['db'][$conf['db']['type']]['tablepre'];
+                $tablepre = $_SERVER['db']->tablepre ?? 'bbs_';
                 $migration->up($tablepre);
                 $this->recordMigration($name);
                 $io->text("  完成: $name");
@@ -75,9 +74,9 @@ class MigrateCommand extends Command
 
     private function bootstrap(string $appPath): void
     {
-        define('DEBUG', 0);
-        define('APP_PATH', $appPath);
-        define('XIUNOPHP_PATH', $appPath . 'xiunophp/');
+        if (!defined('DEBUG')) define('DEBUG', 0);
+        if (!defined('APP_PATH')) define('APP_PATH', $appPath);
+        if (!defined('XIUNOPHP_PATH')) define('XIUNOPHP_PATH', $appPath . 'xiunophp/');
 
         $conf = (include $appPath . 'conf/conf.php');
         substr($conf['tmp_path'], 0, 2) == './' and $conf['tmp_path'] = APP_PATH . $conf['tmp_path'];

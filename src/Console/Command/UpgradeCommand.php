@@ -330,8 +330,7 @@ class UpgradeCommand extends Command
 
     private function getTablepre(): string
     {
-        $conf = $GLOBALS['conf'];
-        return $conf['db'][$conf['db']['type']]['tablepre'] ?? 'bbs_';
+        return $_SERVER['db']->tablepre ?? 'bbs_';
     }
 
     private function getExecutedMigrations(): array
