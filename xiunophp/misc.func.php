@@ -191,8 +191,9 @@ function jump($message, $url = '', $delay = 3) {
 	if($ajax) return $message;
 	if(!$url) return $message;
 	$url == 'back' AND $url = 'javascript:history.back()';
+	$safe_message = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
 	$htmladd = '<script>setTimeout(function() {window.location=\''.$url.'\'}, '.($delay * 1000).');</script>';
-	return '<a href="'.$url.'">'.$message.'</a>'.$htmladd;
+	return '<a href="'.$url.'">'.$safe_message.'</a>'.$htmladd;
 }
 
 function xn_strlen($s) {

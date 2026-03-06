@@ -2,7 +2,7 @@
 
 !defined('DEBUG') AND exit('Access Denied.');
 
-$action = param('action');
+$action = param(2);
 
 // 用户登录
 if($action == 'login') {
