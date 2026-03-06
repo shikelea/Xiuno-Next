@@ -99,6 +99,11 @@
 - [x] **SQL 注入防护审计**：
   - 修复 `thread_inc_views()` 中的直接 SQL 拼接，强制 `intval()` 转换参数。
   - 审计确认 `db_cond_to_sqladd()` 的 `addslashes` 在 UTF-8 下安全。
+**代码审查修复（v4.4.1）：**
+- [x] **API 登录密码校验修复**：API 端收到原始密码但存储格式为 `bcrypt(md5(password))`，需服务端 `md5()` 对齐浏览器行为，否则 API 登录永远失败。
+- [x] **表单辅助函数 XSS 补全**：`form_password()` 和 `form_time()` 遗漏了 `htmlspecialchars()` 转义，与已修复的 `form_text/form_hidden/form_textarea` 保持一致。
+- [x] **`thread_inc_views()` 表前缀修复**：将硬编码的 `bbs_thread` 改为 `{$GLOBALS['db']->tablepre}thread`，支持自定义表前缀。
+
 - [ ] **旧版升级路径**（社区教训：碎片化的根源之一是没有官方升级方案）：
   - 提供 `php bin/xiuno upgrade` 一键升级工具，支持从 4.0.4/4.0.5/4.0.7 等主流分支迁移到 Xiuno Next。
   - 自动检测旧版配置、数据库结构差异并生成迁移报告，让站长升级前心中有数。

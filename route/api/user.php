@@ -15,6 +15,9 @@ if($action == 'login') {
 		if(empty($email)) api_output(-1, lang('email_is_empty'));
 		if(empty($password)) api_output(-1, lang('password_is_empty'));
 		
+		// API 客户端发送原始密码（无浏览器端 JS MD5），服务端需对齐浏览器行为
+		$password = md5($password);
+		
 		$user = user_read_by_email($email);
 		if(empty($user)) {
 			$user = user_read_by_username($email);
