@@ -33,9 +33,9 @@ if(IN_CMD) {
 	!isset($_SERVER['REQUEST_METHOD']) AND $_SERVER['REQUEST_METHOD'] = 'GET';
 } else {
 	header("Content-type: text/html; charset=utf-8");
-	//header("Cache-Control: max-age=0;"); // 手机返回的时候回导致刷新
-	//header("Cache-Control: no-store;");
-	//header("X-Powered-By: XiunoPHP 4.0");
+	header("X-Content-Type-Options: nosniff");
+	header("X-Frame-Options: SAMEORIGIN");
+	header("Referrer-Policy: strict-origin-when-cross-origin");
 }
 
 // hook xiunophp_include_before.php

@@ -79,19 +79,22 @@
 
 > ⚠️ **为什么安全在生态之前？** 不能在不安全的地基上邀请社区建设。密码还在用 MD5，就开放插件市场，是对用户的不负责任。
 
-- [ ] **数据库迁移系统**（安全迁移的前置依赖）：
-  - 轻量 Migration 机制（基于版本号的 SQL 文件），支持 `php bin/xiuno migrate` 安全升级数据库结构。
-  - 密码哈希迁移需要修改 `user` 表字段长度，因此迁移系统必须先就位。
-- [ ] **密码哈希迁移**：
+- [x] **数据库迁移系统**（安全迁移的前置依赖）：
+  - 轻量 Migration 机制（基于版本号的 PHP 文件），支持 `php bin/xiuno migrate` 安全升级数据库结构。
+  - 迁移记录存储在 `bbs_kv` 表，无需新建表。迁移文件位于 `database/migrations/`。
+- [x] **密码哈希迁移**：
   - 将 MD5+salt 迁移至 `password_hash()` / `password_verify()` (bcrypt)。
-  - 实现**渐进式迁移**：用户登录时自动升级哈希，无需重置密码。
+  - 实现**渐进式迁移**：用户登录时自动检测旧哈希并升级为 bcrypt，无需重置密码。
+  - 提供 `user_verify_password()`、`user_hash_password()`、`user_upgrade_password()` 辅助函数，供插件调用。
+  - 保留 `salt` 字段确保旧插件兼容性，双模式校验永久保留。
+- [x] **安全响应头**（第一批）：
+  - 添加 `X-Content-Type-Options: nosniff`、`X-Frame-Options: SAMEORIGIN`、`Referrer-Policy: strict-origin-when-cross-origin`。
+  - CSP 和 HSTS 留待下一批（需审计内联脚本和确认 HTTPS 部署）。
 - [ ] **XSS/CSRF 加固**：
   - 审计所有用户输入输出路径，确保 `htmlspecialchars()` 覆盖完整。
   - 为所有 POST 表单和 API 接口统一 CSRF Token 校验。
 - [ ] **SQL 注入防护审计**：
   - 全量扫描 `db_exec()` / `db_query()` 调用，确认参数化查询覆盖率。
-- [ ] **安全响应头**：
-  - 添加 `Content-Security-Policy`、`X-Content-Type-Options`、`Strict-Transport-Security` 等标准安全头。
 - [ ] **旧版升级路径**（社区教训：碎片化的根源之一是没有官方升级方案）：
   - 提供 `php bin/xiuno upgrade` 一键升级工具，支持从 4.0.4/4.0.5/4.0.7 等主流分支迁移到 Xiuno Next。
   - 自动检测旧版配置、数据库结构差异并生成迁移报告，让站长升级前心中有数。

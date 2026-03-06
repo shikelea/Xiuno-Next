@@ -24,7 +24,7 @@ if($action == 'login') {
 		
 		$password = param('password');
 
-		if(md5($password.$user['salt']) != $user['password']) {
+		if(!user_verify_password($password, $user)) {
 			xn_log('password error. uid:'.$user['uid'].' - ******'.substr($password, -6), 'admin_login_error');
 			message('password', lang('password_incorrect'));
 		}
