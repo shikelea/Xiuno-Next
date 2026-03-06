@@ -84,6 +84,13 @@ class UpgradeCommand extends Command
         kv_set('xn_upgraded_from', $currentVersion);
         kv_set('xn_upgraded_date', date('Y-m-d H:i:s'));
 
+        // 将新版本号写入 conf.php，防止重复触发升级
+        try {
+            file_replace_var(APP_PATH . 'conf/conf.php', ['version' => self::TARGET_VERSION]);
+        } catch (\Throwable $e) {
+            $io->text('  [提示] 请手动将 conf.php 中的 version 改为 \'' . self::TARGET_VERSION . '\'');
+        }
+
         $io->newLine();
         $io->success('升级成功！当前版本: ' . self::TARGET_VERSION);
         $io->text([
