@@ -24,6 +24,21 @@
 			</div>
 		</div>
 		
+		<!--{hook admin_index_security_before.htm}-->
+		
+		<div class="card">
+			<div class="card-body">
+				<h5 class="card-title">Xiuno Next</h5>
+				<div class="row">
+					<div class="col-md-4"><span class="text-muted">Version：</span><b><?php echo $security['version'];?></b></div>
+					<div class="col-md-4"><span class="text-muted">CSRF：</span><?php echo $security['csrf_on'] ? '<span class="text-success">ON</span>' : '<span class="text-danger">OFF</span>';?></div>
+					<div class="col-md-4"><span class="text-muted">Bcrypt：</span><?php echo $security['bcrypt_ready'] ? '<span class="text-success">Ready</span>' : '<span class="text-danger">N/A</span>';?></div>
+					<div class="col-md-4"><span class="text-muted">HTTPS：</span><?php echo $security['https'] ? '<span class="text-success">ON</span>' : '<span class="text-warning">OFF</span>';?></div>
+					<div class="col-md-4"><span class="text-muted">DEBUG：</span><?php echo $security['debug'] ? '<span class="text-warning">ON ('.$security['debug'].')</span>' : '<span class="text-success">OFF</span>';?></div>
+				</div>
+			</div>
+		</div>
+		
 		<!--{hook admin_index_server_info_before.htm}-->
 		
 		<div class="card">

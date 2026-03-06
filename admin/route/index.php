@@ -83,6 +83,13 @@ if($action == 'login') {
 	$stat['attachs'] = attach_count();
 	$stat['disk_free_space'] = function_exists('disk_free_space') ? humansize(disk_free_space(APP_PATH)) : lang('unknown');
 	
+	$security = array();
+	$security['version'] = $conf['version'];
+	$security['csrf_on'] = !empty($conf['csrf_on']);
+	$security['bcrypt_ready'] = function_exists('password_hash');
+	$security['https'] = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+	$security['debug'] = DEBUG;
+	
 	$lastversion = get_last_version($stat);
 	
 	// hook admin_index_empty_end.php

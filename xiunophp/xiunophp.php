@@ -20,7 +20,7 @@ if(DEBUG == 0) {
 	error_reporting(0);
 	ini_set('display_errors', 0);
 }
-version_compare(PHP_VERSION, '5.3.0', '<') AND set_magic_quotes_runtime(0);
+// magic_quotes 已在 PHP 5.4 移除，PHP 8 不再需要
 $get_magic_quotes_gpc = 0;
 $starttime = microtime(1);
 $time = time();
@@ -89,7 +89,7 @@ date_default_timezone_set($conf['timezone']);
 !empty($_SERVER['HTTP_X_REWRITE_URL']) AND $_SERVER['REQUEST_URI'] = $_SERVER['HTTP_X_REWRITE_URL'];
 !isset($_SERVER['REQUEST_URI']) AND $_SERVER['REQUEST_URI'] = '';
 $_SERVER['REQUEST_URI'] = str_replace('/index.php?', '/', $_SERVER['REQUEST_URI']); // 兼容 iis6
-$_REQUEST = array_merge($_COOKIE, $_POST, $_GET, xn_url_parse($_SERVER['REQUEST_URI']));
+$_REQUEST = array_merge($_COOKIE, $_GET, xn_url_parse($_SERVER['REQUEST_URI']), $_POST);
 
 // IP 地址
 !isset($_SERVER['REMOTE_ADDR']) AND $_SERVER['REMOTE_ADDR'] = '';
