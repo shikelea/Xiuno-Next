@@ -62,3 +62,24 @@
         observer.observe(document.documentElement, { childList: true, subtree: true });
     }
 })();
+
+// CSRF 自动设置：从 meta tag 读取，确保主题覆盖 footer 时 CSRF 不丢失
+(function() {
+    'use strict';
+    function setupCsrf() {
+        if (typeof window.csrf_token === 'undefined' || !window.csrf_token) {
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta && typeof jQuery !== 'undefined') {
+                window.csrf_token = meta.getAttribute('content');
+                jQuery.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN', window.csrf_token);}});
+            }
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupCsrf);
+    } else {
+        setupCsrf();
+    }
+    // 延迟再检查一次，确保在所有脚本加载后生效
+    setTimeout(setupCsrf, 100);
+})();
