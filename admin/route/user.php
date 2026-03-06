@@ -84,7 +84,7 @@ if(empty($action) || $action == 'list') {
 
 		$r = user_create(array(
 			'username'=>$username,
-			'password'=>user_hash_password($password),
+			'password'=>user_hash_password(md5($password)),
 			'salt'=>'',
 			'gid'=>$_gid,
 			'email'=>$email,
@@ -152,7 +152,7 @@ if(empty($action) || $action == 'list') {
 		$arr['gid'] = $_gid;
 		
 		if($password) {
-			$arr['password'] = user_hash_password($password);
+			$arr['password'] = user_hash_password(md5($password));
 		}
 		
 		// hook admin_user_update_post_exec_before.php
