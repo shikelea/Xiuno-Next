@@ -41,9 +41,7 @@ $.confirm = function(subject, ok_callback, options) {
 			<div class="modal-content">\
 				<div class="modal-header">\
 					<h5 class="modal-title">'+title+'</h5>\
-					<button type="button" class="close" data-dismiss="modal" aria-label="Close">\
-						<span aria-hidden="true">&times;</span>\
-					</button>\
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\
 				</div>\
 				<div class="modal-body">\
 					'+subject+'\
@@ -51,7 +49,7 @@ $.confirm = function(subject, ok_callback, options) {
 				</div>\
 				<div class="modal-footer">\
 					<button type="button" class="btn btn-primary">'+lang.confirm+'</button>\
-					<button type="button" class="btn btn-secondary" data-dismiss="modal">'+lang.close+'</button>\
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">'+lang.close+'</button>\
 				</div>\
 			</div>\
 		</div>\
