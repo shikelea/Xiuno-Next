@@ -139,6 +139,11 @@
 - [x] **BS4 Modal JS API 代理**：`bs4-compat.js` 新增 `jQuery.fn.modal()` 方法代理，将 BS4 的 `.modal('show'/'hide')` 调用转发到 BS5 `bootstrap.Modal` 实例。
 - [x] **后台加载 bs4-compat.js**：`admin/view/htm/footer.inc.htm` 新增 `bs4-compat.js` 引用，确保后台插件也受益于兼容层。
 - [x] **核心模板 BS4 残留清理**：`post.htm` 和 `mod_move.htm` 中的 `custom-select` 替换为 `form-select`；移除前后台 header 中冗余的内联 BS4 兼容样式。
+- [x] **GitHub 加速代理**：在线更新支持代理加速，解决中国大陆服务器无法直连 GitHub 的问题。
+  - 内置 3 个加速节点：EdgeOne（腾讯CDN）、GH-Proxy、LLKK。
+  - 支持自定义代理地址。
+  - 一键测试全部代理连通性和延迟（毫秒级），状态即时显示。
+  - 代理设置持久化到 `conf.php`，检查更新和下载更新时自动使用。
 
 ### 阶段五：轻量现代化 (Lightweight Modernization Phase)
 **目标**：在**零臃肿**的前提下引入现代实践，为开发者提供更好的工具。

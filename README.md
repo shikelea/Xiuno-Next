@@ -71,7 +71,7 @@
 - [x] **v4.4.0 (Security)**: 安全加固第一批：数据库迁移系统、密码哈希迁移 (MD5→bcrypt)、安全响应头。
 - [x] **v4.4.1 (Security)**: 安全加固第二批：CSRF 防护、XSS 修复、SQL 注入加固、旧版一键升级工具。
 - [x] **v4.4.2 (Hardening)**: BS4→BS5 兼容垫片、Token 加固、参数注入修复、后台安全面板、安装/API/退出修复。
-- [x] **v4.4.3 (Performance & Compat)**: 插件页性能优化、CSRF 主题兼容、管理操作修复、后台一键在线更新、BS4→BS5 全面兼容层（CSS 类名别名 + CSRF 表单注入 + Modal API 代理）。
+- [x] **v4.4.3 (Performance & Compat)**: 插件页性能优化、CSRF 主题兼容、管理操作修复、后台一键在线更新（含 GitHub 加速代理）、BS4→BS5 全面兼容层。
 - [ ] **v4.5.0 (Modernization)**: 轻量现代化：HTMX 渐进增强、API 扩展、CLI 工具完善。
 - [ ] **v5.0.0 (Next)**: 全新的插件市场和主题引擎。
 
