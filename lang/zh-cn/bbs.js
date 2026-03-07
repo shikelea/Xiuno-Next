@@ -16,5 +16,9 @@ var lang = {
 	'update_retry': '重试',
 	'update_reload': '更新成功，是否刷新页面？',
 	'update_step_download': '正在下载最新版本...',
+	'update_proxy_testing': '测试中...',
+	'update_proxy_available': '可用',
+	'update_proxy_unavailable': '不可用',
+	'update_proxy_save_ok': '代理设置已保存',
 	// hook lang_zh_cn_bbs_js.htm
 };
