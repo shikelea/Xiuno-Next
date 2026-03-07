@@ -222,6 +222,7 @@ return array(
 	'update_proxy_save'=>'Save Proxy Settings',
 	'update_proxy_saved'=>'Proxy settings saved',
 	'update_proxy_unreachable'=>'Proxy unreachable or connection timed out',
+	'update_proxy_fallback_used'=>'(Proxy unavailable, automatically fell back to direct connection)',
 	
 	// hook lang_en_us_bbs_admin.php
 	

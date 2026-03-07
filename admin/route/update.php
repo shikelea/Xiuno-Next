@@ -24,9 +24,15 @@ if ($action == 'check') {
 
 	// 读取已保存的代理设置
 	$saved_proxy = isset($conf['github_proxy']) ? $conf['github_proxy'] : '';
+	$proxy_fallback = FALSE;
 
 	$current_version = $conf['version'];
 	$latest = update_github_latest_release($saved_proxy);
+	if ($latest === FALSE && !empty($saved_proxy)) {
+		// 代理可能不可用：自动回退直连重试
+		$latest = update_github_latest_release('');
+		$proxy_fallback = ($latest !== FALSE);
+	}
 	$latest_version = '';
 	$has_update = FALSE;
 	$error = '';
@@ -90,10 +96,16 @@ if ($action == 'check') {
 
 	// 读取代理设置
 	$proxy = isset($conf['github_proxy']) ? $conf['github_proxy'] : '';
+	$proxy_fallback_used = FALSE;
 
 	$latest = update_github_latest_release($proxy);
 	if ($latest === FALSE) {
-		message(-1, lang('update_check_failed'));
+		// 代理可能不可用：自动回退直连重试
+		if (!empty($proxy)) {
+			$latest = update_github_latest_release('');
+			$proxy_fallback_used = ($latest !== FALSE);
+		}
+		if ($latest === FALSE) message(-1, lang('update_check_failed'));
 	}
 
 	$latest_version = ltrim($latest['tag_name'], 'vV');
@@ -113,7 +125,14 @@ if ($action == 'check') {
 	$zipfile = $conf['tmp_path'] . 'update_' . $latest_version . '.zip';
 	$zipdata = update_github_download($actual_url);
 	if ($zipdata === FALSE || empty($zipdata)) {
-		message(-1, lang('update_download_failed'));
+		// 代理不可用：自动回退直连重试
+		if (!empty($proxy)) {
+			$zipdata = update_github_download($download_url);
+			$proxy_fallback_used = TRUE;
+		}
+		if ($zipdata === FALSE || empty($zipdata)) {
+			message(-1, lang('update_download_failed'));
+		}
 	}
 	file_put_contents($zipfile, $zipdata);
 
@@ -153,7 +172,9 @@ if ($action == 'check') {
 		foreach ($cachefiles as $f) @unlink($f);
 	}
 
-	message(0, lang('update_success', array('version' => $latest_version)));
+	$msg = lang('update_success', array('version' => $latest_version));
+	if (!empty($proxy_fallback_used)) $msg .= ' ' . lang('update_proxy_fallback_used');
+	message(0, $msg);
 
 }
 
