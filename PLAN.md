@@ -130,6 +130,15 @@
   - 下载 zip → 解压 → 递归覆盖核心文件，自动跳过 `conf/`、`plugin/`、`upload/`、`tmp/` 等用户数据目录。
   - 更新完成后自动写入新版本号并清理缓存。
   - 后台导航栏新增「更新」入口，支持中英文。
+- [x] **BS4→BS5 CSS 兼容层**：新增 `view/css/bs4-compat.css`，为所有 BS4 废弃类名提供别名样式。
+  - 覆盖 `form-group`、`custom-select`、`custom-control`、`badge-*`、`float-left/right`、`text-left/right`、`font-weight-*`、`sr-only`、`btn-block`、`dropdown-menu-right`、`media`、`jumbotron`、`card-deck`、`card-columns`、`embed-responsive` 等全部 BS4→BS5 变更类名。
+  - 旧插件/主题无需修改代码即可正常渲染，在前台和后台 header 中自动加载。
+- [x] **CSRF 表单自动兼容**：`bs4-compat.js` 新增自动为所有 `form[method=post]` 注入 `_token` hidden 字段。
+  - 通过 MutationObserver 监听动态插入的表单，确保 AJAX 加载的模态窗口表单也被覆盖。
+  - 解决传统表单 POST 提交（非 `$.xpost`）无法通过 `csrf_check()` 的问题。
+- [x] **BS4 Modal JS API 代理**：`bs4-compat.js` 新增 `jQuery.fn.modal()` 方法代理，将 BS4 的 `.modal('show'/'hide')` 调用转发到 BS5 `bootstrap.Modal` 实例。
+- [x] **后台加载 bs4-compat.js**：`admin/view/htm/footer.inc.htm` 新增 `bs4-compat.js` 引用，确保后台插件也受益于兼容层。
+- [x] **核心模板 BS4 残留清理**：`post.htm` 和 `mod_move.htm` 中的 `custom-select` 替换为 `form-select`；移除前后台 header 中冗余的内联 BS4 兼容样式。
 
 ### 阶段五：轻量现代化 (Lightweight Modernization Phase)
 **目标**：在**零臃肿**的前提下引入现代实践，为开发者提供更好的工具。
