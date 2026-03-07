@@ -42,6 +42,7 @@
 	<?php $bootstrap_css = !empty($bootstrap_css) ? $bootstrap_css : $conf['view_url']."css/bootstrap.css".$static_version; ?>
 	<link rel="stylesheet" href="<?php echo $bootstrap_css;?>">
 	<!--{hook header_bootstrap_after.htm}-->
+	<link rel="stylesheet" href="<?php echo $conf['view_url'];?>css/bs4-compat.css<?php echo $static_version;?>">
 	
 	<!--{hook header_bootstrap_bbs_before.htm}-->
 	<?php $bootstrap_bbs_css = !empty($bootstrap_bbs_css) ? $bootstrap_bbs_css : $conf['view_url']."css/bootstrap-bbs.css".$static_version; ?>
@@ -69,10 +70,7 @@
 		.icon-remove:before { content: "\f00d"; }
 		.icon-check:before { content: "\f00c"; }
 		.icon-mail-forward:before { content: "\f064"; }
-		/* Bootstrap 5 Compatibility Fixes */
-		.input-group-prepend { display: flex; }
-		.input-group-text { display: flex; align-items: center; padding: .375rem .75rem; margin-bottom: 0; font-size: 1rem; font-weight: 400; line-height: 1.5; color: #495057; text-align: center; white-space: nowrap; background-color: #e9ecef; border: 1px solid #ced4da; border-radius: .25rem; }
-		.btn-block { display: block; width: 100%; }
+		/* Bootstrap 5 Compatibility: 详见 bs4-compat.css */
 	</style>
 	<!--{hook header_bootstrap_bbs_after.htm}-->
 	

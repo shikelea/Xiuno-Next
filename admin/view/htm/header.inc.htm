@@ -26,6 +26,7 @@
 	<!--{hook admin_header_bootstrap_before.htm}-->
 	<link rel="stylesheet" href="../view/css/bootstrap.css<?php echo $static_version;?>">
 	<!--{hook admin_header_bootstrap_after.htm}-->
+	<link rel="stylesheet" href="../view/css/bs4-compat.css<?php echo $static_version;?>">
 	
 	<!--{hook admin_header_bootstrap_bbs_before.htm}-->
 	<link rel="stylesheet" href="../view/css/bootstrap-bbs.css<?php echo $static_version;?>">
@@ -47,10 +48,7 @@
 		.icon-top-2:before { content: "\f062"; color: #ffc107; }
 		.icon-top-3:before { content: "\f062"; color: #dc3545; }
 		.icon-filetype:before { content: "\f15b"; }
-		/* Bootstrap 5 Compatibility Fixes */
-		.input-group-prepend { display: flex; }
-		.input-group-text { display: flex; align-items: center; padding: .375rem .75rem; margin-bottom: 0; font-size: 1rem; font-weight: 400; line-height: 1.5; color: #495057; text-align: center; white-space: nowrap; background-color: #e9ecef; border: 1px solid #ced4da; border-radius: .25rem; }
-		.btn-block { display: block; width: 100%; }
+		/* Bootstrap 5 Compatibility: 详见 bs4-compat.css */
 	</style>
 	<!--{hook admin_header_bootstrap_bbs_after.htm}-->
 	

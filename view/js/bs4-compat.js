@@ -83,3 +83,66 @@
     // 延迟再检查一次，确保在所有脚本加载后生效
     setTimeout(setupCsrf, 100);
 })();
+
+// CSRF 表单兼容：自动为所有 form[method=post] 注入 _token hidden 字段
+(function() {
+    'use strict';
+    function injectCsrfToForms() {
+        var token = window.csrf_token;
+        if (!token) {
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta) token = meta.getAttribute('content');
+        }
+        if (!token) return;
+        var forms = document.querySelectorAll('form[method="post"], form[method="POST"]');
+        for (var i = 0; i < forms.length; i++) {
+            if (forms[i].querySelector('input[name="_token"]')) continue;
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = '_token';
+            input.value = token;
+            forms[i].appendChild(input);
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', injectCsrfToForms);
+    } else {
+        injectCsrfToForms();
+    }
+    // 监听动态插入的表单
+    if (typeof MutationObserver !== 'undefined') {
+        var observer = new MutationObserver(function(mutations) {
+            var hasNewNodes = false;
+            for (var i = 0; i < mutations.length; i++) {
+                if (mutations[i].addedNodes.length > 0) { hasNewNodes = true; break; }
+            }
+            if (hasNewNodes) injectCsrfToForms();
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            observer.observe(document.body, { childList: true, subtree: true });
+        });
+    }
+})();
+
+// BS4 Modal JS API 兼容：代理 jQuery .modal() 方法到 BS5 Modal 实例
+(function() {
+    'use strict';
+    if (typeof jQuery === 'undefined') return;
+    var origModal = jQuery.fn.modal;
+    jQuery.fn.modal = function(action) {
+        // 如果 BS5 bootstrap.Modal 可用，使用它
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            return this.each(function() {
+                var instance = bootstrap.Modal.getInstance(this) || new bootstrap.Modal(this);
+                if (action === 'show') instance.show();
+                else if (action === 'hide') instance.hide();
+                else if (action === 'toggle') instance.toggle();
+                else if (action === 'dispose' || action === 'handleUpdate') instance.dispose();
+                else if (typeof action === 'object' || typeof action === 'undefined') instance.show();
+            });
+        }
+        // 回退到原始实现
+        if (origModal) return origModal.apply(this, arguments);
+        return this;
+    };
+})();
