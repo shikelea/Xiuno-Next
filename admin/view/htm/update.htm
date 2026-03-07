@@ -1,0 +1,112 @@
+<?php include _include(ADMIN_PATH.'view/htm/header.inc.htm');?>
+
+<div class="row line-height-3">
+	<div class="col-12">
+
+		<h3><?php echo lang('update_title');?></h3>
+
+		<div class="card mb-3">
+			<div class="card-body">
+				<h5 class="card-title"><?php echo lang('update_version_info');?></h5>
+				<div class="row mb-3">
+					<div class="col-md-6">
+						<span class="text-muted"><?php echo lang('update_current_version');?>：</span>
+						<b><?php echo $current_version;?></b>
+					</div>
+					<div class="col-md-6">
+						<span class="text-muted"><?php echo lang('update_latest_version');?>：</span>
+						<?php if(!empty($error)) { ?>
+							<span class="text-danger"><?php echo $error;?></span>
+						<?php } elseif($has_update) { ?>
+							<b class="text-success"><?php echo $latest_version;?></b>
+							<span class="badge bg-success"><?php echo lang('update_new_available');?></span>
+						<?php } else { ?>
+							<b><?php echo $latest_version;?></b>
+							<span class="badge bg-secondary"><?php echo lang('update_already_latest');?></span>
+						<?php } ?>
+					</div>
+				</div>
+
+				<?php if(!empty($changelog)) { ?>
+				<div class="mb-3">
+					<h6><?php echo lang('update_changelog');?></h6>
+					<div class="border rounded p-3 bg-light" style="white-space:pre-wrap; max-height:300px; overflow-y:auto;"><?php echo htmlspecialchars($changelog);?></div>
+				</div>
+				<?php } ?>
+
+				<div class="d-flex gap-2">
+					<a href="<?php echo url('update-check');?>" class="btn btn-secondary"><?php echo lang('update_recheck');?></a>
+					<?php if($has_update) { ?>
+					<button type="button" class="btn btn-primary" id="btn_update" onclick="do_update()"><?php echo lang('update_do_update');?></button>
+					<?php } ?>
+					<a href="https://github.com/<?php echo GITHUB_REPO;?>/releases" target="_blank" class="btn btn-outline-secondary"><?php echo lang('update_view_releases');?></a>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<div class="card-body">
+				<h5 class="card-title"><?php echo lang('update_notice_title');?></h5>
+				<ul class="mb-0">
+					<li><?php echo lang('update_notice_1');?></li>
+					<li><?php echo lang('update_notice_2');?></li>
+					<li><?php echo lang('update_notice_3');?></li>
+					<li><?php echo lang('update_notice_4');?></li>
+				</ul>
+			</div>
+		</div>
+
+		<div id="update_log" class="mt-3" style="display:none;">
+			<div class="card">
+				<div class="card-body">
+					<h5 class="card-title"><?php echo lang('update_progress');?></h5>
+					<div class="progress mb-3">
+						<div id="update_progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width:0%">0%</div>
+					</div>
+					<div id="update_status" class="text-muted"></div>
+				</div>
+			</div>
+		</div>
+
+	</div>
+</div>
+
+<?php include _include(ADMIN_PATH.'view/htm/footer.inc.htm');?>
+
+<script>
+
+$('#nav li.nav-item-update').addClass('active');
+
+function update_progress(percent, text) {
+	$('#update_log').show();
+	$('#update_progress').css('width', percent + '%').text(percent + '%');
+	$('#update_status').text(text);
+}
+
+function do_update() {
+	if(!confirm(lang.update_confirm || '确定要更新吗？更新前请确保已备份重要数据。')) return;
+
+	var btn = $('#btn_update');
+	btn.prop('disabled', true).text(lang.update_updating || '正在更新...');
+
+	update_progress(10, lang.update_step_download || '正在下载最新版本...');
+
+	$.xpost('<?php echo url("update-download");?>', {}, function(code, message) {
+		if(code == 0) {
+			update_progress(100, message);
+			$('#update_progress').removeClass('progress-bar-animated').addClass('bg-success');
+			btn.text(lang.update_completed || '更新完成').removeClass('btn-primary').addClass('btn-success');
+			setTimeout(function() {
+				if(confirm(lang.update_reload || '更新成功，是否刷新页面？')) {
+					location.reload();
+				}
+			}, 1000);
+		} else {
+			update_progress(0, message);
+			$('#update_progress').removeClass('progress-bar-animated').addClass('bg-danger').css('width', '100%').text(lang.update_failed || '更新失败');
+			btn.prop('disabled', false).text(lang.update_retry || '重试');
+		}
+	});
+}
+
+</script>

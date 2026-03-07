@@ -9,5 +9,12 @@ var lang = {
 	'no': '否',
 	'open': '打开',
 	'close': '关闭',
+	'update_confirm': '确定要更新吗？更新前请确保已备份重要数据。',
+	'update_updating': '正在更新...',
+	'update_completed': '更新完成',
+	'update_failed': '更新失败',
+	'update_retry': '重试',
+	'update_reload': '更新成功，是否刷新页面？',
+	'update_step_download': '正在下载最新版本...',
 	// hook lang_zh_cn_bbs_js.htm
 };

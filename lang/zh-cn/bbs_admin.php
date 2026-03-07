@@ -191,6 +191,30 @@ return array(
 	'plugin_service_qq'=>'客服 QQ',
 	
 	
+	// 在线更新
+	'update'=>'更新',
+	'update_title'=>'在线更新',
+	'update_version_info'=>'版本信息',
+	'update_current_version'=>'当前版本',
+	'update_latest_version'=>'最新版本',
+	'update_new_available'=>'有新版本',
+	'update_already_latest'=>'已是最新版本',
+	'update_changelog'=>'更新日志',
+	'update_recheck'=>'重新检查',
+	'update_do_update'=>'一键更新',
+	'update_view_releases'=>'查看 GitHub Releases',
+	'update_notice_title'=>'更新须知',
+	'update_notice_1'=>'更新前请务必备份数据库和重要文件（conf/、plugin/、upload/ 目录）',
+	'update_notice_2'=>'更新过程中不会覆盖 conf/、plugin/、upload/、tmp/ 目录',
+	'update_notice_3'=>'更新需要服务器支持 cURL 扩展和对项目目录的写入权限',
+	'update_notice_4'=>'如更新失败，可从 GitHub Releases 手动下载覆盖',
+	'update_progress'=>'更新进度',
+	'update_check_failed'=>'无法连接 GitHub，请检查服务器网络',
+	'update_download_url_empty'=>'下载地址为空',
+	'update_download_failed'=>'下载更新包失败，请检查网络连接',
+	'update_extract_failed'=>'解压更新包失败',
+	'update_success'=>'更新到 v{version} 成功！请清理浏览器缓存。',
+	
 	// hook lang_zh_cn_bbs_admin.php
 	
 );

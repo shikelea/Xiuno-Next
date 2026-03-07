@@ -52,6 +52,12 @@ return array(
 			'official_free'=>array('url'=>url('plugin-official_free'), 'text'=>lang('admin_plugin_official_free_list')),
 			'official_fee'=>array('url'=>url('plugin-official_fee'), 'text'=>lang('admin_plugin_official_fee_list')),
 		)
+	),
+	'update' => array(
+		'url'=>url('update-check'), 
+		'text'=>lang('update'), 
+		'icon'=>'icon-circle-o',
+		'tab'=> array ()
 	)
 );
 
