@@ -189,6 +189,30 @@ return array(
 	'plugin_wechat_qrcode_pay'=>'Wechat SCAN for Pay',
 	'plugin_service_qq'=>'Service QQ',
 	
+	// Online Update
+	'update'=>'Update',
+	'update_title'=>'Online Update',
+	'update_version_info'=>'Version Info',
+	'update_current_version'=>'Current Version',
+	'update_latest_version'=>'Latest Version',
+	'update_new_available'=>'New version available',
+	'update_already_latest'=>'Already up to date',
+	'update_changelog'=>'Changelog',
+	'update_recheck'=>'Re-check',
+	'update_do_update'=>'Update Now',
+	'update_view_releases'=>'View GitHub Releases',
+	'update_notice_title'=>'Update Notice',
+	'update_notice_1'=>'Please backup your database and important files (conf/, plugin/, upload/) before updating',
+	'update_notice_2'=>'conf/, plugin/, upload/, tmp/ directories will NOT be overwritten during update',
+	'update_notice_3'=>'Server needs cURL extension and write permission to project directory',
+	'update_notice_4'=>'If update fails, you can manually download from GitHub Releases',
+	'update_progress'=>'Update Progress',
+	'update_check_failed'=>'Cannot connect to GitHub, please check server network',
+	'update_download_url_empty'=>'Download URL is empty',
+	'update_download_failed'=>'Failed to download update package, please check network',
+	'update_extract_failed'=>'Failed to extract update package',
+	'update_success'=>'Updated to v{version} successfully! Please clear browser cache.',
+	
 	// hook lang_en_us_bbs_admin.php
 	
 );

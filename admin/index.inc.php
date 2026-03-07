@@ -38,6 +38,7 @@ switch ($route) {
 	case 'user':		include _include(ADMIN_PATH.'route/user.php'); 		break;
 	case 'thread':		include _include(ADMIN_PATH.'route/thread.php'); 		break;
 	case 'plugin':		include _include(ADMIN_PATH.'route/plugin.php'); 	break;
+	case 'update':		include _include(ADMIN_PATH.'route/update.php'); 	break;
 	// hook admin_index_route_case_end.php
 	default: 
 		// hook admin_index_route_case_default.php
