@@ -224,6 +224,7 @@ return array(
 	'update_proxy_save'=>'保存代理设置',
 	'update_proxy_saved'=>'代理设置已保存',
 	'update_proxy_unreachable'=>'代理不可用或连接超时',
+	'update_proxy_fallback_used'=>'（代理不可用，已自动回退直连）',
 	
 	// hook lang_zh_cn_bbs_admin.php
 	
