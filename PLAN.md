@@ -121,6 +121,16 @@
   - 升级流程：配置补全 → 数据库结构检查 → 执行迁移 → 缓存/安全模式清理。
   - 配置失败时提供手动修复指引，升级记录存储在 `bbs_kv`（`xn_upgraded_from`、`xn_upgraded_date`）。
 
+**性能优化与在线更新（v4.4.3）：**
+- [x] **插件页性能优化**：官方插件市场已关闭，`plugin_official_list_cache()` 直接返回空数组，消除无意义的 HTTP 请求（原先每次加载等待 30s×3 超时）。
+- [x] **CSRF 主题兼容**：在 `header.inc.htm` 添加 `<meta name="csrf-token">` 标签，`bs4-compat.js` 自动读取并设置 `$.ajaxSetup`，确保主题覆盖 footer 后 CSRF 不失效。
+- [x] **管理操作 JSON 修复**：修复 `$.xget()` 在收到 HTML 响应时返回错误字符串而非原始内容的 bug，置顶/关闭/移动/删除等模态对话框恢复正常。
+- [x] **后台一键在线更新**：新增 `admin/route/update.php`，通过 GitHub API 检测最新版本并一键拉取更新。
+  - 自动对比当前版本与 GitHub 最新 Release，显示更新日志。
+  - 下载 zip → 解压 → 递归覆盖核心文件，自动跳过 `conf/`、`plugin/`、`upload/`、`tmp/` 等用户数据目录。
+  - 更新完成后自动写入新版本号并清理缓存。
+  - 后台导航栏新增「更新」入口，支持中英文。
+
 ### 阶段五：轻量现代化 (Lightweight Modernization Phase)
 **目标**：在**零臃肿**的前提下引入现代实践，为开发者提供更好的工具。
 
