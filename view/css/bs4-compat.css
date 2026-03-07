@@ -1,0 +1,381 @@
+/**
+ * Bootstrap 4 → 5 CSS 兼容层
+ * 将 BS4 类名映射到 BS5 等效样式，使旧插件/主题无需修改即可正常显示。
+ * 配合 bs4-compat.js（处理 data 属性）一起使用。
+ */
+
+/* ===== 表单 ===== */
+
+/* form-group → mb-3 */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+/* custom-select → form-select */
+.custom-select {
+    display: block;
+    width: 100%;
+    padding: .375rem 2.25rem .375rem .75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right .75rem center;
+    background-size: 16px 12px;
+    border: 1px solid #ced4da;
+    border-radius: .375rem;
+    appearance: none;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+.custom-select:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
+}
+.custom-select-sm {
+    padding-top: .25rem;
+    padding-bottom: .25rem;
+    padding-left: .5rem;
+    font-size: .875rem;
+}
+.custom-select-lg {
+    padding-top: .5rem;
+    padding-bottom: .5rem;
+    padding-left: 1rem;
+    font-size: 1.25rem;
+}
+
+/* custom-control (checkbox/radio) → form-check */
+.custom-control {
+    position: relative;
+    display: block;
+    min-height: 1.5rem;
+    padding-left: 1.5em;
+    margin-bottom: .125rem;
+}
+.custom-control-input {
+    position: absolute;
+    left: 0;
+    z-index: -1;
+    width: 1rem;
+    height: 1.25rem;
+    opacity: 0;
+}
+.custom-control-input:checked ~ .custom-control-label::before {
+    color: #fff;
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+}
+.custom-control-label {
+    position: relative;
+    margin-bottom: 0;
+    vertical-align: top;
+    cursor: pointer;
+}
+.custom-control-label::before {
+    position: absolute;
+    top: .25rem;
+    left: -1.5em;
+    display: block;
+    width: 1rem;
+    height: 1rem;
+    content: "";
+    background-color: #fff;
+    border: 1px solid #adb5bd;
+    border-radius: .25rem;
+    transition: background-color .15s ease-in-out, border-color .15s ease-in-out;
+}
+.custom-control-label::after {
+    position: absolute;
+    top: .25rem;
+    left: -1.5em;
+    display: block;
+    width: 1rem;
+    height: 1rem;
+    content: "";
+    background: 50%/50% 50% no-repeat;
+}
+.custom-switch .custom-control-label::before {
+    border-radius: .5rem;
+    width: 1.75rem;
+}
+.custom-checkbox .custom-control-input:checked ~ .custom-control-label::after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+}
+
+/* custom-file → form-control */
+.custom-file {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    height: calc(1.5em + .75rem + 2px);
+    margin-bottom: 0;
+}
+.custom-file-input {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: calc(1.5em + .75rem + 2px);
+    margin: 0;
+    opacity: 0;
+}
+.custom-file-label {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1;
+    height: calc(1.5em + .75rem + 2px);
+    padding: .375rem .75rem;
+    overflow: hidden;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+}
+
+/* form-row → row with gutter */
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -5px;
+    margin-left: -5px;
+}
+.form-row > .col,
+.form-row > [class*="col-"] {
+    padding-right: 5px;
+    padding-left: 5px;
+}
+
+/* input-group-append / input-group-prepend */
+.input-group-append,
+.input-group-prepend {
+    display: flex;
+}
+.input-group-prepend {
+    margin-right: -1px;
+}
+.input-group-append {
+    margin-left: -1px;
+}
+
+/* ===== Badge ===== */
+
+/* badge-* → bg-* */
+.badge-primary   { color: #fff; background-color: #0d6efd; }
+.badge-secondary { color: #fff; background-color: #6c757d; }
+.badge-success   { color: #fff; background-color: #198754; }
+.badge-danger    { color: #fff; background-color: #dc3545; }
+.badge-warning   { color: #212529; background-color: #ffc107; }
+.badge-info      { color: #fff; background-color: #0dcaf0; }
+.badge-light     { color: #212529; background-color: #f8f9fa; }
+.badge-dark      { color: #fff; background-color: #212529; }
+
+/* badge-pill → rounded-pill */
+.badge-pill {
+    padding-right: .65em;
+    padding-left: .65em;
+    border-radius: 50rem;
+}
+
+/* ===== 布局/对齐 ===== */
+
+/* float-left/right → float-start/end */
+.float-left  { float: left !important; }
+.float-right { float: right !important; }
+
+/* text-left/right/center 保持兼容 */
+.text-left   { text-align: left !important; }
+.text-right  { text-align: right !important; }
+
+/* no-gutters → g-0 */
+.no-gutters {
+    --bs-gutter-x: 0;
+    --bs-gutter-y: 0;
+}
+.no-gutters > .col,
+.no-gutters > [class*="col-"] {
+    padding-right: 0;
+    padding-left: 0;
+}
+
+/* ===== 排版 ===== */
+
+/* font-weight-* → fw-* */
+.font-weight-bold    { font-weight: 700 !important; }
+.font-weight-bolder  { font-weight: bolder !important; }
+.font-weight-normal  { font-weight: 400 !important; }
+.font-weight-light   { font-weight: 300 !important; }
+.font-weight-lighter { font-weight: lighter !important; }
+.font-italic         { font-style: italic !important; }
+
+/* ===== 无障碍 ===== */
+
+/* sr-only → visually-hidden */
+.sr-only,
+.sr-only-focusable {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ===== 按钮 ===== */
+
+/* btn-block (BS5 移除，需 d-grid 包裹，这里直接兼容) */
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+/* ===== Dropdown ===== */
+
+/* dropdown-menu-right → dropdown-menu-end */
+.dropdown-menu-right {
+    right: 0;
+    left: auto;
+}
+.dropdown-menu-left {
+    right: auto;
+    left: 0;
+}
+
+/* ===== 关闭按钮 ===== */
+
+/* close (BS4) → btn-close (BS5) */
+.close {
+    float: right;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+    opacity: .5;
+    padding: 0;
+    background-color: transparent;
+    border: 0;
+    cursor: pointer;
+}
+.close:hover {
+    opacity: .75;
+}
+
+/* ===== Media 对象 (BS5 已移除) ===== */
+
+.media {
+    display: flex;
+    align-items: flex-start;
+}
+.media-body {
+    flex: 1;
+}
+
+/* ===== Jumbotron (BS5 已移除) ===== */
+
+.jumbotron {
+    padding: 2rem 1rem;
+    margin-bottom: 2rem;
+    background-color: #e9ecef;
+    border-radius: .3rem;
+}
+@media (min-width: 576px) {
+    .jumbotron {
+        padding: 4rem 2rem;
+    }
+}
+.jumbotron-fluid {
+    padding-right: 0;
+    padding-left: 0;
+    border-radius: 0;
+}
+
+/* ===== Card ===== */
+
+/* card-deck / card-columns (BS5 已移除) */
+.card-deck {
+    display: flex;
+    flex-flow: row wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+}
+.card-deck .card {
+    flex: 1 0 0%;
+    margin-right: 15px;
+    margin-bottom: 0;
+    margin-left: 15px;
+}
+.card-columns {
+    column-count: 3;
+    column-gap: 1.25rem;
+    orphans: 1;
+    widows: 1;
+}
+.card-columns .card {
+    display: inline-block;
+    width: 100%;
+}
+
+/* ===== 响应式工具类 ===== */
+
+/* hidden-xs/sm/md/lg/xl (BS3/4 遗留) */
+@media (max-width: 575.98px) {
+    .hidden-xs { display: none !important; }
+}
+@media (min-width: 576px) and (max-width: 767.98px) {
+    .hidden-sm { display: none !important; }
+}
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .hidden-md { display: none !important; }
+}
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .hidden-lg { display: none !important; }
+}
+@media (min-width: 1200px) {
+    .hidden-xl { display: none !important; }
+}
+
+/* ===== Spacing / 尺寸 ===== */
+
+/* rounded-sm / rounded-lg */
+.rounded-sm { border-radius: .2rem !important; }
+.rounded-lg { border-radius: .3rem !important; }
+
+/* embed-responsive (BS4 → BS5 ratio) */
+.embed-responsive {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0;
+    overflow: hidden;
+}
+.embed-responsive::before {
+    display: block;
+    content: "";
+}
+.embed-responsive .embed-responsive-item,
+.embed-responsive iframe,
+.embed-responsive embed,
+.embed-responsive object,
+.embed-responsive video {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+.embed-responsive-16by9::before { padding-top: 56.25%; }
+.embed-responsive-4by3::before  { padding-top: 75%; }
+.embed-responsive-1by1::before  { padding-top: 100%; }
+.embed-responsive-21by9::before { padding-top: 42.857143%; }
