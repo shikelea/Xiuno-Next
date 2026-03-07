@@ -6,6 +6,13 @@
 define('GITHUB_REPO', 'shikelea/Xiuno-Next');
 define('GITHUB_API_URL', 'https://api.github.com/repos/' . GITHUB_REPO);
 
+// 内置 GitHub 加速代理列表
+$github_proxies = array(
+	array('name' => 'EdgeOne (腾讯CDN)', 'url' => 'https://edgeone.gh-proxy.com'),
+	array('name' => 'GH-Proxy',          'url' => 'https://gh-proxy.com'),
+	array('name' => 'LLKK',              'url' => 'https://gh.llkk.cc'),
+);
+
 $action = param(1);
 empty($action) AND $action = 'check';
 
@@ -15,8 +22,11 @@ if ($action == 'check') {
 	$header['title'] = lang('update_title');
 	$header['mobile_title'] = lang('update_title');
 
+	// 读取已保存的代理设置
+	$saved_proxy = isset($conf['github_proxy']) ? $conf['github_proxy'] : '';
+
 	$current_version = $conf['version'];
-	$latest = update_github_latest_release();
+	$latest = update_github_latest_release($saved_proxy);
 	$latest_version = '';
 	$has_update = FALSE;
 	$error = '';
@@ -35,13 +45,53 @@ if ($action == 'check') {
 	include _include(ADMIN_PATH . "view/htm/update.htm");
 
 // ==================== 执行更新 ====================
+// ==================== 测试代理连通性 ====================
+} elseif ($action == 'test_proxy') {
+
+	$method != 'POST' AND message(-1, 'Method Not Allowed');
+
+	$proxy_url = trim(param('proxy_url', '', 'POST'));
+	// 测试目标：GitHub API（小请求，快速响应）
+	$test_url = GITHUB_API_URL . '/releases/latest';
+	if (!empty($proxy_url)) {
+		$proxy_url = rtrim($proxy_url, '/');
+		$test_url = $proxy_url . '/' . $test_url;
+	}
+
+	$start = microtime(true);
+	$response = update_http_get($test_url, 8);
+	$elapsed = round((microtime(true) - $start) * 1000);
+
+	if ($response === FALSE || empty($response)) {
+		message(-1, lang('update_proxy_unreachable'));
+	}
+	$data = xn_json_decode($response);
+	if (empty($data) || (isset($data['message']) && isset($data['documentation_url']))) {
+		message(-1, lang('update_proxy_unreachable'));
+	}
+
+	message(0, array('latency' => $elapsed));
+
+// ==================== 保存代理设置 ====================
+} elseif ($action == 'save_proxy') {
+
+	$method != 'POST' AND message(-1, 'Method Not Allowed');
+
+	$proxy_url = trim(param('proxy_url', '', 'POST'));
+	update_conf_setting('github_proxy', $proxy_url);
+	message(0, lang('update_proxy_saved'));
+
+// ==================== 执行更新 ====================
 } elseif ($action == 'download') {
 
 	$method != 'POST' AND message(-1, 'Method Not Allowed');
 
 	set_time_limit(120);
 
-	$latest = update_github_latest_release();
+	// 读取代理设置
+	$proxy = isset($conf['github_proxy']) ? $conf['github_proxy'] : '';
+
+	$latest = update_github_latest_release($proxy);
 	if ($latest === FALSE) {
 		message(-1, lang('update_check_failed'));
 	}
@@ -56,9 +106,12 @@ if ($action == 'check') {
 		message(-1, lang('update_download_url_empty'));
 	}
 
+	// 通过代理下载
+	$actual_url = update_proxied_url($download_url, $proxy);
+
 	// 下载 zip
 	$zipfile = $conf['tmp_path'] . 'update_' . $latest_version . '.zip';
-	$zipdata = update_github_download($download_url);
+	$zipdata = update_github_download($actual_url);
 	if ($zipdata === FALSE || empty($zipdata)) {
 		message(-1, lang('update_download_failed'));
 	}
@@ -109,12 +162,12 @@ if ($action == 'check') {
 /**
  * 调用 GitHub API 获取最新 Release
  */
-function update_github_latest_release() {
-	$url = GITHUB_API_URL . '/releases/latest';
+function update_github_latest_release($proxy = '') {
+	$url = update_proxied_url(GITHUB_API_URL . '/releases/latest', $proxy);
 	$s = update_http_get_json($url);
 	if ($s === FALSE) {
 		// 没有 release 时尝试获取最新 tag
-		$url = GITHUB_API_URL . '/tags';
+		$url = update_proxied_url(GITHUB_API_URL . '/tags', $proxy);
 		$s = update_http_get_json($url);
 		if ($s === FALSE || empty($s)) return FALSE;
 		// 取第一个 tag 模拟 release 格式
@@ -126,6 +179,15 @@ function update_github_latest_release() {
 		);
 	}
 	return $s;
+}
+
+/**
+ * 将 GitHub URL 通过代理加速
+ */
+function update_proxied_url($url, $proxy = '') {
+	if (empty($proxy)) return $url;
+	$proxy = rtrim($proxy, '/');
+	return $proxy . '/' . $url;
 }
 
 /**
@@ -251,6 +313,25 @@ function update_conf_version($new_version) {
 	$s = file_get_contents($conffile);
 	if ($s === FALSE) return FALSE;
 	$s = preg_replace("/'version'\s*=>\s*'[^']*'/", "'version' => '$new_version'", $s);
+	return file_put_contents($conffile, $s);
+}
+
+/**
+ * 写入/更新 conf.php 中的任意配置项
+ */
+function update_conf_setting($key, $value) {
+	$conffile = APP_PATH . 'conf/conf.php';
+	if (!is_file($conffile)) return FALSE;
+	$s = file_get_contents($conffile);
+	if ($s === FALSE) return FALSE;
+	$escaped = addslashes($value);
+	// 已存在则替换
+	if (preg_match("/'" . preg_quote($key, '/') . "'\s*=>/", $s)) {
+		$s = preg_replace("/'" . preg_quote($key, '/') . "'\s*=>\s*'[^']*'/", "'$key' => '$escaped'", $s);
+	} else {
+		// 不存在则追加到数组末尾 ); 前面
+		$s = preg_replace('/\);\s*\?>\s*$/', "\t'$key' => '$escaped',\n);\n?>", $s);
+	}
 	return file_put_contents($conffile, $s);
 }
 

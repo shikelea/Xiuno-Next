@@ -44,6 +44,46 @@
 			</div>
 		</div>
 
+		<div class="card mb-3">
+			<div class="card-body">
+				<h5 class="card-title"><?php echo lang('update_proxy_title');?></h5>
+				<p class="text-muted small mb-3"><?php echo lang('update_proxy_desc');?></p>
+
+				<div class="mb-3">
+					<div class="form-check mb-2">
+						<input class="form-check-input" type="radio" name="proxy_select" id="proxy_direct" value="" <?php echo empty($saved_proxy) ? 'checked' : '';?>>
+						<label class="form-check-label d-flex align-items-center gap-2" for="proxy_direct">
+							<?php echo lang('update_proxy_direct');?>
+							<span class="proxy-status" data-proxy=""></span>
+						</label>
+					</div>
+					<?php foreach($github_proxies as $i => $_proxy) { ?>
+					<div class="form-check mb-2">
+						<input class="form-check-input" type="radio" name="proxy_select" id="proxy_<?php echo $i;?>" value="<?php echo htmlspecialchars($_proxy['url']);?>" <?php echo ($saved_proxy == $_proxy['url']) ? 'checked' : '';?>>
+						<label class="form-check-label d-flex align-items-center gap-2" for="proxy_<?php echo $i;?>">
+							<span><?php echo htmlspecialchars($_proxy['url']);?></span>
+							<span class="text-muted small">(<?php echo htmlspecialchars($_proxy['name']);?>)</span>
+							<span class="proxy-status" data-proxy="<?php echo htmlspecialchars($_proxy['url']);?>"></span>
+						</label>
+					</div>
+					<?php } ?>
+					<div class="form-check mb-2">
+						<input class="form-check-input" type="radio" name="proxy_select" id="proxy_custom" value="custom" <?php echo (!empty($saved_proxy) && !in_array($saved_proxy, array_column($github_proxies, 'url'))) ? 'checked' : '';?>>
+						<label class="form-check-label" for="proxy_custom"><?php echo lang('update_proxy_custom');?></label>
+					</div>
+					<div id="custom_proxy_wrap" class="ms-4 mb-2" style="display:none;">
+						<input type="text" class="form-control form-control-sm w-auto d-inline-block" id="custom_proxy_url" placeholder="https://your-proxy.com" value="<?php echo (!empty($saved_proxy) && !in_array($saved_proxy, array_column($github_proxies, 'url'))) ? htmlspecialchars($saved_proxy) : '';?>" style="min-width:300px;">
+						<span class="proxy-status" data-proxy="custom"></span>
+					</div>
+				</div>
+
+				<div class="d-flex gap-2">
+					<button type="button" class="btn btn-outline-primary btn-sm" onclick="test_all_proxies()"><?php echo lang('update_proxy_test_all');?></button>
+					<button type="button" class="btn btn-primary btn-sm" onclick="save_proxy()"><?php echo lang('update_proxy_save');?></button>
+				</div>
+			</div>
+		</div>
+
 		<div class="card">
 			<div class="card-body">
 				<h5 class="card-title"><?php echo lang('update_notice_title');?></h5>
@@ -81,6 +121,56 @@ function update_progress(percent, text) {
 	$('#update_log').show();
 	$('#update_progress').css('width', percent + '%').text(percent + '%');
 	$('#update_status').text(text);
+}
+
+// 代理选择：显示/隐藏自定义输入框
+$('input[name="proxy_select"]').on('change', function() {
+	$('#custom_proxy_wrap').toggle($(this).val() === 'custom');
+});
+// 页面加载时检查
+if($('input[name="proxy_select"]:checked').val() === 'custom') $('#custom_proxy_wrap').show();
+
+function get_selected_proxy() {
+	var val = $('input[name="proxy_select"]:checked').val();
+	if(val === 'custom') return $('#custom_proxy_url').val().replace(/\/+$/, '');
+	return val || '';
+}
+
+function test_single_proxy(proxy_url, $status) {
+	$status.html('<span class="badge bg-secondary">' + (lang.update_proxy_testing || '测试中...') + '</span>');
+	$.xpost('<?php echo url("update-test_proxy");?>', {proxy_url: proxy_url}, function(code, message) {
+		if(code == 0) {
+			var ms = message.latency || message;
+			$status.html('<span class="badge bg-success">' + (lang.update_proxy_available || '可用') + '</span> <span class="badge bg-info">' + ms + 'ms</span>');
+		} else {
+			$status.html('<span class="badge bg-danger">' + (lang.update_proxy_unavailable || '不可用') + '</span>');
+		}
+	});
+}
+
+function test_all_proxies() {
+	$('.proxy-status').each(function() {
+		var $el = $(this);
+		var proxy = $el.data('proxy');
+		if(proxy === 'custom') {
+			var custom_val = $('#custom_proxy_url').val().replace(/\/+$/, '');
+			if(custom_val) test_single_proxy(custom_val, $el);
+			return;
+		}
+		// proxy 是空字符串表示直连，也测试
+		test_single_proxy(proxy === undefined ? '' : proxy, $el);
+	});
+}
+
+function save_proxy() {
+	var proxy = get_selected_proxy();
+	$.xpost('<?php echo url("update-save_proxy");?>', {proxy_url: proxy}, function(code, message) {
+		if(code == 0) {
+			$.alert(lang.update_proxy_save_ok || '代理设置已保存');
+		} else {
+			$.alert(message);
+		}
+	});
 }
 
 function do_update() {

@@ -215,6 +215,16 @@ return array(
 	'update_extract_failed'=>'解压更新包失败',
 	'update_success'=>'更新到 v{version} 成功！请清理浏览器缓存。',
 	
+	// 代理加速
+	'update_proxy_title'=>'GitHub 加速代理',
+	'update_proxy_desc'=>'中国大陆服务器可能无法直接访问 GitHub，请选择一个加速代理或填写自定义代理地址。',
+	'update_proxy_direct'=>'直接连接（不使用代理）',
+	'update_proxy_custom'=>'自定义代理',
+	'update_proxy_test_all'=>'测试全部连通性',
+	'update_proxy_save'=>'保存代理设置',
+	'update_proxy_saved'=>'代理设置已保存',
+	'update_proxy_unreachable'=>'代理不可用或连接超时',
+	
 	// hook lang_zh_cn_bbs_admin.php
 	
 );

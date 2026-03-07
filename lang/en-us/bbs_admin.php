@@ -213,6 +213,16 @@ return array(
 	'update_extract_failed'=>'Failed to extract update package',
 	'update_success'=>'Updated to v{version} successfully! Please clear browser cache.',
 	
+	// Proxy
+	'update_proxy_title'=>'GitHub Proxy',
+	'update_proxy_desc'=>'Servers in mainland China may not be able to access GitHub directly. Select a proxy or enter a custom proxy URL.',
+	'update_proxy_direct'=>'Direct connection (no proxy)',
+	'update_proxy_custom'=>'Custom proxy',
+	'update_proxy_test_all'=>'Test All',
+	'update_proxy_save'=>'Save Proxy Settings',
+	'update_proxy_saved'=>'Proxy settings saved',
+	'update_proxy_unreachable'=>'Proxy unreachable or connection timed out',
+	
 	// hook lang_en_us_bbs_admin.php
 	
 );
