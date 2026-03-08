@@ -1,1 +1,0 @@
-$credits=param('credits');$golds=param('golds'); $rmbs=param('rmbs')*100.0;

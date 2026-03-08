@@ -1,1 +1,0 @@
-user_update_group($uid);
