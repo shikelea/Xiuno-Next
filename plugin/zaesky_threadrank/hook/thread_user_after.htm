@@ -1,0 +1,30 @@
+<?php
+			$_forumlist = thread__find(array('fid'=>$forum['fid']), array('views'=>-1), 1, 10);
+			// 过滤没有权限访问的主题 / filter no permission thread
+			thread_list_access_filter($_threadlist, $gid);
+
+?>
+<div class="card">
+	<div class="card-header">
+		<span class="card-title">版块热门</span>
+	</div>
+		<div class="card-body py-2">
+
+			<div class="site-top">
+				<ul class="site-list-ul">
+					<?php 
+					$loopNum = 1;
+			if($_forumlist){
+			foreach($_forumlist as $_fthread) { ?>
+						
+					<li>
+							<span class="badge badge-pill mr-2 <?php if($loopNum <= 3) { ?> jb-red <?php } else { ?> badge-secondary <?php }?>"><?php echo  $loopNum++ ;?></span><a href="<?php echo url("thread-$_fthread[tid]");?>" style='font-size:12px;color:#343a40;'><?php echo $_fthread['subject'];?></a>
+						
+					</li>
+					<?php }} else { ?>
+						<?php echo lang('none');?>
+					<?php } ?>
+			</ul>	
+			</div>
+</div>
+</div>

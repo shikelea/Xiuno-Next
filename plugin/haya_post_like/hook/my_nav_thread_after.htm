@@ -1,0 +1,16 @@
+<?php
+if (isset($haya_post_like_config['open_my_post_like'])
+	&& $haya_post_like_config['open_my_post_like'] == 1
+) {
+?>
+
+<li class="nav-item">
+	<a class="nav-link" href="<?php echo url("my-post_like");?>" data-active="my-post-like">
+		<?php echo lang('haya_post_like'); ?>
+		<?php if ($action == "post_like") { ?>
+			(<?php echo intval($haya_post_like_count); ?>)
+		<?php } ?>
+	</a>
+</li>
+
+<?php } ?>

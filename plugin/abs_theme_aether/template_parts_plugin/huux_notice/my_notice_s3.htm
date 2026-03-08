@@ -1,0 +1,90 @@
+<template include="./plugin/abs_theme_aether/template_parts/structure/router.htm">
+
+    <slot name="S3_Header">
+        <section class="header-main-toolbar ">
+            <div class="header-title-section">
+                <div title="返回按钮" class="d-block d-md-none me-2 ms-0">
+                    <button title="<?= lang('back') ?>" type="button" class="btn btn-link text-body btn-icon" hx-on:click="Aether.hideS3()">
+                        <i class="las la-arrow-left"></i>
+                    </button>
+                </div>
+                <div title="文字显示" class="flex-grow-1 overflow-hidden">
+                    <h5 class="font-size-16 mb-0 text-truncate">
+                        <span hidden>
+                            <?= $notice_header_icon_html ?>
+                        </span>
+                        <?= $notice_header_name; ?>
+                    </h5>
+                </div>
+            </div>
+            <div class="header-action-section">
+                <button hidden class="btn btn-icon btn-outline-danger mb-1" data-confirm-text="<?= lang('notice_my_delete_thispagemessage') ?>?" hx-post="<?= url('my-notice',['act'=>'deletearr','return_html'=>1]) ?>" hx-trigger="click" hx-target=".noticelist" hx-swap="innerHTML" hx-include=".noticelist input.nid" hx-confirm="<?= lang('notice_my_delete_thispagemessage')?>?" id="delete">
+                    <i class="las la-trash-alt" title="<?= lang('notice_my_delete_thispagemessage') ?>" data-bs-toggle="tooltip"></i>
+                </button>
+            </div>
+        </section>
+
+    </slot>
+    <slot name="S3_Body">
+        <?php if (!$IS_HTMX && $SHOULD_S3_VISIBLE): ?>
+        <div hx-get="<?= url('my-notice') ?>" hx-target="#S2" hx-trigger="revealed once" hx-swap="innerHTML" hx-on:htmx:after-request="this.remove()" class="reverse-loader"></div>
+        <?php endif; ?>
+        <ul class="noticelist list-unstyled chat-history mb-0" data-nidarr='<?= xn_json_encode(arrlist_values($noticelist, "nid")); ?>' hx-boost="true" hx-trigger="click" hx-target="#S3">
+            <?php include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts_plugin/huux_notice/my_notice_list_new.inc.htm'); ?>
+
+            <li class="htmx_list_target"></li>
+        </ul>
+        <?php if($type === 7): ?>
+        <div hx-get="<?= url('my-notice-7-1-' . $pm_to_uid, array_merge(['IS_FROM_NOTICE_S3' => 1, 'update_since' => time()])) ?>" hx-target=".htmx_list_target" hx-trigger="every 5s" hx-swap="beforeend" id="notice_pm_loader"></div>
+        <?php endif; ?>
+        <?php if(!$NOTICE_PAGE_EMPTY_NOTICE): ?>
+
+        <?php
+        $maxpage = ceil($notices / $pagesize);
+        $new_page_uri = url('my-notice-' . $type . '-' . ($page + 1));
+            // hook htmx_threadlist_allow_infinite_scroll_override.php
+            if ($ALLOW_INFINITE_SCROLL  && (isset($maxpage) && $page < $maxpage)) : ?>
+        <div class="infinite-scroll-loader" hx-get="<?= $new_page_uri ?>" hx-trigger="revealed once" hx-swap="outerHTML" hx-push-url="true" hx-include=".pagination_extra_param">
+
+            <!--{hook aether_skeleton.htm}-->
+        </div>
+        <?php elseif ($page >= ($maxpage ?? 0)): ?>
+        <div class="infinite-scroll-loader no-more">
+            <!--{hook htmx_indicator__no_more.htm}-->
+        </div>
+        <?php endif; ?>
+
+        <?php endif; ?>
+    </slot>
+    <slot name="S3_Footer">
+        <?php if($type === 7): ?>
+
+        <form action="<?= url('user-s_pm') ?>" class="form-send-message w-100" method="post" hx-post="<?= url('user-s_pm') ?>" hx-trigger="submit" hx-target=".htmx_list_target" hx-swap="beforeend" hx-on:htmx:after-request="this.querySelector('textarea[name=pm_message]').value = ''">
+            <input type="hidden" name="sid" value="<?= session_id(); ?>" />
+            <input type="hidden" name="pm_to_uid" value="<?= $pm_to_uid; ?>" />
+            <input type="hidden" name="return_html" value="1" />
+
+            <div class="d-flex align-items-center w-100">
+                <div class="dropdown" hidden>
+
+                    <button class="btn btn-outline-secondary btn-icon me-2" data-bs-toggle="dropdown">
+                        <i class="las la-plus"></i>
+                        <span class="visually-hidden">更多操作</span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">WIP</a></li>
+                    </ul>
+                </div>
+                <div class="flex-grow-1">
+                    <textarea class="form-control" rows="1" placeholder="输入消息..." style="resize: none;" name="pm_message" id="pm_message"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary  ms-2">
+                    <i class="las la-paper-plane"></i>
+                    <span class="d-none d-sm-inline">发送</span>
+                </button>
+            </div>
+
+        </form>
+        <?php endif; ?>
+    </slot>
+</template>

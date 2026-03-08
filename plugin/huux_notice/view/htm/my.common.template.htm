@@ -1,0 +1,34 @@
+<?php include _include(APP_PATH.'view/htm/header.inc.htm');?>
+
+<div class="row">
+	<!-- 左侧菜单 -->
+	<div class="col-lg-2 hidden-sm hidden-md pr-0" id="notice_aside">
+		<div class="card card-body">
+				<div>
+					<?php foreach ($notice_menu as $k=>$v) { 
+						if(!isset($v['url']) || !isset($v['name'])) continue; //不安接入规范些直接不显示
+					?>
+					<a class="btn btn-block btn-sm btn-<?php echo $type == $k ? 'primary active' : 'light';?>" href="<?php echo $v['url'];?>"><?php echo $v['name'];?></a>
+					<?php } ?>
+				</div>
+		</div>
+	</div>
+	<!-- 右侧内容 -->
+	<div class="col-lg-10" id="notice_main">
+		<div class="card">
+			<div class="card-header">
+				<slot name="my_nav" />
+			</div>
+			<div class="card-body">
+				<slot name="my_body" />
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<?php include _include(APP_PATH.'view/htm/footer.inc.htm');?>
+<script>
+$('li[data-active="nav-usernotice"]').addClass('active');
+$('a[data-active="notice"]').addClass('active');
+</script>

@@ -1,0 +1,71 @@
+<template include="./plugin/haya_follow/view/htm/user_follow.template.htm">
+	
+	<slot name="user_body">
+		<ul class="list-unstyled m-0">
+			<?php if (!empty($haya_follow_followeds)) { foreach ($haya_follow_followeds as $haya_follow_fans_user) { ?>
+				<li class="media post haya-follower-<?php echo $haya_follow_fans_user['follow_uid'];?>" data-uid="<?php echo $haya_follow_fans_user['follow_uid'];?>">
+					<div class="media-body">
+						<div class="d-flex justify-content-between text-muted">
+							<div class="media">
+								<a target="_blank" href="<?php echo url("user-$haya_follow_fans_user[follow_uid]");?>" title="<?php echo $haya_follow_fans_user['follower_user']['username'];?>" class="mr-2 mt-1">
+									<img class="avatar-3" src="<?php echo $haya_follow_fans_user['follower_user']['avatar_url'];?>">
+								</a>
+								
+								<div class="media-body">
+									<div>
+										<a target="_blank" href="<?php echo url("user-$haya_follow_fans_user[follow_uid]");?>" title="<?php echo $haya_follow_fans_user['follower_user']['username'];?>" class="text-success mt-1">
+											<?php echo $haya_follow_fans_user['follower_user']['username'];?>
+										</a>
+									</div>
+									
+									<div class="mt-1 haya-follow-follower-fans">
+										<span class="small haya-follower-fans">
+											粉丝：<?php echo intval($haya_follow_fans_user['follower_user']['followeds']); ?>
+										</span>
+									</div>
+								</div>
+								
+							</div>
+							<div class="text-right">
+								<?php 
+								if ($haya_follow_fans_user['follow_uid'] != $uid) { 
+									$haya_follow_check_user = haya_follow_find_by_uid_and_follow_uid($haya_follow_fans_user['follow_uid'], $uid);
+								?>
+									<?php if (!empty($haya_follow_check_user)) { ?>
+										<button class="btn btn-sm btn-outline-secondary mt-2 js-haya-follow-del" data-uid="<?php echo $haya_follow_fans_user['follow_uid'];?>" title="已关注">
+											<i class="icon icon-check" aria-label="已关注"></i>
+											<span class="haya-follow-btn">已关注</span>
+										</button>
+									<?php } else { ?>
+										<button class="btn btn-sm btn-outline-secondary mt-2 js-haya-follow-add" data-uid="<?php echo $haya_follow_fans_user['follow_uid'];?>" title="关注">
+											<i class="icon icon-plus" aria-label="关注"></i>
+											<span class="haya-follow-btn">关注</span>
+										</button>
+									<?php } ?>
+								<?php } else { ?>
+									<button class="btn btn-sm btn-outline-info mt-2 js-haya-follow-me" data-uid="<?php echo $haya_follow_fans_user['follow_uid'];?>" title="自己">
+										<i class="icon icon-check" aria-label="自己"></i>
+										<span class="haya-follow-btn">自己</span>
+									</button>
+								<?php } ?>
+							</div>
+						</div>
+					</div>
+				</li>
+			<?php }} else { ?>
+				<li class="media haya-follower-empty">
+					<div class="text-muted small">Ta还没有粉丝~</div>
+				</li>
+			<?php } ?>
+		</ul>
+		
+		<?php if($haya_follow_pagination) { ?>
+			<nav><ul class="pagination justify-content-center"><?php echo $haya_follow_pagination; ?></ul></nav>
+		<?php } ?>
+	</slot>
+	
+</template>
+
+<script>
+$('a[data-active="user-follow-fans"]').addClass('active');
+</script>

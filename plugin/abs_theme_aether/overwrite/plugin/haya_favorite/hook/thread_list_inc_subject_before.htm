@@ -1,0 +1,3 @@
+<?php if (isset($route) && ($route == 'my' && $action == 'favorite')) { ?>
+	<a href="<?= url("forum-$_thread[fid]");?>" target="_blank" title="<?= $_thread['forumname'];?>" class="text-grey">[<?= $_thread['forumname'];?>]</a>
+<?php } ?>

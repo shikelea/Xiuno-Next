@@ -1,0 +1,6 @@
+<!--{hook thread_list_inc_view_before.htm}-->
+<span class="view-count mx-1">
+    <i class="las la-eye"></i>
+    <?= isset($_thread['views']) ? $_thread['views'] : ( isset($_thread['thread']['views']) ? $_thread['thread']['views'] : 0 ) ;?>
+</span>
+<!--{hook thread_list_inc_view_after.htm}-->

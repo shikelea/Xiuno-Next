@@ -1,0 +1,79 @@
+<?php if ($route == 'user' || $route == 'thread' || ($route == 'my' && $action == 'follow')) { ?>
+	<script>
+	<?php if ($uid) { ?>
+	$(document).on('click', '.js-haya-follow-add', function() {
+		$(this).attr("disabled", "disabled");
+
+		var thiz = $(this);
+		var uid = thiz.attr("data-uid");
+		var url = '<?php echo url("follow-create");?>';
+		$.xpost(url, {'uid': uid}, function(code, msg){
+			if (code == 1) {
+				thiz.removeClass('js-haya-follow-add')
+					.addClass('js-haya-follow-del')				
+					.attr('title', '取消关注');		
+			
+				thiz.find(".icon").removeClass('icon-plus')
+					.addClass('icon-check')
+					.attr("aria-label", '取消关注');
+					
+				thiz.find(".haya-follow-btn")
+					.text('已关注');
+			} else {
+				$.alert(msg);
+			}
+			
+			thiz.removeAttr("disabled");
+		});
+	});
+
+	$(document).on('click', '.js-haya-follow-del', function() {
+		$(this).attr("disabled", "disabled");
+
+		var thiz = $(this);
+		var uid = thiz.attr("data-uid");
+		var url = '<?php echo url("follow-delete");?>';
+		$.xpost(url, {'uid': uid},function(code, msg){
+			if (code == 1) {				
+				thiz.removeClass('js-haya-follow-del')
+					.addClass('js-haya-follow-add')
+					.attr('title', '关注');		
+			
+				thiz.find(".icon").removeClass('icon-check')
+					.addClass('icon-plus')
+					.attr("aria-label", '关注');
+					
+				thiz.find(".haya-follow-btn")
+					.text('关注');
+			} else {
+				$.alert(msg);
+			}
+			
+			thiz.removeAttr("disabled");
+		});
+	});
+	
+	$(document).on('click', '.js-haya-follow-remove', function() {
+		$(this).attr("disabled", "disabled");
+
+		var thiz = $(this);
+		var uid = thiz.attr("data-uid");
+		var url = '<?php echo url("follow-remove");?>';
+		$.xpost(url, {'uid': uid},function(code, msg){
+			if (code == 1) {									
+				$(".haya-follower-"+uid).remove();
+			} else {
+				$.alert(msg);
+			}
+			
+			thiz.removeAttr("disabled");
+		});
+	});
+	
+	<?php } else { ?>
+	$(document).on('click', '.js-haya-follow-tip', function() {
+		$.alert("登录后才可以关注~");
+	});
+	<?php } ?>
+	</script>
+<?php } ?>

@@ -1,0 +1,92 @@
+<?php
+$today0 = strtotime(date('Y-m-d',time()))-1;
+$count_all = db_count('sign',array('uid'=>$uid));
+if($count_all===FALSE)$count_all=0;
+if($count_all>0){
+$__tmp = db_find_one('sign',array('uid'=>$uid),array('time'=>-1));
+$last_timestamp = $__tmp['time'];
+}
+$beginThismonth = strtotime(date('Y-m-01', strtotime('this month')))-1; $endThismonth = strtotime(date('Y-m-t', strtotime('this month')))+1;
+$_sql_month = db_count('sign',array('uid'=>$uid,'time'=>array('>'=> $beginThismonth, '<'=>$endThismonth)));
+$beginWeek = strtotime(date("Y-m-d H:i:s",mktime(0, 0 , 0,date("m"),date("d")-date("w"),date("Y"))))-1;
+$endWeek = strtotime(date("Y-m-d H:i:s",mktime(23,59,59,date("m"),date("d")-date("w")+6,date("Y"))))+1;
+$_sql_week = db_count('sign',array('uid'=>$uid,'time'=>array('>'=> $beginWeek, '<'=>$endWeek)));
+if($_sql_week===FALSE) $_sql_week=0;
+?>
+<hr>
+ <?php if(isset($last_timestamp)){?>
+<div class="input-group mb-3"><div class="input-group-prepend"><span class="input-group-text"><?php echo db_find_one('sign',array('uid'=>$uid,'time'=>array('>'=>$today0)))?'今日已签':'上次签到';?></span></div>
+<input type="text" class="form-control" aria-label="Default" readonly style="background-color:white;" value="<?php echo date('Y-m-d h:i:s',$last_timestamp);?>"></div><?php }?>
+<div class="input-group mb-3"><div class="input-group-prepend"><span class="input-group-text">累计签到</span></div>
+<input type="text" class="form-control" aria-label="Default" readonly style="background-color:white;" value="<?php echo $count_all;?>"></div>
+<div class="input-group mb-3"><div class="input-group-prepend"><span class="input-group-text">本周签到</span></div>
+<input type="text" class="form-control" aria-label="Default" readonly style="background-color:white;" value="<?php echo $_sql_week;?>"></div>
+<div class="input-group mb-3"><div class="input-group-prepend"><span class="input-group-text">本月签到</span></div>
+<input type="text" class="form-control" aria-label="Default" readonly style="background-color:white;" value="<?php echo $_sql_month;?>"></div> 
+
+<?php if(isset($last_timestamp)){?>
+    <div class="my_common_total_info p-3">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="text-left">
+              <p class="fs-lg fw-semibold mb-0 font-weight-bold h5">
+                <?php echo db_find_one('sign',array('uid'=>$uid,'time'=>array('>'=>$today0)))?'今日已签':'今日未签到';?>
+              </p>
+              <p class="text-muted mb-0 text-muted small mt-2">
+                最近签到时间：<?php echo date('Y-m-d h:i:s',$last_timestamp);?>
+              </p>
+            </div>
+            <div class="h1 text-muted">
+              <i class="el-icon-circle-check"></i>
+            </div>
+          </div>
+    </div>
+    <?php }?>
+    
+
+<div class="d-flex justify-content-between" style="width: 100%;">
+    <div class="my_common_total_info p-3" style="flex: 1;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <div class="text-muted">
+                    累计签到
+                </div>
+                <div class="h4 mb-0">
+                    <?php echo $count_all;?>次
+                </div>
+            </div>
+            <div class="h1 text-muted mb-0 my_common_total_info_icon hidden-sm">
+                <i class="el-icon-date"></i>
+            </div>
+        </div>
+    </div>
+    <div class="my_common_total_info p-3" style="flex: 1;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <div class="text-muted">
+                    本周签到
+                </div>
+                <div class="h4 mb-0">
+                    <?php echo $_sql_week;?>次
+                </div>
+            </div>
+            <div class="h1 text-muted mb-0 my_common_total_info_icon hidden-sm">
+                <i class="el-icon-finished"></i>
+            </div>
+        </div>
+    </div>
+    <div class="my_common_total_info p-3" style="flex: 1;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <div class="text-muted">
+                    本月签到
+                </div>
+                <div class="h4 mb-0">
+                    <?php echo $_sql_month;?>次
+                </div>
+            </div>
+            <div class="h1 text-muted mb-0 my_common_total_info_icon hidden-sm">
+                <i class="el-icon-edit "></i>
+            </div>
+        </div>
+    </div>
+</div>

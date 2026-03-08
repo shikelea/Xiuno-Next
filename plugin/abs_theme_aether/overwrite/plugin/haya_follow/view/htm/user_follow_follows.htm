@@ -1,0 +1,29 @@
+<template include="./plugin/abs_theme_aether/overwrite/plugin/haya_follow/view/htm/user_follow.template.htm">
+
+	<slot name="user_body">
+		<?php if (!empty($haya_follow_follows)) :?>
+		<ul class="list-group m-0">
+
+			<?php foreach ($haya_follow_follows as $haya_follow_follows_user) : ?>
+			<?php include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts_plugin/haya_follow/useritem_user_following.htm'); ?>
+
+			<?php endforeach; ?>
+		</ul>
+		<?php else: 
+		include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/fragments/empty_no_following.htm');
+		endif; ?>
+
+		<?php if($haya_follow_pagination) { ?>
+		<nav>
+			<ul class="pagination justify-content-center"><?= $haya_follow_pagination; ?></ul>
+		</nav>
+		<?php } ?>
+
+		<script>
+			AetherExec(function () {
+				setActive("user-follow-follows", "*", ".user_nav");
+			});
+		</script>
+	</slot>
+
+</template>

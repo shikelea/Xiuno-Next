@@ -1,0 +1,90 @@
+<!-- <script>
+
+var forumlist = <?php echo xn_json_encode($forumlist_show);?>;
+
+// 初始化值，选中的值
+var tagids = <?php echo xn_json_encode($tagids);?>;
+var action = '<?php echo $action;?>';
+
+var jfid = $('.forum-radio');
+var fid = <?php echo intval($fid); ?> || $('.forum-radio').val();
+jfid.on('change', function() {
+	var fid = jfid.filter(':checked').val();
+	fid_on_change(fid);
+});
+
+function fid_on_change(fid) {
+	var s = '<table class="small nav_tag_list mb-2">';
+	var forum = forumlist[fid];
+	$.each(forum.tagcatelist, function(k, tagcate) {
+		s += '<tr><td class="text-muted text-nowrap" align="right" valign="top">';
+		s += tagcate.name;
+		s += '：</td><td>';
+		$.each(tagcate.taglist, function(k, tag) {
+			s += '<a href="javascript:void(0);" class="tag_option ' + (xn.in_array(tag.tagid, tagids) || (tag.tagid == tagcate.defaulttagid && action == 'create') ? ' active' : '') + '" tagid="' + tag.tagid + '">' + tag.name + '</a>';
+			s += '<input type="hidden" name="tagid[]" value="' + (xn.in_array(tag.tagid, tagids) || (tag.tagid == tagcate.defaulttagid && action == 'create') ? tag.tagid : '') + '" />';
+		});
+		s += '</td></tr>';
+	});
+	s += '</table>';
+	$('#nav_tag_list_div').html(s);
+}
+
+fid_on_change(fid);
+
+$('#nav_tag_list_div').on('click', 'a.tag_option', function() {
+	var jthis = $(this);
+	var tagid = jthis.attr('tagid');
+	jthis.toggleClass('active');
+	// 隐藏域
+	var v = jthis.hasClass('active') ? tagid : '';
+	jthis.next().attr('value', v);
+});
+
+
+// tag 选中区域。
+
+</script> -->
+
+
+  
+  <div id="nav_tag_list_div" class="flex-container"></div>
+  
+  <script>
+  var forumlist = <?php echo xn_json_encode($forumlist_show);?>;
+  var tagids = <?php echo xn_json_encode($tagids);?>;
+  var action = '<?php echo $action;?>';
+  var jfid = $('.forum-radio');
+  var fid = <?php echo intval($fid); ?> || $('.forum-radio').val();
+  
+  jfid.on('change', function() {
+	var fid = jfid.filter(':checked').val();
+	fid_on_change(fid);
+  });
+  
+  function fid_on_change(fid) {
+	var s = '<div class="nav_tag_list my-3">';
+	var forum = forumlist[fid];
+	$.each(forum.tagcatelist, function(k, tagcate) {
+	  s += '<div class="tagcatelist">';
+	  s += '<div class="text-muted text-nowrap mt-2">' + tagcate.name + '：</div><div class="row">';
+	  $.each(tagcate.taglist, function(k, tag) {
+		s += '<div class="col-lg-2 col-4"><a href="javascript:void(0);" class="tag_option' + (xn.in_array(tag.tagid, tagids) || (tag.tagid == tagcate.defaulttagid && action == 'create') ? ' active' : '') + '" tagid="' + tag.tagid + '">' + tag.name + '</a>';
+		s += '<input type="hidden" name="tagid[]" value="' + (xn.in_array(tag.tagid, tagids) || (tag.tagid == tagcate.defaulttagid && action == 'create') ? tag.tagid : '') + '" /></div>';
+	  });
+	  s += '</div></div>';
+	});
+	s += '</div>';
+	$('#nav_tag_list_div').html(s);
+  }
+  
+  fid_on_change(fid);
+  
+  $('#nav_tag_list_div').on('click', 'a.tag_option', function() {
+	var jthis = $(this);
+	var tagid = jthis.attr('tagid');
+	jthis.toggleClass('active');
+	var v = jthis.hasClass('active') ? tagid : '';
+	jthis.next().attr('value', v);
+  });
+  </script>

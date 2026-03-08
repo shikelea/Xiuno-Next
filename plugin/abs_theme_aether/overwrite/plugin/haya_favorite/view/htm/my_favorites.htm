@@ -1,0 +1,33 @@
+<?php include _include(APP_PATH.'view/htm/header.inc.htm');?>
+
+<h1>功能重复，即将删除</h1>
+<p>请进入
+	<a href="<?= url("my-favorites");?>">
+		<?= lang('haya_favorite_my_favorite'); ?>
+	</a>
+</p>
+
+<?php include _include(APP_PATH.'view/htm/footer.inc.htm');?>
+
+<script>
+
+$(document).on('click', '.js-haya-favorite-remove', function() {
+	var thiz = $(this);
+	var tid = thiz.attr("data-tid");
+	var url = '<?= url("my-favorite-delete");?>';	
+	
+	$.confirm('<?= lang('haya_favorite_add_favorite_confirm_title'); ?>', function() {
+		$.xpost(url, {'tid': tid}, function(code, msg){
+			if (code == 1) {
+				$(".haya-favorite-thread-"+tid).fadeOut(function() {
+					$(".haya-favorite-thread-"+tid).remove();
+				});
+			} else {
+				$.alert(msg);
+			}
+		});
+	}, {'body': '<?= lang('haya_favorite_add_favorite_confirm_content'); ?>'});	
+	
+	return false;
+});
+</script>

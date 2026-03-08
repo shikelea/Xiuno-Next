@@ -1,0 +1,16 @@
+{
+    "name": "签到",
+    "brief": "本插件需要预先安装积分插件！签到插件，提升用户黏性。<br/>此版本已通过Aether兼容性测试",
+    "version": "1.2",
+    "bbs_version": "4.0.3",
+    "installed": 0,
+    "enable": 0,
+    "hooks_rank": {
+        "index_site_brief_after.htm": 999,
+        "index_thread_list_nav_item_after.htm": 9999
+    },
+    "overwrites_rank": [],
+    "dependencies": {
+        "tt_credits": "1.09"
+    }
+}

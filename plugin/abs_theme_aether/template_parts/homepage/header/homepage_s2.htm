@@ -1,0 +1,21 @@
+<!-- 页面头部 -->
+<header id="S2-Header" class="user-chat-topbar" style="--col-gap:0">
+    <section class="header-main-toolbar ">
+        <div class="header-title-section">广场</div>
+        <div class="header-action-section">
+            <?php include _include(APP_PATH.'view/htm/thread_list_mod.inc.htm');?>
+            <a class="btn btn-outline-secondary btn-icon" href="#" role="tab" data-active="s1_tab_search"
+               data-target="searchModal" hx-on:click="toggleModal(event)">
+                <i data-target="searchModal" class="las la-search"></i>
+                <span class="visually-hidden">搜索</span>
+            </a>
+            <?php if($uid): ?>
+            <a class="btn btn-outline-secondary btn-icon" href="<?= url('my-notice') ?>" role="tab"
+               data-active="s1_tab_notification" hx-get="<?= url('my-notice') ?>" hx-target="#S2" hx-push-url="true">
+                <i class="las la-comment"></i>
+                <span class="visually-hidden">通知</span>
+            </a>
+            <?php endif; ?>
+        </div>
+    </section>
+</header>

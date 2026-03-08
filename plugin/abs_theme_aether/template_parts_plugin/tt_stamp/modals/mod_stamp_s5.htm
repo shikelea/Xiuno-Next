@@ -1,0 +1,44 @@
+<form action="<?= url('mod-stamp'); ?>" method="post" id="mod_stamp_form" hx-post="<?= url("mod-stamp");?>" hx-trigger="submit">
+    <?php foreach($tidarr as $v): ?>
+    <input type="hidden" name="tidarr[]" value="<?= $v ?>">
+    <?php endforeach; ?>
+
+    <!-- 信息展示区 -->
+    <div class="info-section mb-4">
+        <div class="text-muted">操作概览</div>
+        <div class="fw-medium"><?= lang('total');?>：<span class="total text-primary"><?= $count ?? 0 ?></span> <?= lang('piece');?> <?= lang('thread') ?></div>
+    </div>
+    <!-- 表单字段 -->
+    <div class="form-fields">
+        <div class="form-group mb-4">
+            <label class="form-label" for="stamp_level">选择图章：</label>
+            <div class="row g-1">
+                <div class="col-6 col-md-4 position-relative">
+                    <input class="custom-form-check-input" type="radio" name="stamp"
+                           id="stamp_0" value="0">
+                    <label class="custom-form-check-label" for="stamp_0">
+                        <i class="las la-window-close"></i> <span>删除图章</span>
+                    </label>
+                </div>
+
+                <?php for($i=0;$i<$stamps_count;$i++): ?>
+                <div class="col-6 col-md-4 position-relative">
+                    <input class="custom-form-check-input" type="radio" name="stamp"
+                           id="stamp_<?= $i+1;?>" value="<?= $i+1;?>">
+                    <label class="custom-form-check-label" for="stamp_<?= $i+1;?>">
+                        <img alt="Stamp" src="./plugin/tt_stamp/static/<?= $i+1;?>.gif" class="img-fluid" style="height: 3.3rem;width: auto;" />
+                        
+                        <span><?= $stamps[$i];?></span>
+                    </label>
+                </div>
+
+                <?php endfor; ?>
+            </div>
+        </div>
+    </div>
+
+    <footer class="d-flex gap-2 justify-content-end">
+        <button type="button" class="btn btn-outline-secondary btn-block" data-target="htmx-modal" hx-on:click="toggleModal(event)"><?= lang('close');?></button>
+        <button type="submit" class="btn btn-primary btn-block" data-loading-text="<?= lang('submiting');?>..."><?= lang('confirm');?></button>
+    </footer>
+</form>

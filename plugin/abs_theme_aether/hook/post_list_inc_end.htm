@@ -1,0 +1,90 @@
+<?php
+if ($postlist) :
+    $current_page_uri = explode('?', ltrim(preg_replace("#^" . dirname($_SERVER['SCRIPT_NAME']) . "#", '', $_SERVER['REQUEST_URI']), '/'));
+    if (empty($current_page_uri[0])) {
+        // 可能有错误
+    } else {
+        $current_page_uri[0] = explode('?', ltrim(preg_replace("#^" . dirname($_SERVER['SCRIPT_NAME']) . "#", '', $_SERVER['REQUEST_URI']), '/'))[0];
+    }
+    $new_page_uri = explode('-', $current_page_uri[0]);
+    $ALLOW_INFINITE_SCROLL  = false;
+	/**
+	 * 在不同的route里，翻页的网址参数不同
+     * thread-{tid}-{page}: $page = param(2, 1);
+	 * my-post-{page}: $page = param(2, 1);
+	 * user-post-{uid}-{page}: $page = param(3, 1);
+	 */
+    switch ($route) {
+        case 'thread':
+            $ALLOW_INFINITE_SCROLL  = true;
+            if (isset($new_page_uri[2])) {
+                if (stripos($new_page_uri[2], 'htm') !== false) {
+                    $tmp = explode('.', $new_page_uri[2]);
+                    $tmp[0] =  $page + 1;
+                    $new_page_uri[2] = implode('.', $tmp);
+                } else {
+                    $new_page_uri[2] = $page + 1;
+                }
+            } else {
+                $new_page_uri = url('thread-'. $tid .'-2');
+            }
+            break;
+        case 'my':
+            if (param(1, '') === 'post') {
+				$ALLOW_INFINITE_SCROLL  = true;
+				if (isset($new_page_uri[2])) {
+					if (stripos($new_page_uri[2], 'htm') !== false) {
+						$tmp = explode('.', $new_page_uri[2]);
+						$tmp[0] =  $page + 1;
+						$new_page_uri[2] = implode('.', $tmp);
+					} else {
+						$new_page_uri[2] = $page + 1;
+					}
+				} else {
+					$new_page_uri = url('my-post-' . 2);
+				}
+			}
+            break;
+        case 'user':
+            if (param(1, '') === 'post') {
+				$ALLOW_INFINITE_SCROLL  = true;
+				if (isset($new_page_uri[3])) {
+					if (stripos($new_page_uri[3], 'htm') !== false) {
+						$tmp = explode('.', $new_page_uri[3]);
+						$tmp[0] =  $page + 1;
+						$new_page_uri[3] = implode('.', $tmp);
+					} else {
+						$new_page_uri[3] = $page + 1;
+					}
+				} else {
+					$new_page_uri = url('user-post-' . $_uid . '-' . 2);
+				}
+			}
+            break;
+        // hook htmx_postlist_get_next_page_uri_case_end.php
+        default:
+            // 具体情况具体分析……
+            break;
+    }
+    if (is_array($new_page_uri)) {
+		if (stripos(implode('-', $new_page_uri), 'IS_IN_PAGINATION') !== false) {
+			$new_page_uri = implode('-', $new_page_uri);
+		} else {
+			$new_page_uri = implode('-', $new_page_uri) . (empty($_GET) ? '?' : '&') . http_build_query(['IS_IN_PAGINATION' => 1, 'IS_IN_POSTLIST' => 1]);
+		}
+	} else {
+		if (stripos($new_page_uri, 'IS_IN_PAGINATION') === false) {
+			$new_page_uri .= (empty($_GET) ? '?' : '&') . http_build_query(['IS_IN_PAGINATION' => 1, 'IS_IN_POSTLIST' => 1]);
+		}
+	}
+	// hook htmx_postlist_allow_infinite_scroll_override.php
+    if ($ALLOW_INFINITE_SCROLL  && (isset($maxpage) && $page < $maxpage)) : ?>
+	<div class="infinite-scroll-loader" hx-get="<?= $new_page_uri ?>" hx-trigger="revealed once" hx-swap="outerHTML" hx-push-url="true">
+		<!--{hook aether_skeleton.htm}-->
+	</div>
+	<?php elseif (  (isset($maxpage) && $page  >= $maxpage)): ?>
+	<div class="infinite-scroll-loader no-more">
+		<!--{hook htmx_indicator__no_more.htm}-->
+	</div>
+	<?php endif; ?>
+<?php endif; ?>

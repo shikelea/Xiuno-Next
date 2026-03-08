@@ -1,0 +1,8 @@
+<li class="nav-item">
+	<a class="nav-link" href="<?php echo url("my-favorite");?>" data-active="my-favorite">
+		<?php echo lang('haya_favorite_name'); ?>
+		<?php if ($action == "favorite") { ?>
+			(<?php echo intval($haya_favorite_count); ?>)
+		<?php } ?>
+	</a>
+</li>

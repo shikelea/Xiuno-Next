@@ -1,0 +1,18 @@
+<?php 
+if (isset($haya_post_like_config['open_thread'])
+	&& $haya_post_like_config['open_thread'] == 1
+) {
+?>
+	<?php 
+	if ((isset($haya_post_like_config['list_show_likes'])
+		&& $haya_post_like_config['list_show_likes'] == 1)
+		|| ($route == 'my' || $route == 'user')
+	) {
+	?>
+		<span class="ml-2">
+			<span class="iconfont icon-dianzan"></span>
+			<span><?php echo intval($_thread['likes']);?></span>
+		</span>
+	<?php } ?>
+	
+<?php } ?>

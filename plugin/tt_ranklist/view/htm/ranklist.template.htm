@@ -1,0 +1,17 @@
+	<?php include _include(APP_PATH.'view/htm/header.inc.htm');?>
+		<div class="row">
+	<div class="col-md-10 col-sm-12 mx-auto" id="ranklist">
+		<div class="card">
+			<div class="card-header">
+				<slot name="my_ranklist" />
+			</div>
+			<div class="card-body">
+				<slot name="ranklist_body" />
+			</div>
+		</div>
+	</div>
+	</div>
+	<?php include _include(APP_PATH.'view/htm/footer.inc.htm');?>
+	<script>
+	$('li[data-active="ranklist"]').addClass('active');
+	</script>

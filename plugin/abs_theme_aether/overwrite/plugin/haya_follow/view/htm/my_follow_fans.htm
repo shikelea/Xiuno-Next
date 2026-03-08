@@ -1,0 +1,43 @@
+<template include="./plugin/abs_theme_aether/overwrite/plugin/haya_follow/view/htm/my_follow.template.htm">
+	<slot name="my_body">
+		<?php if (!empty($haya_follow_followeds)): ?>
+		<ul class="list-unstyled mb-0">
+
+			<?php foreach ($haya_follow_followeds as $haya_follow_fans_user) : ?>
+		<?php include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts_plugin/haya_follow/useritem_my_follower.htm'); ?>
+
+			
+			<?php endforeach; ?>
+		</ul>
+		<?php else: include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/fragments/empty_no_fans.htm');
+				?>
+
+		<?php endif; ?>
+
+		<?php if (!empty($haya_follow_post_pagination)) { ?>
+		<nav>
+			<ul class="pagination justify-content-center"><?= $haya_follow_post_pagination; ?></ul>
+		</nav>
+		<?php } ?>
+		<script>
+			/*
+		$(function() {
+		
+			$(document).on("click", ".js-haya-follow-user-setting", function() {
+				var settings = $(".haya-follow-user-settings");
+				if (settings.hasClass("d-none")) {
+					settings.removeClass("d-none");
+				} else {
+					settings.addClass("d-none");
+				}
+			});
+		
+		});
+			*/
+			AetherExec(function () {
+				setActive("my-follow-fans", "*", ".my_nav");
+			});
+		</script>
+
+	</slot>
+</template>

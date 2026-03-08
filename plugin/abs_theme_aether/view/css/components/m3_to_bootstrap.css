@@ -1,0 +1,259 @@
+:root,
+[data-bs-theme=light] {
+  /* 主要颜色映射 */
+  --bs-primary: var(--md3-primary);
+  --bs-primary-rgb: var(--md3-primary-rgb);
+  /* #339cff */
+  --bs-primary-text-emphasis: var(--md3-primary-30);
+  --bs-primary-bg-subtle: var(--md3-primary-95);
+  --bs-primary-border-subtle: var(--md3-primary-80);
+
+  /* 次要颜色映射 */
+  --bs-secondary: var(--md3-secondary);
+  --bs-secondary-rgb: var(--md3-secondary-rgb);
+  /* #da40f2 */
+  --bs-secondary-text-emphasis: var(--md3-secondary-30);
+  --bs-secondary-bg-subtle: var(--md3-secondary-95);
+  --bs-secondary-border-subtle: var(--md3-secondary-80);
+
+  /* 第三级颜色映射 */
+  --bs-tertiary: var(--md3-tertiary);
+  --bs-tertiary-rgb: var(--md3-tertiary-rgb);
+  --bs-tertiary-bg: var(--md3-tertiary-90);
+  --bs-tertiary-content-bg: var(--md3-neutral-96);
+  --bs-tertiary-emphasis-bg: var(--md3-tertiary-80);
+
+  /* 中性色/灰度映射 */
+  --bs-gray-100: var(--md3-neutral-98);
+  --bs-gray-200: var(--md3-neutral-96);
+  --bs-gray-300: var(--md3-neutral-94);
+  --bs-gray-400: var(--md3-neutral-80);
+  --bs-gray-500: var(--md3-neutral-70);
+  --bs-gray-600: var(--md3-neutral-60);
+  --bs-gray-700: var(--md3-neutral-50);
+  --bs-gray-800: var(--md3-neutral-40);
+  --bs-gray-900: var(--md3-neutral-35);
+
+  /* 主题颜色映射 */
+  --bs-theme-50: var(--md3-neutral-99);
+  --bs-theme-100: var(--md3-neutral-96);
+  --bs-theme-200: var(--md3-neutral-94);
+  --bs-theme-400: var(--md3-neutral-80);
+  --bs-theme-500: var(--md3-neutral-70);
+  --bs-theme-600: var(--md3-neutral-60);
+  --bs-theme-700: var(--md3-neutral-50);
+  --bs-theme-800: var(--md3-neutral-40);
+  --bs-theme-900: var(--md3-neutral-35);
+
+
+  /* 背景和表面映射 */
+  --bs-body-bg: var(--md3-background);
+  --bs-body-bg-rgb: var(--md3-background-rgb);
+  --bs-secondary-bg: var(--md3-surface-container-low);
+  --bs-tertiary-bg: var(--md3-surface-container);
+  --bs-light: var(--md3-surface-container-high);
+  --bs-dark: var(--md3-inverse-surface);
+
+  --bs-theme-component-bg: var(--md3-surface-container-lowest);
+  --bs-theme-popup-bg: var(--md3-surface-container-lowest);
+  --bs-theme-popup-hover-bg: var(--md3-surface-container-low);
+  --bs-theme-list-hover-bg: var(--md3-surface-container);
+
+  /* 文本颜色映射 */
+  --bs-body-color: var(--md3-inverse-surface);
+  --bs-body-color-rgb: var(--md3-inverse-surface-rgb);
+  --bs-emphasis-color: var(--md3-neutral-30);
+  --bs-secondary-color: var(--md3-neutral-40);
+  --bs-heading-color: var(--md3-neutral-0);
+  --bs-text-invert-color: var(--md3-on-primary);
+
+  /* 链接颜色映射 */
+  --bs-link-color: var(--md3-primary);
+  --bs-link-hover-color: var(--md3-inverse-primary);
+
+  /* 边框颜色映射 */
+  --bs-border-color: var(--md3-outline-variant);
+  --bs-border-light: var(--md3-surface-variant);
+  --bs-border-color-translucent: var(--md3-outline);
+
+  /* 阴影映射 */
+  --bs-box-shadow: 0 .5rem 1rem rgba(var(--md3-shadow-rgb, 0, 0, 0), 0.15);
+  --bs-box-shadow-sm: 0 .125rem .25rem rgba(var(--md3-shadow-rgb, 0, 0, 0), 0.075);
+  --bs-box-shadow-lg: 0 1rem 3rem rgba(var(--md3-shadow-rgb, 0, 0, 0), 0.175);
+  --bs-theme-shadow-color: var(--md3-shadow);
+
+
+  /* 侧边栏和导航映射 */
+  --bs-sidebar-bg: var(--md3-surface-container-high);
+  --bs-sidebar-sub-bg: var(--md3-surface-container);
+  --bs-sidebar-border-color: var(--md3-outline-variant);
+  --bs-navbar-mobile-bg: var(--md3-surface);
+
+  /* 工具提示 */
+  --bs-tooltips-bg: var(--md3-surface-container-highest);
+  --bs-tooltips-color: var(--md3-on-surface);
+
+  /* 滚动条 */
+  --bs-scrollbar-bg: var(--md3-surface-variant);
+
+  /* 高亮背景 */
+  --bs-theme-body-highlight-bg: var(--md3-primary-92);
+  --bs-theme-body-highlight-popup-bg: var(--md3-primary-94);
+
+  /* 表单验证 */
+  --bs-form-valid-color: var(--bs-success);
+  --bs-form-valid-border-color: var(--bs-success);
+  --bs-form-invalid-color: var(--bs-danger);
+  --bs-form-invalid-border-color: var(--bs-danger);
+
+  /* 焦点环 */
+  --bs-focus-ring-color: var(--md3-primary-80);
+
+  /* 代码颜色 */
+  --bs-code-color: var(--md3-secondary);
+
+  /* 高亮 */
+  --bs-highlight-color: var(--md3-secondary-container);
+  --bs-highlight-bg: var(--md3-secondary-90);
+
+  /* 徽章和标签背景 */
+  --bs-light-bg-subtle: var(--md3-surface-container-low);
+  --bs-dark-bg-subtle: var(--md3-surface-variant);
+
+  /* 徽章和标签边框 */
+  --bs-light-border-subtle: var(--md3-outline-variant);
+  --bs-dark-border-subtle: var(--md3-surface-variant);
+}
+
+/* ======================== */
+/* 暗色模式 Material Design 3 到 Bootstrap 变量映射 */
+/* ======================== */
+
+[data-bs-theme=dark] {
+  /*  主要颜色映射  */
+  --bs-primary: var(--md3-primary);
+  --bs-primary-rgb: var(--md3-primary-rgb);
+  /* #940554 */
+  --bs-primary-text-emphasis: var(--md3-primary-20);
+  --bs-primary-bg-subtle: var(--md3-primary-95);
+  --bs-primary-border-subtle: var(--md3-primary-80);
+
+  /*  次要颜色映射  */
+  --bs-secondary: var(--md3-secondary);
+  --bs-secondary-rgb: var(--md3-secondary-rgb);
+  /* #7d0a8f */
+  --bs-secondary-text-emphasis: var(--md3-secondary-60);
+  --bs-secondary-bg-subtle: var(--md3-secondary-95);
+  --bs-secondary-border-subtle: var(--md3-secondary-80);
+
+  /*  第三级颜色映射  */
+  --bs-tertiary: var(--md3-tertiary);
+  --bs-tertiary-rgb: var(--md3-tertiary-rgb);
+  --bs-tertiary-bg: var(--md3-tertiary-95);
+  --bs-tertiary-content-bg: var(--md3-neutral-94);
+  --bs-tertiary-emphasis-bg: var(--md3-tertiary-90);
+  --bs-tertiary-color: var(--md3-tertiary-30);
+
+  /*  中性色/灰度映射  */
+  --bs-gray-100: var(--md3-neutral-98);
+  --bs-gray-200: var(--md3-neutral-96);
+  --bs-gray-300: var(--md3-neutral-94);
+  --bs-gray-400: var(--md3-neutral-80);
+  --bs-gray-500: var(--md3-neutral-70);
+  --bs-gray-600: var(--md3-neutral-60);
+  --bs-gray-700: var(--md3-neutral-50);
+  --bs-gray-800: var(--md3-neutral-40);
+  --bs-gray-900: var(--md3-neutral-35);
+
+  /*  主题颜色映射  */
+  --bs-theme-50: var(--md3-neutral-80);
+  --bs-theme-100: var(--md3-neutral-70);
+  --bs-theme-200: var(--md3-neutral-60);
+  --bs-theme-400: var(--md3-neutral-50);
+  --bs-theme-500: var(--md3-neutral-40);
+  --bs-theme-600: var(--md3-neutral-35);
+  --bs-theme-700: var(--md3-neutral-30);
+  --bs-theme-800: var(--md3-neutral-25);
+  --bs-theme-900: var(--md3-neutral-22);
+
+  /*  错误颜色映射  */
+  --bs-form-invalid-color: var(--md3-error);
+  --bs-form-invalid-border-color: var(--md3-error);
+
+  /*  背景和表面映射  */
+  --bs-body-bg: var(--md3-background);
+  --bs-body-bg-rgb: var(--md3-background-rgb);
+  --bs-secondary-bg: var(--md3-surface-container-low);
+  --bs-tertiary-bg: var(--md3-surface-container);
+  --bs-light: var(--md3-surface-container-high);
+  --bs-dark: var(--md3-inverse-surface);
+
+  --bs-theme-component-bg: var(--md3-surface-container-lowest);
+  --bs-theme-popup-bg: var(--md3-surface-container-low);
+  --bs-theme-popup-hover-bg: var(--md3-surface-container);
+  --bs-theme-list-hover-bg: var(--md3-surface-container);
+
+  /*  文本颜色映射  */
+  --bs-body-color: var(--md3-inverse-on-surface);
+  --bs-body-color-rgb: var(--md3-inverse-on-surface-rgb);
+  --bs-emphasis-color: var(--md3-neutral-15);
+  --bs-secondary-color: var(--md3-neutral-22);
+  --bs-heading-color: var(--md3-neutral-10);
+  --bs-text-invert-color: var(--md3-neutral-100);
+
+  /*  链接颜色映射  */
+  --bs-link-color: var(--md3-primary-22);
+  --bs-link-hover-color: var(--md3-primary-15);
+
+  /*  边框颜色映射  */
+  --bs-border-color: var(--md3-outline-variant);
+  --bs-border-light: var(--md3-surface-variant);
+  --bs-border-color-translucent: var(--md3-outline);
+
+  /*  阴影映射  */
+  --bs-box-shadow: 0 .5rem 1rem rgba(var(--md3-shadow-rgb, 0, 0, 0), 0.15);
+  --bs-box-shadow-sm: 0 .125rem .25rem rgba(var(--md3-shadow-rgb, 0, 0, 0), 0.075);
+  --bs-box-shadow-lg: 0 1rem 3rem rgba(var(--md3-shadow-rgb, 0, 0, 0), 0.175);
+  --bs-theme-shadow-color: var(--md3-shadow);
+
+  /*  侧边栏和导航映射  */
+  --bs-sidebar-bg: var(--md3-surface-container-high);
+  --bs-sidebar-sub-bg: var(--md3-surface-container);
+  --bs-sidebar-border-color: var(--md3-outline-variant);
+  --bs-navbar-mobile-bg: var(--md3-surface);
+  --bs-sidebar-close-handle-bg: var(--md3-surface-container);
+
+  /*  工具提示  */
+  --bs-tooltips-bg: var(--md3-surface-container-highest);
+  --bs-tooltips-color: var(--md3-on-surface);
+
+  /*  滚动条  */
+  --bs-scrollbar-bg: var(--md3-surface-variant);
+
+  /*  高亮背景  */
+  --bs-theme-body-highlight-bg: var(--md3-primary-94);
+  --bs-theme-body-highlight-popup-bg: var(--md3-primary-92);
+
+  /*  表单验证  */
+  --bs-form-valid-color: var(--md3-tertiary-30);
+  --bs-form-valid-border-color: var(--md3-tertiary-30);
+
+  /*  焦点环  */
+  --bs-focus-ring-color: var(--md3-primary-70);
+
+  /*  代码颜色  */
+  --bs-code-color: var(--md3-secondary-24);
+
+  /*  高亮  */
+  --bs-highlight-color: var(--md3-on-secondary-container);
+  --bs-highlight-bg: var(--md3-secondary-90);
+
+  /*  徽章和标签背景  */
+  --bs-light-bg-subtle: var(--md3-surface-container-low);
+  --bs-dark-bg-subtle: var(--md3-surface-variant);
+
+  /*  徽章和标签边框  */
+  --bs-light-border-subtle: var(--md3-outline-variant);
+  --bs-dark-border-subtle: var(--md3-surface-variant);
+
+}

@@ -1,0 +1,29 @@
+@CHARSET "UTF-8";
+.site-list-ul {
+    list-style: outside none none;
+    margin: 0;
+    padding: 0;
+}
+.site-top ul li, .site-reply ul li {
+    border-bottom: 1px dashed #dadada;
+    clear: both;
+    margin: 0;
+}
+.site-top ul li {
+    height: 31px;
+    line-height: 31px;
+    overflow: hidden;
+}
+.site-brief li:last-child, .site-top li:last-child, .site-reply li:last-child {
+    border-bottom: 0 none;
+}
+.site-info li {
+    border-right: 1px solid #e6e6e6;
+}
+.site-info li:last-child {
+    border-right: 0 none;
+}
+.col-xs-4 {
+    float: left;
+    width: 25%;
+}

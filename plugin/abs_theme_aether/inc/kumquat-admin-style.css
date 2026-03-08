@@ -1,0 +1,203 @@
+:root {
+    --kumquat-navbar-height: 0rem;
+    --kumquat-card-header-height: calc(var(--kumquat-navbar-height) + 3.5rem - 1px);
+    --kumquat-card-nav-height: calc(var(--kumquat-card-header-height) + 2.5rem - 2px);
+}
+
+.col-md-2.form-control-label {
+    padding-right: 0;
+}
+
+.btn-group.btn-group-toggle {
+    flex-wrap: wrap;
+}
+
+input[type=range][orient=vertical] {
+    display: inline-block;
+    width: 8px;
+    height: 10rem;
+    padding: 0 10px;
+    -webkit-appearance: slider-vertical;
+    writing-mode: bt-lr;
+}
+
+.range-label[orient=vertical] {
+    display: inline-flex;
+    height: 10rem;
+    writing-mode: tb-rl;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+}
+
+.range-label[orient=vertical]>* {
+    float: none !important;
+}
+
+.range-label[orient=vertical]:after {
+    display: none;
+}
+
+.badge-group {
+    display: inline-flex;
+    padding: 0;
+    line-height: 1;
+    font-size: 75%;
+    text-align: center;
+    vertical-align: baseline;
+    white-space: nowrap;
+    flex-wrap: wrap;
+}
+
+.badge-group .badge {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    border-radius: 0;
+}
+
+.badge-group .badge:first-child {
+    font-weight: 700;
+    border-radius: 5px 0 0 5px;
+}
+
+.badge-group .badge:last-child {
+    border-radius: 0 5px 5px 0;
+}
+
+.badge-group .badge:only-child {
+    border-radius: 5px;
+}
+
+.kumquat-card-header {
+    position: sticky;
+    top: var(--kumquat-navbar-height);
+    z-index: 3;
+}
+
+.kumquat-nav {
+    position: sticky;
+    /*top: calc(3rem + 5px);*/
+    top: var(--kumquat-card-header-height);
+    margin-left: -16px;
+    margin-right: -16px;
+    background: var(--light);
+    z-index: 2;
+    overflow: auto;
+    flex-wrap: nowrap;
+}
+
+.kumquat-nav .nav-item {
+    min-width: fit-content;
+}
+
+.kumquat-nav .nav-item>a>code {
+    margin-left: .5em;
+}
+
+.tab-pane h3.section-title {
+    position: sticky;
+    /*top: calc(4rem + 2rem + 4px + 1px);*/
+    top: var(--kumquat-card-nav-height);
+    background: var(--white);
+    z-index: 1;
+    padding: 0.5rem 0;
+}
+
+.kumquat-card-footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--light);
+    z-index: 3;
+}
+
+.btn.btn-kumquatResetModal {
+    flex: 0 0 8em;
+}
+
+.btn-group-toggle>.btn img {
+    width: 15vw;
+    max-width: 100%;
+}
+
+pre.all-var-table {
+    background: var(--dark);
+    color: var(--light);
+    padding: 1em;
+    position: absolute;
+    left: -99.85%;
+    width: 100%;
+    z-index: 1100;
+    border: 2px solid var(--success);
+}
+
+pre.all-var-table:hover {
+    left: 0;
+}
+
+.kumquat-typography .kumquat-font-size select {
+    flex: 0 0 4em;
+}
+
+.kumquat-typography .form-group {
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.content-demo {
+    margin: 0 15px 15px 15px;
+    box-shadow: 0 1px 4px var(--bs-gray, rgba(0, 0, 0, 0.4));
+    border-radius: 1rem;
+    text-align: center;
+}
+
+.kumquat-bgimage .bgimage_demo {
+    padding: 15vmin;
+    width: 100%;
+    color: transparent;
+}
+
+.kumquat-bgimage .bgimage_demo:hover {
+    color: var(--dark);
+}
+
+.color-scheme {
+    width: 100%;
+}
+
+.badge-group.color-scheme-item {
+    /* width: 25em; */
+    max-width: 33vmax;
+    /* float: right; */
+    flex: 1 0 auto;
+}
+
+.badge-group.color-scheme-item .badge {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+@media (min-width: 768px) {
+    :root {
+        --kumquat-navbar-height: 0rem;
+        --kumquat-card-header-height: calc(var(--kumquat-navbar-height) + 4rem - 1px);
+        --kumquat-card-nav-height: calc(var(--kumquat-card-header-height) + 2.5rem - 2px);
+    }
+
+    .dl-horizontal {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .dl-horizontal dt {
+        flex: 1 0 30%
+    }
+
+    .dl-horizontal dd {
+        flex: 1 0 70%
+    }
+
+    .kumquat-nav {
+
+        top: var(--kumquat-card-header-height);
+    }
+}

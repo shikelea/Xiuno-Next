@@ -1,0 +1,24 @@
+<template include="./plugin/tt_ranklist/view/htm/ranklist.template.htm">
+	<slot name="my_ranklist">
+		<ul class="nav nav-tabs card-header-tabs">
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo url('my-ranklist');?>" data-active="my-ranklist"><?php echo lang('threads');?></a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo url('my-ranklist_posts');?>" data-active="my-ranklist_posts"><?php echo lang('posts');?></a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo url('my-ranklist_credits');?>" data-active="my-ranklist_credits"><?php echo lang('credits1');?></a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo url('my-ranklist_golds');?>" data-active="my-ranklist_golds"><?php echo lang('credits2');?></a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo url('my-ranklist_rmbs');?>" data-active="my-ranklist_rmbs"><?php echo lang('credits3');?></a>
+			</li>
+		</ul>
+	</slot>
+</template>
+<script>
+$('a[data-active="menu-my-ranklist"]').addClass('active');
+</script>

@@ -1,0 +1,12 @@
+{
+    "name": "标签",
+    "brief": "强大通用的 TAG 系统，可以用来替代多维主题分类，可以对 TAG 进行分类，一个主题可以对应最多 4 个 TAG。<br/>此版本已通过Aether兼容性测试",
+    "version": "3.3",
+    "bbs_version": "4.0",
+    "installed": 0,
+    "enable":1,
+    "hooks_rank": {
+        "post_subject_after.htm": 9999
+    },
+    "dependencies": []
+}

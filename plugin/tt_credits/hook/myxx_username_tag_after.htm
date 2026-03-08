@@ -1,0 +1,19 @@
+<?php $no_cache_user = user_read($uid);
+$progress=100; $max=1; $now=$no_cache_user['credits'];
+if($no_cache_user['gid']>100){
+	foreach($grouplist as $group) {
+		if($group['gid'] < 100) continue;
+		$n = $no_cache_user['credits'] ;
+		if($n > $group['creditsfrom'] && $n <= $group['creditsto']) {
+			$max=$group['creditsto'];
+			if($no_cache_user['groupname']!=$group['name']) {
+				$no_cache_user['groupname']=$group['name'];
+				user_update_group($uid);
+			}
+			break;
+		}
+	}
+	$progress = (int)($now/$max * 100.0);
+}
+?>
+				<div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: <?php echo $progress;?>%;" aria-valuenow="<?php echo $progress;?>" aria-valuemin="0" aria-valuemax="100"><?php if($progress>=20) echo $progress,'%';?></div><?php if($progress<20) echo $progress,'%';?></div>

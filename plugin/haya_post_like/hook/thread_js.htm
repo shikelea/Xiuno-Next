@@ -1,0 +1,143 @@
+<script>
+<?php
+if (isset($haya_post_like_config['open_thread'])
+	&& $haya_post_like_config['open_thread'] == 1
+) {
+?>
+	<?php if ($uid) { ?>
+	$(document).on('click', '.js-haya-post-like-thread-add', function() {
+		$(this).attr("disabled", "disabled");
+
+		var thiz = $(this);
+		var pid = thiz.attr("data-pid");
+		var url = '<?php echo url("post-post_like-create");?>';
+		$.xpost(url, {'pid': pid}, function(code, msg){
+			if (code == 1) {
+				thiz.removeClass('js-haya-post-like-thread-add')
+					.addClass('js-haya-post-like-thread-del')				
+					.attr('title', '<?php echo $haya_post_like_is_delete ? lang('haya_post_like_unlike') : lang('haya_post_like_has_like');?>');		
+			
+				thiz.find(".icon").removeClass('icon-thumbs-o-up')
+					.addClass('icon-thumbs-up')
+					.attr("aria-label", '<?php echo $haya_post_like_is_delete ? lang('haya_post_like_unlike') : lang('haya_post_like_has_like');?>');
+					
+				thiz.find(".haya-post-like-thread-btn")
+					.text('<?php echo lang('haya_post_like_has_like');?>');
+					
+				$(".haya-post-like-thread-user-count").text(msg.count);			
+			} else {
+				$.alert(msg);
+			}
+			
+			thiz.removeAttr("disabled");
+		});
+	});
+	
+	<?php if ($haya_post_like_is_delete) { ?>
+	$(document).on('click', '.js-haya-post-like-thread-del', function() {
+		$(this).attr("disabled", "disabled");
+
+		var thiz = $(this);
+		var pid = thiz.attr("data-pid");
+		var url = '<?php echo url("post-post_like-delete");?>';
+		$.xpost(url, {'pid': pid}, function(code, msg) {
+			if (code == 1) {
+				thiz.removeClass('js-haya-post-like-thread-del')
+					.addClass('js-haya-post-like-thread-add')				
+					.attr('title', '<?php echo lang('haya_post_like_like_thread');?>');		
+			
+				thiz.find(".icon").removeClass('icon-thumbs-up')
+					.addClass('icon-thumbs-o-up')
+					.attr("aria-label", '<?php echo lang('haya_post_like_like_thread');?>');
+					
+				thiz.find(".haya-post-like-thread-btn")
+					.text('<?php echo lang('haya_post_like_like');?>');
+					
+				$(".haya-post-like-thread-user-count").text(msg.count);			
+			} else {
+				$.alert(msg);
+			}
+			
+			thiz.removeAttr("disabled");
+		});
+	});
+	<?php } ?>
+	
+	<?php } else { ?>
+	$(document).on('click', '.js-haya-post-like-thread-tip', function() {
+		$.confirm('<?php echo lang('haya_post_like_tip_title'); ?>', function() {
+			window.location = "<?php echo url('user-login'); ?>";
+		}, {'body': '<?php echo lang('haya_post_like_login_like_thread_tip'); ?>'});		
+	});
+	<?php } ?>
+<?php } ?>
+
+<?php
+if (isset($haya_post_like_config['open_post'])
+	&& $haya_post_like_config['open_post'] == 1
+) {
+?>
+	<?php if ($uid) { ?>
+	$(document).on('click', '.js-haya-post-like-post-add', function() {
+		var thiz = $(this);
+		
+		thiz.removeClass('js-haya-post-like-post-add');
+		
+		var pid = thiz.attr("data-pid");
+		var url = '<?php echo url("post-post_like-create");?>';	
+		$.xpost(url, {'pid': pid}, function(code, msg){
+			if (code == 1) {
+				thiz.removeClass('js-haya-post-like-post-add')
+					.addClass('js-haya-post-like-post-del')				
+					.addClass('haya-post-like-loved')				
+					.attr('title', '<?php echo $haya_post_like_is_delete ? lang('haya_post_like_unlike') : lang('haya_post_like_has_like');?>');		
+			
+				thiz.find(".icon").removeClass('icon-thumbs-o-up')
+					.addClass('icon-thumbs-up')
+					.attr("aria-label", '<?php echo $haya_post_like_is_delete ? lang('haya_post_like_unlike') : lang('haya_post_like_has_like');?>');
+					
+				thiz.find(".haya-post-like-post-user-count").text(msg.count);			
+			} else {
+				thiz.addClass('js-haya-post-like-post-add');
+				$.alert(msg);
+			}
+		});
+	});
+	
+	<?php if ($haya_post_like_is_delete) { ?>
+	$(document).on('click', '.js-haya-post-like-post-del', function() {
+		var thiz = $(this);
+		
+		thiz.removeClass('js-haya-post-like-post-del');
+		
+		var pid = thiz.attr("data-pid");
+		var url = '<?php echo url("post-post_like-delete");?>';
+		$.xpost(url, {'pid': pid}, function(code, msg){
+			if (code == 1) {
+				thiz.removeClass('js-haya-post-like-post-del')
+					.addClass('js-haya-post-like-post-add')	
+					.removeClass('haya-post-like-loved')
+					.attr('title', '<?php echo lang('haya_post_like_like_post');?>');		
+			
+				thiz.find(".icon").removeClass('icon-thumbs-up')
+					.addClass('icon-thumbs-o-up')
+					.attr("aria-label", '<?php echo lang('haya_post_like_like_post');?>');
+					
+				thiz.find(".haya-post-like-post-user-count").text(msg.count);			
+			} else {
+				thiz.addClass('js-haya-post-like-post-del');
+				$.alert(msg);
+			}
+		});
+	});
+	<?php } ?>
+	
+	<?php } else { ?>
+	$(document).on('click', '.js-haya-post-like-post-tip', function() {	
+		$.confirm('<?php echo lang('haya_post_like_tip_title'); ?>', function() {
+			window.location = "<?php echo url('user-login'); ?>";
+		}, {'body': '<?php echo lang('haya_post_like_login_like_post_tip'); ?>'});		
+	});
+	<?php } ?>
+<?php } ?>
+</script>

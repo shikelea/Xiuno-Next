@@ -1,0 +1,359 @@
+<?php
+// 鸣大钟一次：所有必要的全局变量
+/**
+ * @var array $conf Xiuno BBS 配置数组
+ */
+$conf = G('conf');
+/**
+ * @var array $header 页面头信息数组
+ */
+$header = G('header');
+/**
+ * @var array $user 用户信息数组
+ */
+$user = G('user');
+/**
+ * @var int $uid 用户 ID
+ */
+$uid = G('uid');
+/**
+ * @var int $gid 用户组 ID
+ */
+$gid = G('gid');
+/**
+ * @var int $fid 当前锁在版块 ID
+ */
+$fid = G('fid');
+/**
+ * @var int $tid 帖子 ID
+ */
+$tid = G('tid');
+/**
+ * @var int $pid 回帖 ID
+ */
+$pid = G('pid');
+/**
+ * @var string $route 路由
+ */
+$route = G('route');
+/**
+ * @var array $forumlist_show 公开可用的版块列表
+ */
+$forumlist_show = G('forumlist_show');
+/**
+ * @var string $static_version 静态资源版本
+ */
+$static_version = $conf['static_version'];
+/**
+ * @var array $browser 浏览器信息
+ */
+$browser = get__browser();
+/**
+ * @var object $db 数据库对象
+ */
+$db = G('db');
+/**
+ * @var int $starttime 页面开始运行时间
+ * 用于计算页面执行时间
+ */
+$starttime = G('starttime');
+/**
+ * @var int $time 当前时间
+ * 用于计算页面执行时间
+ */
+$time = G('time');
+/**
+ * @var string $ip 用户 IP 地址
+ */
+$ip = G('ip');
+/**
+ * @var string $useragent 用户代理字符串
+ */
+$useragent = G('useragent');
+/**
+ * @var array $forumlist 版块列表
+ */
+$forumlist = G('forumlist');
+/**
+ * @var array $forumarr 版块数组
+ */
+$forumarr = G('forumarr');
+
+/**
+ * @var string $THIS_LOCATION_FRONTEND 主题自身位置（前端）
+ */
+$THIS_LOCATION_FRONTEND = './plugin/abs_theme_aether/';
+
+if(!isset($conf['extra_html_class'])) {
+    $conf['extra_html_class'] = '';
+}
+
+/**
+ * @var string $abs_theme_aether_current_page_class 当前页面的CSS类
+ * 
+ * - 第一层：路由：这里判断了变量 $route 是否为空，如果不为空，则返回 'route-具体路由'，否则返回空字符串。 
+ * - 第二层：主要操作：根据不同情况生成不同的字符串：
+ *   - a. 如果参数1不为空，或者[当前路由为'user' 且参数1不是数字【表示当前页面为登录、注册、找回密码】]，则返回  'action-' . param(1)  
+ *   - b. 否则，如果当前路由为'my'且参数1为空【表示当前页面为个人中心】，或者[当前路由为'user'且参数1是数字【表示当前页面为用户资料页】]，则返回'action-profile'
+ *   - c. 否则返回空字符串 
+ * - 第三层：次要操作：这里判断了参数2是否为空，如果不为空，则返回  'subaction-' . param(2) ，否则返回空字符串。 
+ */
+$abs_theme_aether_current_page_class = implode(
+	' ',
+	[
+		!empty($route) ? 'route-' . $route : '', /* 第一层：路由 */
+		!empty(param(1)) || ($route === 'user' && !is_numeric(param(1))) ? 'action-' . param(1) : (($route === 'my' && empty(param(1))) || ($route === 'user' && is_numeric(param(1))) ? 'action-profile' : ''), /* 第二层：主要操作 */
+		!empty(param(2)) ? 'subaction-' . param(2) : '', /* 第三层：次要操作 */
+	]
+);
+
+$conf['extra_html_class'] .= ' ' . $abs_theme_aether_current_page_class;
+
+// 鸣大钟二次：加载主题设置
+$abs_theme_aether_setting = setting_get('abs_theme_aether_setting');
+// 在主题设置里取颜色
+$AETHER_PRIMARY_COLOR_HEX = $abs_theme_aether_setting['appearance']['color']['primary_color'];
+
+$conf['extra_html_class'] .= ' global-avatar-shape-' . $abs_theme_aether_setting['appearance']['avatar']['avatar_shape'];
+
+// 鸣大钟二次：加载缺少的插件设置
+$haya_follow_config = setting_get('haya_follow');
+$till_user_cover_setting = setting_get('till_user_cover_setting');
+// 鸣大钟三次：初始化所需的内置类库
+require_once(APP_PATH . 'plugin/abs_theme_aether/inc/asset.lib.php');
+
+/**
+ * @var Asset $ASSET 主题 CSS & JS 资产
+ */
+$ASSET = new Asset(APP_PATH . str_replace('.' . DIRECTORY_SEPARATOR, '', $conf['tmp_path']) . DIRECTORY_SEPARATOR);
+
+
+$ASSET->setDoMinify($abs_theme_aether_setting['advanced']['performance']['minify_css']);
+$ASSET->setDoMinify($abs_theme_aether_setting['advanced']['performance']['minify_js']);
+
+// 鸣大钟四次：加载所有资源 - 引入字体
+//$ASSET->addCssFileDirect($THIS_LOCATION_FRONTEND . 'view/fonts/HarmonyOS_Sans_SC_Webfont_Splitted/Light.css');
+//$ASSET->addCssFileDirect($THIS_LOCATION_FRONTEND . 'view/fonts/HarmonyOS_Sans_SC_Webfont_Splitted/Regular.css');
+//$ASSET->addCssFileDirect($THIS_LOCATION_FRONTEND . 'view/fonts/HarmonyOS_Sans_SC_Webfont_Splitted/Bold.css');
+//$ASSET->addCssFileDirect($THIS_LOCATION_FRONTEND . 'view/fonts/HarmonyOS_Sans_SC_Webfont_Splitted/index.css'); // 字体目录不存在，暂时禁用
+
+// 鸣大钟四次：加载所有资源 - 引入所有所需的 CSS 文件
+
+$ASSET->addCssFileDirect($THIS_LOCATION_FRONTEND . 'view/css/bootstrap.min.css');
+$ASSET->addCssFileDirect($THIS_LOCATION_FRONTEND . 'view/css/core.min.css');
+$ASSET->addCssFileDirect($THIS_LOCATION_FRONTEND . 'view/css/line-awesome.min.css');
+$ASSET->addCssCode(generateMd3CssVariables($AETHER_PRIMARY_COLOR_HEX));
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/m3_to_bootstrap.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/sheets_core.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/scrollbar.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/grid.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/typography.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/header.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/buttons.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/inputs.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/chat.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/S1.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/layout.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/modal.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/tinymce.css');
+$ASSET->addCssFile($THIS_LOCATION_FRONTEND . 'view/css/components/mdc-ripple.css');
+
+// 鸣大钟四次：加载所有资源 - 引入所有所需的 JS 文件 - 兼容性
+if ($browser['name'] == 'ie') {
+    $ASSET->addJsFileDirect($THIS_LOCATION_FRONTEND . 'view/legacy/js/es6-shim.js');
+}
+$ASSET->addJsFileDirect('./lang/' . $conf['lang'] . '/bbs.js');
+//$ASSET->addJsFileDirect($THIS_LOCATION_FRONTEND . 'view/legacy/js/jquery-3.1.0.js');
+$ASSET->addJsFileDirect($THIS_LOCATION_FRONTEND . 'view/legacy/js/popper.js');
+//$ASSET->addJsFileDirect($THIS_LOCATION_FRONTEND . 'view/legacy/js/bootstrap.js');
+$ASSET->addJsFileDirect($THIS_LOCATION_FRONTEND . 'view/legacy/js/xiuno.js');
+$ASSET->addJsFileDirect($THIS_LOCATION_FRONTEND . 'view/legacy/js/bootstrap-plugin.js');
+$ASSET->addJsFileDirect($THIS_LOCATION_FRONTEND . 'view/legacy/js/async.js');
+$ASSET->addJsFileDirect($THIS_LOCATION_FRONTEND . 'view/legacy/js/form.js');
+$ASSET->addJsFileDirect($THIS_LOCATION_FRONTEND . 'view/legacy/js/bbs.js');
+
+// 鸣大钟四次：加载所有资源 - 引入所有所需的 JS 文件 - 真正要用的
+$ASSET->addJsFileDirect($THIS_LOCATION_FRONTEND . 'view/vendor/htmx.min.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/vendor/md5.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/vendor/modal.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/vendor/toast.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/vendor/prettify.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/vendor/prettify-lang-combo.min.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/vendor/pace.min.js');
+$ASSET->addJsFileDirect($THIS_LOCATION_FRONTEND . 'view/js/bootstrap.bundle.min.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/js/htmx_modals_magic.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/js/htmx_pagination_magic.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/js/htmx_postlist_magic.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/js/htmx_auto_md5.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/js/htmx_error_handling.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/js/aether_app.js');
+$ASSET->addJsFile($THIS_LOCATION_FRONTEND . 'view/js/aether_plugin.js');
+
+// 鸣大钟五次：初始化完成，进入路由
+
+
+if(!isset($SHEET_MODE)) {
+    $SHEET_MODE = $GLOBALS['SHEET_MODE'] ?? 'FULL_PAGE';
+}
+if(DEBUG) {
+    header('X-DEBUG-SHEET-MODE: ' . $SHEET_MODE);
+}
+if(!isset($AETHER_S3_VISIBLE)) { $AETHER_S3_VISIBLE = false; }
+if(!isset($AETHER_S4_VISIBLE)) { $AETHER_S4_VISIBLE = false; }
+if(!isset($AETHER_S5_VISIBLE)) { $AETHER_S5_VISIBLE = false; }
+if(!isset($AETHER_S6_VISIBLE)) { $AETHER_S6_VISIBLE = false; }
+if(DEBUG) {
+    header('X-DEBUG-SHEET-MODE: ' . $SHEET_MODE);
+    header('X-DEBUG-AETHER-S3-VISIBLE: ' . $AETHER_S3_VISIBLE);
+    header('X-DEBUG-AETHER-S4-VISIBLE: ' . $AETHER_S4_VISIBLE);
+    header('X-DEBUG-AETHER-S5-VISIBLE: ' . $AETHER_S5_VISIBLE);
+    header('X-DEBUG-AETHER-S6-VISIBLE: ' . $AETHER_S6_VISIBLE);
+}
+?>
+<!--{hook header_start.htm}-->
+<?php
+// 这个文件会被其他页面 template include（见上文），所以这里是中间层
+
+if ($SHEET_MODE === 'FULL_PAGE'):
+    // 如果不是 HTMX 请求，输出完整骨架
+    // 鸣大钟六次：加载完整状态页面
+?>
+<!DOCTYPE html>
+<template include="./plugin/abs_theme_aether/template_parts/structure/master.htm">
+
+    <slot name="S2_Body"> <!-- S2_Body to be inherited --> </slot>
+    <slot name="S2_Header"> <!-- S2_Header to be inherited --> </slot>
+    <slot name="S3_Body"> <!-- S3_Body to be inherited --> </slot>
+    <slot name="S3_Header"> <!-- S3_Header to be inherited --> </slot>
+    <slot name="S3_Footer"> <!-- S3_Footer to be inherited --> </slot>
+    <slot name="S4_Header"> <!-- S4_Header to be inherited --> </slot>
+    <slot name="S4_Body"> <!-- S4_Body to be inherited --> </slot>
+    <slot name="S5"> <!-- S5 to be inherited --> </slot>
+    <slot name="S5_In_S3_Footer"> <!-- S5_In_S3_Footer to be inherited --> </slot>
+    <slot name="S6"> <!-- S6 to be inherited --> </slot>
+    <slot name="CSS_Head"> <!-- CSS_Head to be inherited --> </slot>
+    <slot name="JS_Head"> <!-- JS_Head to be inherited --> </slot>
+    <slot name="CSS_End"> <!-- CSS_End to be inherited --> </slot>
+    <slot name="JS_End"> <!-- JS_End to be inherited --> </slot>
+</template>
+
+<?php
+// 如果是 HTMX 请求，只输出请求的部分 
+
+else:
+    // 鸣大钟六次：加载 HTMX 请求的目标内容
+
+    /* 根据请求的目标输出对应的 slot 内容 */
+    switch ($SHEET_MODE):
+        case 'S2_FULL': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s2_full.htm">
+    <slot name="S2_Header"> <!-- S2_Header to be inherited --> </slot>
+    <slot name="S2_Body"> <!-- S2_Body to be inherited --> </slot>
+    <slot name="CSS_End"> <!-- CSS_End to be inherited --> </slot>
+    <slot name="JS_End"> <!-- JS_End to be inherited --> </slot>
+</template>
+
+
+<?php break;
+        case 'S2_HEADER_ONLY': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s2_header_only.htm">
+
+    <slot name="S2_Header"> <!-- S2_Header to be inherited --> </slot>
+
+
+</template>
+<?php break;
+        case 'S2_BODY_ONLY': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s2_body_only.htm">
+    <slot name="S2_Body"> <!-- S2_Body to be inherited --> </slot>
+</template>
+<?php break;
+        case 'SPECIAL_USER_S2_INNER': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/SPECIAL_USER_S2_INNER.htm">
+    <slot name="user_nav"> <!-- user_nav to be inherited --> </slot>
+    <slot name="user_body"> <!-- user_body to be inherited --> </slot>
+</template>
+
+<?php break;
+        case 'S3_FULL': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s3_full.htm">
+    <slot name="S3_Header"> <!-- S3_Header to be inherited --> </slot>
+    <slot name="S3_Body"> <!-- S3_Body to be inherited --> </slot>
+    <slot name="S3_Footer"> <!-- S3_Footer to be inherited --> </slot>
+    <slot name="CSS_End"> <!-- CSS_End to be inherited --> </slot>
+    <slot name="JS_End"> <!-- JS_End to be inherited --> </slot>
+</template>
+
+<?php break;
+        case 'S3_HEADER_ONLY': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s3_header_only.htm">
+    <slot name="S3_Header"> <!-- S3_Header to be inherited --> </slot>
+</template>
+
+<?php break;
+        case 'S3_BODY_ONLY': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s3_body_only.htm">
+    <slot name="S3_Body"> <!-- S3_Body to be inherited --> </slot>
+</template>
+
+<?php break;
+        case 'S3_FOOTER_ONLY': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s3_footer_only.htm">
+    <slot name="S3_Footer"> <!-- S3_Footer to be inherited --> </slot>
+    <slot name="S5_In_S3_Footer"> <!-- S5_In_S3_Footer to be inherited --> </slot>
+</template>
+
+<?php break;
+        case 'S4_FULL': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s4_full.htm">
+    <slot name="S4_Header"> <!-- S4_Header to be inherited --> </slot>
+    <slot name="S4_Body"> <!-- S4_Body to be inherited --> </slot>
+    <slot name="CSS_End"> <!-- CSS_End to be inherited --> </slot>
+    <slot name="JS_End"> <!-- JS_End to be inherited --> </slot>
+</template>
+
+<?php break;
+        case 'S4_HEADER_ONLY': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s4_header_only.htm">
+    <slot name="S4_Header"> <!-- S4_Header to be inherited --> </slot>
+
+</template>
+<?php break;
+        case 'S4_BODY_ONLY': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s4_body_only.htm">
+    <slot name="S4_Body"> <!-- S4_Body to be inherited --> </slot>
+</template>
+
+<?php break;
+        case 'S5_BODY_ONLY': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s5_body_only.htm">
+    <slot name="S5_Body"> <!-- S5_Body to be inherited --> </slot>
+</template>
+
+<?php break;
+        case 'S6_BODY_ONLY': ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/s6_body_only.htm">
+    <slot name="S6_Body"> <!-- S6_Body to be inherited --> </slot>
+</template>
+
+<?php break;
+        default: /* 如果不知道要什么，选择 S2_Body 作为默认（不建议） */ ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/partials/fallback.htm">
+    <slot name="S2_Body"> <!-- S2_Body to be inherited --> </slot>
+    <slot name="S2_Header"> <!-- S2_Header to be inherited --> </slot>
+    <slot name="S3_Body"> <!-- S3_Body to be inherited --> </slot>
+    <slot name="S3_Header"> <!-- S3_Header to be inherited --> </slot>
+    <slot name="S3_Footer"> <!-- S3_Footer to be inherited --> </slot>
+    <slot name="S4_Header"> <!-- S4_Header to be inherited --> </slot>
+    <slot name="S4_Body"> <!-- S4_Body to be inherited --> </slot>
+    <slot name="S5_Body"> <!-- S5 to be inherited --> </slot>
+    <slot name="S5_In_S3_Footer"> <!-- S5_In_S3_Footer to be inherited --> </slot>
+    <slot name="S6_Body"> <!-- S6 to be inherited --> </slot>
+    <slot name="CSS_Head"> <!-- CSS_Head to be inherited --> </slot>
+    <slot name="JS_Head"> <!-- JS_Head to be inherited --> </slot>
+</template>
+<?php endswitch;
+endif; 
+// 任务达成。输出已献予前端。所有系统回归静滞，直至下次召唤。
+
+?>

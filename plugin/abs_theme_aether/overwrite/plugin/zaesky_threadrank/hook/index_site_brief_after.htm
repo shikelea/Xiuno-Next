@@ -1,0 +1,73 @@
+<?php
+function get_site_thread_hot_list() {
+	global $gid;
+	$hotlist = cache_get('lek8_hot_theme'); //获取缓存
+	if ($hotlist === NULL) {
+		$times_tamp_a = strtotime("-1 week"); //上周
+		//$times_tamp_a = mktime(0,0,0,date('m'),date('d')-1,date('Y'));//昨天
+		$hotlist = db_find('thread', array('create_date' => array('>' => $times_tamp_a)), array('views' => -1), 1, 10, 'tid');
+		thread_list_access_filter($hotlist, $gid);
+		cache_set('lek8_hot_theme', $hotlist, 3600); //设置缓存 和 过期时间
+
+	}
+	return $hotlist;
+}
+$hotlist = get_site_thread_hot_list();
+?>
+
+<?php
+
+//获取回复最多的文章，默认10篇
+function get_site_top_list() {
+	$result = cache_get('get_site_top_list');
+	if (empty($result)) {
+		$result = db_find('thread', array(), array('views' => 2)); //按views倒序
+		cache_set('get_site_top_list', $result, 86400); //有效期1天
+	}
+	return $result;
+}
+?>
+
+
+<div class="card">
+	<ul class="nav nav-pills" id="zaesky_threadrank_tab" role="tablist">
+		<li class="nav-item" role="presentation">
+			<a class="nav-link active" id="all_rank-tab" data-bs-toggle="tab" href="#all_rank" role="tab" aria-controls="all_rank" aria-selected="true">总排行</a>
+		</li>
+		<li class="nav-item" role="presentation">
+			<a class="nav-link" id="week_rank-tab" data-bs-toggle="tab" href="#week_rank" role="tab" aria-controls="week_rank" aria-selected="false">周排行</a>
+		</li>
+	</ul>
+	<div class="card-body">
+		<div class="tab-content" id="zaesky_threadrank_tab_content">
+			<div class="tab-pane fade show active" id="all_rank" role="tabpanel" aria-labelledby="all_rank-tab">
+				<?php
+				$toplist = get_site_top_list();
+				thread_list_access_filter($toplist, $gid);
+				echo '<div class="site-top"><ul class="list-unstyled">';
+				foreach ($toplist as $key => $value) {
+					$_class = $key < 3 ? 'bg-primary' : 'bg-secondary';
+					echo '<li><span class="badge badge-pill me-2 ' . $_class . '">' . ($key + 1) . '</span><a href="thread-' . $value['tid'] . '.htm">' . $value['subject'] . '</a></li>';
+				}
+				echo '</ul></div>';
+				?></div>
+			<div class="tab-pane fade" id="week_rank" role="tabpanel" aria-labelledby="week_rank-tab">
+				<div class="site-top">
+					<ul class="list-unstyled">
+						<?php if ($hotlist) {
+							$loopNum = 1;
+							foreach ($hotlist as $_thread) { ?>
+								<li>
+									<span class="badge badge-pill me-2 <?php if ($loopNum <= 3) { ?> bg-success <?php } else { ?> bg-secondary <?php } ?>"><?=  $loopNum++; ?></span><a href="<?= url("thread-$_thread[tid]"); ?>"><?= $_thread['subject']; ?></a>
+								</li>
+							<?php }
+						} else { ?>
+							<?= lang('none'); ?>
+						<?php } ?>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+
+</div>

@@ -1,0 +1,21 @@
+<template include="./plugin/abs_theme_aether/overwrite/view/htm/my.common.template.htm">
+	<slot name="my_nav">
+		<ul class="nav nav-underline my_nav w-fit mx-auto" hx-boost="true" hx-push-url="true" hx-target="#S3-Body" hx-swap="innerHTML" hx-include="input[name='FROM_USER_NAV']">
+			<input type="hidden" name="FROM_USER_NAV" value="1">
+			<li class="nav-item" hidden>
+				<a class="nav-link" href="<?= url('my-follow-timeline');?>" data-active="my-follow-timeline">动态</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?= url('my-follow-follows');?>" data-active="my-follow-follows">我关注的</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?= url('my-follow-fans');?>" data-active="my-follow-fans">关注我的</a>
+			</li>
+		</ul>
+		<script>
+			AetherExec(function () {
+				setActive("menu-my-follow", "*", "#my_aside, #my_aside_mobile");
+			});
+		</script>
+	</slot>
+</template>

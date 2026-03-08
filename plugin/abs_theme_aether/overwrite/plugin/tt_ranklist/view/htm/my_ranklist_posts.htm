@@ -1,0 +1,94 @@
+<?php
+
+if (!isset($pagesize)) {
+	$pagesize = $conf['pagesize'] ?? 20;
+}
+
+if ($pagesize % 3 !== 0) {
+	$pagesize = ceil($pagesize / 3) * 3;
+}
+
+$RANKLIST_SORT_KEY = 'posts';
+$RANKLIST_ACTIVE_TAB = 'my-ranklist_' . $RANKLIST_SORT_KEY;
+$num_pid = db_count('user');
+$page = param(2, 1);
+$data = cache_get('tt_ranklist_' . $RANKLIST_SORT_KEY . '_p_' . $page);
+if (is_null($data)) {
+	$data =  db_find('user', array(), array($RANKLIST_SORT_KEY => -1), $page, $pagesize);
+	cache_set('tt_ranklist_' . $RANKLIST_SORT_KEY . '_p_' . $page, $data, 3600);
+}
+$pagination = pagination(url($RANKLIST_ACTIVE_TAB . "-{page}"), $num_pid, $page, $pagesize);
+
+$CURRENT_ACTIVE__LABEL = '-';
+switch ($RANKLIST_SORT_KEY) {
+	case 'threads':
+		$CURRENT_ACTIVE__LABEL = lang('threads');
+		break;
+	case 'posts':
+		$CURRENT_ACTIVE__LABEL = lang('posts');
+		break;
+	case 'credits':
+		$CURRENT_ACTIVE__LABEL = $credits1_name;
+		break;
+	case 'golds':
+		$CURRENT_ACTIVE__LABEL = $credits2_name;
+		break;
+	case 'rmbs':
+		$CURRENT_ACTIVE__LABEL = $credits3_name;
+		break;
+}
+
+if ($ajax):
+	foreach ($data as $k => &$_user) {
+		user_format($_user);
+		$_user = user_safe_info($_user);
+		$_user['_rank'] = (($page - 1) * $pagesize) + (intval($k) + 1);
+	}
+	message(0, $data);
+elseif ($IS_HTMX && $IS_IN_PAGINATION):
+	header("Hx-Trigger: " . json_encode(['updatePagination' => process_pagination_to_htmx_trigger($pagination, 'ranklist')]));
+	ob_start();
+
+?>
+
+	<?php include _include(APP_PATH.'plugin/abs_theme_aether/template_parts_plugin/tt_ranklist/list_item.htm'); ?>
+
+<?php
+	ob_end_flush();
+	die;
+
+else: ?>
+	<template include="./plugin/abs_theme_aether/overwrite/plugin/tt_ranklist/view/htm/my_ranklist.template.htm">
+		<slot name="my_body">
+
+			<!-- 前三名 -->
+
+			<?php include _include(APP_PATH.'plugin/abs_theme_aether/template_parts_plugin/tt_ranklist/list_top3.htm'); ?>
+
+			<!-- 榜单主体 -->
+			<article class="ranklist-body">
+				<div id="ranklist-list" class="row" hx-boost="true" hx-target="#S2" hx-swap="innerHTML">
+
+					<?php include _include(APP_PATH.'plugin/abs_theme_aether/template_parts_plugin/tt_ranklist/list_item.htm'); ?>
+
+				</div>
+			</article>
+
+			<!-- 分页 -->
+			<nav class="text-center mt-4">
+				<ul class="pagination justify-content-center" hx-boost="true" hx-target="#ranklist-list">
+                        <!-- TODO 增加HTMX翻页支持 -->
+					<input type="hidden" name="IS_IN_PAGINATION" value="1" class="pagination_extra_param">
+					<input type="hidden" name="IS_IN_RANKLIST" value="1" class="pagination_extra_param">
+					<?= $pagination ?>
+				</ul>
+			</nav>
+			<script>
+							AetherExec(function(){
+				setActive("<?= $RANKLIST_ACTIVE_TAB ?>", '*', '.ranklist-nav');
+							});
+			</script>
+		</slot>
+	</template>
+
+<?php endif; ?>

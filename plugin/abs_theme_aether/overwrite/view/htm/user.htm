@@ -1,0 +1,61 @@
+<template include="./plugin/abs_theme_aether/overwrite/view/htm/user.template.htm">
+	<slot name="user_body">
+		<?php $extra_profile_content = '';
+		ob_start(); ?>
+
+		<!--{hook user_profile_posts_after.htm}-->
+
+		<!--{hook user_profile_login_date_after.htm}-->
+
+		<?php
+		$extra_profile_content_raw = ob_get_clean();
+		// 处理hook内容：去除<br>标签，并套进li标签
+		if (!empty($extra_profile_content_raw)) {
+			// 去除所有<br>和<br />标签
+			$cleaned_content = preg_replace('/<br\s*\/?>/i', '', $extra_profile_content_raw);
+
+		// 将内容按行分割，每行套进li标签
+		$lines = explode("\n", trim($cleaned_content));
+			foreach ($lines as $line) {
+				$line = trim($line);
+				if (!empty($line)) {
+		$extra_profile_content .= '<li class="list-group-item">' . $line . '</li>';
+		}
+		}
+		}
+		?>
+
+		<ul class="list-group">
+			<li class="list-group-item">
+				<span class="text-muted"><?= lang('threads');?>：</span><?= $_user['threads'];?>
+			</li>
+			<li class="list-group-item">
+				<span class="text-muted"><?= lang('posts');?>：</span><?= $_user['posts'];?>
+			</li>
+			<li class="list-group-item">
+				<span class="text-muted"><?= lang('user_group');?>：</span><?= $_user['groupname'];?>
+			</li>
+			<li class="list-group-item">
+				<span class="text-muted"><?= lang('create_date');?>：</span><?= $_user['create_date_fmt'];?>
+			</li>
+			<li class="list-group-item">
+				<span class="text-muted"><?= lang('last_login_date');?>：</span><?= $_user['login_date_fmt'];?>
+			</li>
+			<?php if($gid == 1) { ?>
+			<li class="list-group-item">
+				<span class="text-danger"><?= lang('email');?>：</span><?= $_user['email'];?><br>
+			</li>
+			<?php } ?>
+			<?= $extra_profile_content ?>
+		</ul>
+
+		<!--{hook user_index_delete_user_button_after.htm}-->
+
+
+		<script>
+			AetherExec(function () {
+				setActive("user-profile", "*", ".user_nav");
+			});
+		</script>
+	</slot>
+</template>

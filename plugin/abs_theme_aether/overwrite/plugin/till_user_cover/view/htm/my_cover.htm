@@ -1,0 +1,384 @@
+<template include="./plugin/abs_theme_aether/overwrite/view/htm/my.template.htm">
+    <slot name="my_body">
+        <h3 class=" mb-4">
+            <?= lang('select_cover_image') ?>
+        </h3>
+        <div class="card card-body mb-4">
+            <form action="<?= url('my-cover'); ?>" method="post" hx-post="<?= url('my-cover'); ?>" hx-target="this" hx-swap="none" hx-trigger="submit">
+
+                <div class="tabs two">
+                    <style id="cover_tabs_css" scoped>
+                        .tabs {
+                            position: relative;
+                            overflow: hidden;
+                            margin-bottom: 1.5rem;
+                        }
+
+                        .toggle {
+                            display: inline-block;
+                            padding: 0.5rem 1rem;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                            border-radius: 0;
+                            margin: 0;
+                            font-weight: 500;
+                            color: var(--bs-secondary);
+                            border-bottom: 2px solid transparent;
+                            background: transparent !important;
+                        }
+
+                        .toggle:hover {
+                            color: var(--bs-primary);
+                            border-bottom-color: var(--bs-primary-bg-subtle);
+                            background: transparent !important;
+                        }
+
+                        :checked+.toggle,
+                        :checked+.toggle:hover {
+                            color: var(--bs-primary);
+                            border-bottom-color: var(--bs-primary);
+                            background: transparent !important;
+                        }
+
+                        .tabs>input {
+                            display: none;
+                        }
+
+                        .tabs>.row {
+                            width: 200%;
+                            display: table;
+                            table-layout: fixed;
+                            position: relative;
+                            padding: 0;
+                            transition: all 0.3s ease;
+                            border-spacing: 0;
+                            margin: 0;
+                            left: -100%;
+                        }
+
+                        .tabs>.row:before,
+                        .tabs>.row:after {
+                            display: none;
+                        }
+
+                        .tabs>.row>* {
+                            display: table-cell;
+                            vertical-align: top;
+                            margin: 0;
+                            width: 100%;
+                            padding: 1.5rem;
+                        }
+
+                        .two.tabs>input:nth-of-type(1):checked~.row {
+                            left: 0;
+                        }
+
+                        .two.tabs>input:nth-of-type(2):checked~.row {
+                            left: -100%;
+                        }
+
+                        /* 预设封面样式 */
+                        .preset-covers {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                            gap: 12px;
+                            margin-bottom: 1.5rem;
+                        }
+
+                        .preset-covers .cover-item {}
+
+                        /*
+                        .preset-covers .cover-item:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                        }
+*/
+                        .preset-covers .cover-item {
+                            position: relative;
+                        }
+
+                        .preset-covers .cover-item input[type="radio"] {
+                            position: absolute;
+                            top: 8px;
+                            left: 8px;
+                            z-index: 1;
+                        }
+
+                        .preset-covers .cover-item img {
+                            width: 100%;
+                            height: 100%;
+                            object-fit: cover;
+                            display: block;
+                        }
+
+                        .preset-covers .cover-item label {
+                            position: relative;
+                            border-radius: 6px;
+                            overflow: hidden;
+                            border: 2px solid transparent;
+                            transition: all 0.3s ease;
+                            cursor: pointer;
+                        }
+
+                        .preset-covers .cover-item input:checked~label {
+                            border-color: var(--bs-primary);
+                        }
+
+                        /* 自定义上传样式 */
+                        .custom-upload {
+                            text-align: center;
+                        }
+
+                        .cover-upload-area {
+                            border: 2px dashed var(--bs-border-color);
+                            border-radius: 8px;
+                            padding: 2rem;
+                            text-align: center;
+                            margin-bottom: 1.5rem;
+                            transition: all 0.3s ease;
+                        }
+
+                        .cover-upload-area:hover {
+                            border-color: var(--bs-primary);
+                            background: var(--bs-primary-bg-subtle);
+                        }
+
+                        .cover-upload-area input[type="file"] {
+                            display: none;
+                        }
+
+                        .cover-upload-area label {
+                            display: block;
+                            cursor: pointer;
+                        }
+
+                        .cover-upload-area .upload-icon {
+                            font-size: 3rem;
+                            color: var(--bs-border-color);
+                            margin-bottom: 1rem;
+                        }
+
+                        .cover-upload-area:hover .upload-icon {
+                            color: var(--bs-primary);
+                        }
+
+                        .cover-preview {
+                            margin: 1rem 0;
+                            border-radius: 8px;
+                            overflow: hidden;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                            display: none;
+                        }
+
+                        .cover-preview img {
+                            width: 100%;
+                            height: 150px;
+                            object-fit: cover;
+                        }
+
+                        .progress-container {
+                            margin: 1rem 0;
+                            display: none;
+                        }
+
+                        .progress-bar {
+                            height: 8px;
+                            border-radius: 4px;
+                            background: var(--bs-light-bg-subtle);
+                            overflow: hidden;
+                        }
+
+                        .progress-fill {
+                            height: 100%;
+                            background: linear-gradient(90deg, var(--bs-primary), var(--bs-tertiary));
+                            width: 0%;
+                            transition: width 0.3s ease;
+                        }
+
+                        /* 响应式设计 */
+                        @media (max-width: 576px) {
+                            .preset-covers {
+                                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                                gap: 8px;
+                            }
+
+                            .preset-covers .cover-item img {
+                                height: 60px;
+                            }
+
+                            .toggle {
+                                padding: 0.5rem 1rem;
+                            }
+                        }
+                    </style>
+                    <!-- Tab 切换按钮 -->
+                    <input type="radio" name="way" value="preset" id="way_preset" checked="">
+                    <label class="btn toggle" for="way_preset">
+                        <?= lang('cover_way_preset') ?>
+                    </label>
+                    <?php if ($till_user_cover_setting['allow_custom_cover_url']) : ?>
+                    <input type="radio" name="way" value="custom" id="way_custom">
+                    <label class="btn toggle" for="way_custom">
+                        <?= lang('cover_way_custom') ?>
+                    </label>
+                    <?php endif; ?>
+                    <!-- Tab 内容 -->
+                    <div class="row">
+                        <!-- 预设封面 Tab -->
+                        <div class="tab">
+                            <div class="preset-covers">
+                                <?php
+                                foreach ($covers_list as $key => $cover) {
+                                    $cover_url = $cover["url"];
+                                    $cover_path = '.' . DIRECTORY_SEPARATOR . 'plugin' . DIRECTORY_SEPARATOR . 'till_user_cover' . DIRECTORY_SEPARATOR . 'covers' . DIRECTORY_SEPARATOR . $cover_url;
+                                    $is_checked = ($key == $current_cover_i) ? 'checked' : '';
+                                    echo '<div class="cover-item">
+                                        <input type="radio" name="cover_image_url_p" value="' . $key . '" id="cover_' . $key . '" ' . $is_checked . '>
+                                        <label for="cover_' . $key . '" class="ratio ratio-1x1">
+                                            <img  src="' . $cover_path . '" alt="Cover ' . ($key + 1) . '" >
+                                        </label>
+                                    </div>';
+                                }
+                                ?>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block py-2">
+                                <?= lang('cover_update') ?>
+                            </button>
+                        </div>
+                        <!-- 自定义封面 Tab -->
+                        <?php if ($till_user_cover_setting['allow_custom_cover_url']) : ?>
+                        <div class="tab">
+                            <div class="custom-upload">
+                                <div class="cover-upload-area">
+                                    <input type="file" accept="image/gif,image/jpeg,image/png,image/jpg,image/bmp"
+                                        id="cover_upload" class="form-control">
+                                    <label for="cover_upload">
+                                        <div class="upload-icon">📷</div>
+                                        <h5 class="mb-2"> 上传自定义封面 </h5>
+                                        <p class="text-muted mb-0"> 点击或拖拽文件到此处上传 </p>
+                                    </label>
+                                </div>
+                                <div class="cover-preview" id="cover_preview">
+                                    <img src="" alt="Cover Preview" id="preview_image">
+                                </div>
+                                <div class="progress-container" id="upload_progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="progress_fill"></div>
+                                    </div>
+                                    <small class="text-muted mt-1" id="progress_text">0%</small>
+                                </div>
+                                <div class="input-group" style="opacity: 0;">
+                                    <input type="text" name="cover_image_url"
+                                        value="<?= ($user['cover_url']); ?>" class="form-control"
+                                        id="cover_image_url">
+                                    <span class="input-group-append">
+                                        <button type="submit" class="btn btn-primary" id="custom_submit">
+                                            <?= lang('cover_update') ?>
+                                        </button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <!-- 删除封面 -->
+        <?php if ($user['cover_url'] != '') : ?>
+        <div class="card card-body shadow-sm">
+            <h3 class="text-center mb-3 text-danger">
+                <?= lang('cover_remove_title') ?>
+            </h3>
+            <p class="text-center text-muted mb-4">
+                <?= lang('cover_remove_text') ?>
+            </p>
+            <form action="<?= url('my-cover'); ?>" method="post">
+                <input type="hidden" name="remove_cover" value="1">
+                <button type="submit" class="btn btn-outline-danger btn-block py-2">
+                    <?= lang('cover_remove') ?>
+                </button>
+            </form>
+        </div>
+        <?php endif; ?>
+        <!-- 脚本 -->
+        <script>
+            AetherExec(function () {
+                setActive("my-cover", "*", ".my_nav");
+            });
+        </script>
+        <script>
+            var coverUpload = document.getElementById('cover_upload');
+            var coverPreview = document.getElementById('cover_preview');
+            var previewImage = document.getElementById('preview_image');
+            var uploadProgress = document.getElementById('upload_progress');
+            var progressFill = document.getElementById('progress_fill');
+            var progressText = document.getElementById('progress_text');
+            var coverImageUrl = document.getElementById('cover_image_url');
+            var customSubmit = document.getElementById('custom_submit');
+            var uploadArea = document.querySelector('.cover-upload-area');
+
+            // 上传功能
+            coverUpload.addEventListener('change', function (e) {
+                var files = xn.get_files_from_event(e);
+                if (files.length > 0) {
+                    // 显示预览
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        previewImage.src = e.target.result;
+                        coverPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(files[0]);
+
+                    // 显示上传进度
+                    uploadProgress.style.display = 'block';
+
+                    // 上传文件
+                    xn.upload_file(
+                        files[0],
+                        xn.url('my-cover'), {
+                            upload_custom_cover: 1
+                        },
+                        function (code, message) {
+                            if (code == 0) {
+                                coverImageUrl.value = message.url;
+                                uploadProgress.style.display = 'none';
+                                // 自动提交
+                                customSubmit.click();
+                                showSnackBar({ type: 'success', content: '成功' });
+                            } else {
+                                showSnackBar({ type: 'danger', content: message });
+                                uploadProgress.style.display = 'none';
+                            }
+                        },
+                        function (percent) {
+                            progressFill.style.width = percent + '%';
+                            progressText.textContent = percent + '%';
+                        }
+                    );
+                }
+            });
+
+            // 拖拽上传
+            uploadArea.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                uploadArea.classList.add('border-primary');
+            });
+
+            uploadArea.addEventListener('dragleave', function (e) {
+                e.preventDefault();
+                uploadArea.classList.remove('border-primary');
+            });
+
+            uploadArea.addEventListener('drop', function (e) {
+                e.preventDefault();
+                uploadArea.classList.remove('border-primary');
+                var files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    coverUpload.files = files;
+                    coverUpload.dispatchEvent(new Event('change'));
+                }
+            });
+        </script>
+    </slot>
+</template>

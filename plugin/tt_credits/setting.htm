@@ -1,0 +1,51 @@
+<?php include _include(ADMIN_PATH.'view/htm/header.inc.htm');?>
+<div class="row"><div class="col-lg-10 mx-auto"><form action="<?php echo url('plugin-setting-tt_credits');?>" method="post" id="form"><div class="card"><div class="card-body" >
+<h3>查询/修改用户积分</h3>若您需要更改用户积分，请对应填写变成后的数值;若您需要查询，请不要填写变动处（留空）.
+    <div class="input-group mb-3"><div class="input-group-prepend"><span class="input-group-text">用户名</span></div><input class="form-control" type="text" name="username" width="80px" value="admin"/></div>
+    <div class="input-group mb-3" ><div class="input-group-prepend"><span class="input-group-text">经验</span></div><input class="form-control" type="text" name="exp_change" id="exp_change" width="80px" value="0"/></div>
+     <div class="input-group mb-3" ><div class="input-group-prepend"><span class="input-group-text">金币</span></div><input class="form-control" type="text" name="golds_change" id="golds_change"width="80px" value="0"/></div>
+      <div class="input-group mb-3"><div class="input-group-prepend"><span class="input-group-text">人民币(单位:分)</span></div><input class="form-control" type="text" name="rmbs_change" id="rmbs_change" width="80px" value="0"/></div>
+    合人民币 ¥ <span style="color:red;" id="show_rmb">0</span><br>
+<button type="button" width="200px"class="btn btn-success" id="submit" data-loading-text="<?php echo lang('submiting');?>..."><?php echo lang('confirm');?></button> <button type="button" class="btn btn-success" id="inquire" width="200px" data-loading-text="<?php echo lang('submiting');?>..."><?php echo lang('inquire');?></button>
+</div><div class="card-footer">
+    <div class="input-group mb-3">
+        <input type="text" class="form-control" readonly value="已通过Aether兼容性测试" aria-label="Recipient's username" aria-describedby="button-addon2">
+        <div class="input-group-append">
+            
+          
+        </div>
+      </div>
+</div></div></form>
+        <div class="card"><div class="card-body" ><a href="<?php echo url("credits_paylog");?>"><h3>查询消费(购买主题)记录</h3></a></div></div>
+    <div class="card"><div class="card-body" ><a href="<?php echo url("credits_log");?>"><h3>查询积分变动记录</h3></a></div></div>
+        <div class="card"><div class="card-body" ><a href="<?php echo url("credits_setuser");?>"><h3>设置可以发表收费帖子的用户组</h3></a></div></div>
+        <div class="card"><div class="card-body" ><a href="<?php echo url("credits_addbuy");?>"><h3>添加(模拟)用户购买主题</h3></a></div></div>
+        <div class="card"><div class="card-body" ><a href="<?php echo url("credits_setcredits");?>"><h3>设置积分获得 / 消耗规则 / 注册默认积分 / 兑换比例</h3></a></div></div>
+<div class="card"><div class="card-body" ><a href="<?php echo url("credits_rank");?>"><h3>积分排行榜</h3></a></div></div>
+       </div></div>
+<?php include _include(ADMIN_PATH.'view/htm/footer.inc.htm');?>
+<script>
+    var jform = $("#form");var jsubmit = $("#submit"); var jbutton=$("#inquire");var jexp = $("#exp_change");var jgolds = $("#golds_change");var jrmbs = $("#rmbs_change");
+    function c_post(obj,op)
+    {
+        jform.reset();jsubmit.button('loading'); jbutton.button('loading');
+        var postdata = jform.serialize(); postdata+="&op="+op;
+        $.xpost(jform.attr('action'), postdata, function(code, message) {
+            if(code == 0) {
+                jexp.val(message['exp']);jgolds.val(message['golds']);jrmbs.val(message['rmbs']);
+                $.alert("执行完毕");
+            } else {$.alert(message);}
+        });
+        jsubmit.button('reset'); jbutton.button('reset');
+    }
+    jbutton.on('click',function(){ c_post(jbutton,"4");});
+    jsubmit.on('click',function(){ $.confirm('您确定要更新积分吗?',function(){c_post(jsubmit,"0");});});
+    var jspan=$("#show_rmb");
+    jrmbs.bind('input propertychange',function(){
+        ONInput2(jrmbs);
+    });
+    function ONInput2(input){
+        input.val(input.val().replace(/[^0-9]/g, ''));
+        jspan.text(input.val()==''?'0':input.val()/100.0);
+    }
+</script>

@@ -1,0 +1,30 @@
+<!-- <li class="nav-item">
+  <a href="<?php echo url('my-follow');?>" class="nav-link text-muted">
+  <i class="iconfont  icon-guanzhu"></i> <?php echo lang('mb_follow');?> <span class="float-right badge bg-light text-muted"><?php echo intval($user['follows']); ?></span>
+  </a>
+  </li>
+  <li class="nav-item">
+  <a href="<?php echo url("my-follow-fans");?>" class="nav-link text-muted">
+   <i class="iconfont icon-wodeguanzhu"></i> <?php echo lang('mb_followed');?> <span class="float-right badge bg-light text-muted"><?php echo intval($user['followeds']); ?></span>
+  </a>
+  </li> -->
+
+  <div class="col-4 mt-3">
+    <a href="<?php echo url('my-follow');?>" class="nav-link text-muted d-flex justify-content-center align-items-center flex-column">
+      <div>
+        <i class="iconfont  icon-guanzhu index_site_brief_profile_items" style="background: rgba(255,130,0,.1);
+      color: #ff8200;"></i>
+      </div>
+      <div class="mt-3"><?php echo lang('mb_follow');?></div>
+    </a>
+  </div>
+
+  <div class="col-4 mt-3">
+    <a href="<?php echo url('my-follow-fans');?>" class="nav-link text-muted d-flex justify-content-center align-items-center flex-column">
+      <div>
+        <i class="iconfont icon-wodeguanzhu index_site_brief_profile_items" style="background: rgba(255, 0, 81, 0.1);
+        color: #d33f3f;"></i>
+      </div>
+      <div class="mt-3"><?php echo lang('mb_followed');?></div>
+    </a>
+  </div>

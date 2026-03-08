@@ -1,0 +1,15 @@
+<script type="text/javascript">
+var t_external_toolbar = [],
+    t_external_plugins = {};
+</script>
+<script type="text/javascript" src="plugin/xn_tinymce/tinymce/tinymce.min.js?v6.0.3"></script>
+<script type="text/javascript" src="plugin/xn_tinymce/tinymce/init.js?v1.0"></script>
+<script type="text/javascript">
+$.require_css('plugin/xn_tinymce/tinymce/style.css');
+if (typeof jform != 'unefined') jform.find('[name="doctype"]').val(0);
+var xn_sbform = $('#message').parents('form'); //获取文本框message所在form表单
+xn_sbform.on('submit', function() { tinymce.activeEditor.save(); }); //给submit挂载同步事件
+var xn_sbdata = $._data(xn_sbform[0], 'events').submit; //获取form表单submit事件列表
+xn_sbdata.splice(0, 0, xn_sbdata.pop()); //把同步事件优先级设到最前
+</script>
+ 

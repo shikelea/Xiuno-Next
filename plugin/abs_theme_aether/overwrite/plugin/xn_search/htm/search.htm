@@ -1,0 +1,232 @@
+<template include="./plugin/abs_theme_aether/template_parts/structure/router.htm">
+	<slot name="S2_Header">
+		<form action="<?= url('search');?>" id="form" class="" hx-boost="true" hx-target="#S2-Body" hx-trigger="submit, keyup wait:500 throttle:500" hx-on:submit="saveSearchHistory(document.getElementById('keyword').value)">
+			<section class="header-main-toolbar pb-2">
+				<div title="返回按钮">
+					<button title="<?= lang('back') ?>" type="button" class="btn btn-link text-body btn-icon" hx-get="<?= url('index');?>" hx-target="#S2">
+						<i class="las la-arrow-left"></i>
+					</button>
+				</div>
+				<div class="header-action-section flex-grow-1">
+					<div class="search-field search-field-kbd flex-grow-1">
+						<button id="search_submit" type="submit" class="btn p-0" aria-label="<?= lang('search');?>"><i class="la la-search fs-5"></i></button>
+						<input type="search" class="form-control" name="keyword" id="keyword" placeholder="<?= lang('search');?>..." value="<?= $keyword;?>">
+					</div>
+				</div>
+			</section>
+			<?php if( in_array($search_type, array('like', 'fulltext')) ) : ?>
+			<section title="App标题栏 副标题栏" class="header-sub-header">
+				<div class="nav nav-underline nav-controlled-by-input">
+					<div class="nav-item">
+						<input type="radio" name='range' value="1" id="search_range_1" <?= $range == '1' ? 'checked' : '';?>>
+						<label for="search_range_1" class="nav-link" hx-on:click="setTimeout(function(){if(document.getElementById('keyword').value.length !== 0){document,getElementById('search_submit').click()}},1)">主题贴</label>
+					</div>
+					<div class="nav-item">
+						<input type="radio" name='range' value="0" id="search_range_0" <?= $range == '0' ? 'checked' : '';?>>
+						<label for="search_range_0" class="nav-link" hx-on:click="setTimeout(function(){if(document.getElementById('keyword').value.length !== 0){document,getElementById('search_submit').click()}},1)">所有贴</label>
+					</div>
+					<div class="nav-item">
+						<input type="radio" name='range' value="3" id="search_range_3" <?= $range == '3' ? 'checked' : '';?>>
+						<label for="search_range_3" class="nav-link" hx-on:click="setTimeout(function(){if(document.getElementById('keyword').value.length !== 0){document,getElementById('search_submit').click()}},1)">用户</label>
+					</div>
+				</div>
+			</section>
+			<?php endif; ?>
+
+		</form>
+	</slot>
+	<slot name="S2_Body">
+		<!--{hook search_start.htm}-->
+
+		<section>
+
+			<?php if($keyword) : ?>
+
+			<?php if($range == 1) : ?>
+
+			<?php if($threadlist) : ?>
+			<section style="position: sticky;top: 3rem;right: 0;width: fit-content;background-color: var(--bs-theme-component-bg);z-index: 1;border-radius: 50rem;margin-left: auto;">
+				<?php include _include(APP_PATH.'view/htm/thread_list_mod.inc.htm');?>
+			</section>
+
+			<ul class="list-group list-group-flush threadlist">
+				<!--{hook search_threadlist_before.htm}-->
+				<?php include _include(APP_PATH.'view/htm/thread_list.inc.htm');?>
+				<!--{hook search_threadlist_after.htm}-->
+			</ul>
+
+			<!--{hook search_page_before.htm}-->
+			<?php if($pagination) : ?>
+			<nav>
+				<ul class="pagination justify-content-center flex-wrap" hx-boost="true" hx-target=".threadlist" hx-push-url="true">
+					<input type="hidden" name="IS_IN_PAGINATION" value="1" class="pagination_extra_param">
+					<input type="hidden" name="IS_IN_THREADLIST" value="1" class="pagination_extra_param">
+
+					<!-- TODO 增加HTMX翻页支持 -->
+					<?= $pagination; ?>
+				</ul>
+			</nav>
+			<?php endif; ?>
+			<!--{hook search_page_end.htm}-->
+
+			<?php else:
+	include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/fragments/empty.htm');
+	endif; ?>
+
+
+
+			<!-- TEST By XHSS -->
+			<?php elseif($range == 3): ?>
+
+			<ul class="list-group list-group-flush">
+				<?php if($userslist): ?>
+
+				<?php
+							foreach($userslist as $users) :
+								$name = search_keyword_highlight($users['username'], $keyword_arr);
+								$userid = $users['uid'];
+								$avatar_path = './upload/avatar/000/' . $userid . '.png';
+								
+								// 检查用户头像文件是否存在
+								if (file_exists($avatar_path)) {
+									// 用户头像文件存在
+									$avatar_url = $avatar_path;
+								} else {
+									// 用户头像文件不存在，使用默认图片地址
+									$avatar_url = './view/img/avatar.png'; // 默认图片地址
+								}
+								?>
+				<li class="list-group-item d-flex align-items-center gap-2" hx-get="<?= url('user-' . $userid);?>" hx-target="#S2">
+					<img class="avatar" src="<?= $avatar_url;?>" alt="<?= strip_tags($name);?>">
+					<?= $name;?>
+				</li>
+				<?php endforeach; ?>
+			</ul>
+			<?php else:
+			include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/fragments/empty.htm');
+			endif; ?>
+
+			<?php elseif($range == 0): ?>
+
+
+			<div class="postlist">
+				<!--{hook search_postlist_before.htm}-->
+				<?php include _include(APP_PATH.'view/htm/post_list.inc.htm'); ?>
+				<!--{hook search_postlist_before.htm}-->
+			</div>
+
+			<?php endif; ?>
+			<?php else: ?>
+
+			<!-- 热门搜索标签 -->
+			<section class="hot-searches mb-4 mt-4">
+				<h2 class="h5 mb-3">
+					<i class="la la-fire text-warning"></i>
+					热门搜索
+				</h2>
+				<div class="d-flex flex-wrap gap-2" hx-boost="true" hx-target="#S2-Body" id="hot_searches_list">
+					<a href="<?= url('search',['keyword' => '测试',]) ?>" class="icon-link" hx-on:click="document.getElementById('keyword').value = this.textContent">测试</a>
+				</div>
+			</section>
+
+			<!-- 搜索历史 -->
+			<section class="search-history">
+				<header class="d-flex justify-content-between align-items-center mb-0">
+					<h2 class="h5 mb-0">
+						<i class="la la-history text-info"></i>
+						搜索历史
+					</h2>
+					<button type="button" class="btn btn-link text-muted" id="clear_search_history" hx-on:click="clearSearchHistory()">清空历史</button>
+				</header>
+				<div class="list-group" hx-boost="true" hx-target="#S2-Body" id="search_history_list">
+					<a href="<?= url('search',['keyword' => '测试']) ?>" class="list-group-item list-group-item-action" hx-on:click="document.getElementById('keyword').value = this.textContent">测试</a>
+				</div>
+			</section>
+
+			<?php endif; ?>
+
+		</section>
+
+		<!--{hook search_end.htm}-->
+
+		<script>
+			// 保存搜索历史
+			function saveSearchHistory(keyword) {
+				// 去除关键词前后空白字符
+				keyword = keyword.trim();
+
+				// 如果关键词为空，不保存
+				if (!keyword) {
+					return;
+				}
+
+				// 读取现有历史记录
+				let history = JSON.parse(localStorage.getItem('aether_search_history') || '[]');
+
+				// 去重：如果已存在则删除旧记录
+				const existingIndex = history.indexOf(keyword);
+				if (existingIndex > -1) {
+					history.splice(existingIndex, 1);
+				}
+
+				// 将新关键词添加到开头
+				history.unshift(keyword);
+
+				// 限制历史记录数量（最多保存10条）
+				if (history.length > 10) {
+					history = history.slice(0, 10);
+				}
+
+				// 保存到localStorage
+				localStorage.setItem('aether_search_history', JSON.stringify(history));
+			}
+
+			// 渲染搜索历史
+			function renderSearchHistory() {
+				// 从localStorage读取历史记录
+				const history = JSON.parse(localStorage.getItem('aether_search_history') || '[]');
+				const historyList = document.getElementById('search_history_list');
+
+				// 清空现有列表
+				historyList.innerHTML = '';
+
+				// 如果没有历史记录，显示提示
+				if (history.length === 0) {
+					historyList.innerHTML = '<li class="list-group-item text-muted text-center">暂无搜索历史</li>';
+					return;
+				}
+
+				// 遍历历史记录，生成li元素
+				history.forEach(keyword => {
+					const li = document.createElement('li');
+					li.className = 'list-group-item list-group-item-action';
+					li.innerHTML = `<a href="<?= url('search') ?>?keyword=${encodeURIComponent(keyword)}" class="d-block text-decoration-none text-body" hx-on:click="document.getElementById('keyword').value = this.textContent.trim(); return true;">${keyword}</a>`;
+					historyList.appendChild(li);
+				});
+
+				// 重新绑定HTMX属性
+				if (typeof htmx !== 'undefined') {
+					htmx.process(historyList);
+				}
+			}
+
+			// 清空搜索历史
+			function clearSearchHistory() {
+				// 从localStorage删除历史记录
+				localStorage.removeItem('aether_search_history');
+
+				// 清空列表内容
+				const historyList = document.getElementById('search_history_list');
+				historyList.innerHTML = '<li class="list-group-item text-muted text-center">暂无搜索历史</li>';
+			}
+
+			AetherExec(function () {
+				renderSearchHistory();
+			})
+		</script>
+
+		<!--{hook search_js.htm}-->
+
+	</slot>
+
+</template>

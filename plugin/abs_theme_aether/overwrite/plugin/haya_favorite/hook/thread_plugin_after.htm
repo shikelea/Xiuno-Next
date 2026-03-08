@@ -1,0 +1,19 @@
+<dialog id="haya-favoriter-modal" class="haya-favoriter">
+	<article class="card haya-favorite-show-users">
+		<header class="card-header">
+			<button role="button" data-target="haya-favoriter-modal" hx-on:click="toggleModal(event)" class="btn close" title="<?= lang('close') ?>">&times;</button>
+			<div class="d-flex align-items-center justify-content-between">
+				<h3 class="h5 m-0 card-title modal-title "><?= lang('haya_favorite_users'); ?>（<span class="haya-favorite-user-count"><?= intval($thread['favorites']); ?></span>）</h3>
+				<small class="modal-subtitle text-muted pr-3"></small>
+			</div>
+		</header>
+		<div class="card-body modal-body">
+			<div class="haya-favorite-users">
+				<span class="dummy" title="<?= lang('haya_favorite_loading'); ?>">
+					<!--{hook aether_skeleton.htm}-->
+				</span>
+			</div>
+
+		</div>
+	</article>
+</dialog>

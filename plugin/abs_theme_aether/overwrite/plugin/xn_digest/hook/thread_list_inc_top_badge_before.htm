@@ -1,0 +1,9 @@
+<?php if($_thread['digest'] > 0) { ?>
+	<?php if($_thread['digest'] == 1) { ?>
+		<i class="las la-star badge text-warning bg-warning-subtle icon-digest-1" data-bs-toggle="tooltip" data-bs-placement="top" title="<?= lang('digest_1');?>" aria-label="<?= lang('digest_1');?>"> </i>
+	<?php } elseif($_thread['digest'] == 2) { ?>
+		<i class="las la-trophy badge text-success bg-success-subtle icon-digest-2" data-bs-toggle="tooltip" data-bs-placement="top" title="<?= lang('digest_2');?>" aria-label="<?= lang('digest_2');?>"> </i>
+	<?php } elseif($_thread['digest'] == 3) { ?>
+		<i class="las la-fire badge text-danger bg-danger-subtle icon-digest-3" data-bs-toggle="tooltip" data-bs-placement="top" title="<?= lang('digest_3');?>" aria-label="<?= lang('digest_3');?>"> </i>
+	<?php } ?>
+<?php } ?>

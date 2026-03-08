@@ -1,0 +1,41 @@
+<template include="./view/htm/my_thread.template.htm">
+	
+	<slot name="my_body">
+		<ul class="list-unstyled threadlist mb-0">
+			<?php include _include(APP_PATH.'view/htm/thread_list.inc.htm');?>
+		</ul>
+		
+		<?php if($pagination) { ?>
+			<nav><ul class="pagination my-4 justify-content-center"><?php echo $pagination; ?></ul></nav>
+		<?php } ?>
+	</slot>
+	
+</template>
+
+<script>
+$(function() {
+	$(".threadlist .thread").unbind("click");
+});
+
+$(document).on('click', '.js-haya-favorite-remove', function() {
+	var thiz = $(this);
+	var tid = thiz.attr("data-tid");
+	var url = '<?php echo url("my-favorite-delete");?>';
+	
+	$.confirm('<?php echo lang('haya_favorite_add_favorite_confirm_title'); ?>', function() {
+		$.xpost(url, {'tid': tid}, function(code, msg){
+			if (code == 1) {
+				$(".threadlist li[data-tid="+tid+"]").remove();
+			} else {
+				$.alert(msg);
+			}
+		});
+	}, {'body': '<?php echo lang('haya_favorite_add_favorite_confirm_content'); ?>'});
+	
+	return false;
+});
+</script>
+
+<script>
+$('a[data-active="my-favorite"]').addClass('active');
+</script>

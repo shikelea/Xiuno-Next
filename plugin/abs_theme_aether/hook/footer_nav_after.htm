@@ -1,0 +1,10 @@
+
+<?php 
+    // ? 记录本次页面访问时间（仅在非HTMX请求且非轮询请求时更新）
+    if (!$IS_HTMX && !(isset($_SESSION['htmx_last_noticelist_check']))) {
+    	$_SESSION['htmx_last_noticelist_check'] = time();
+    }
+ ?>
+<?php if($user): ?>
+<div hx-get="<?= url('my-notice-getnew') ?>" hx-trigger="every 60s" hx-swap="innerHTML"></div>
+<?php endif; ?>

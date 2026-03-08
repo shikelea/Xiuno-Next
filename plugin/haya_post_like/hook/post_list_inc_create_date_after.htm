@@ -1,0 +1,37 @@
+<?php
+if ((isset($haya_post_like_config['open_post'])
+	&& $haya_post_like_config['open_post'] == 1)
+	&& (isset($haya_post_like_config['post_like_position'])
+	&& $haya_post_like_config['post_like_position'] == 1)
+) {
+
+$haya_post_like_check = isset($haya_post_like_pids[$_post['pid']]);
+?>
+
+	<style>
+	.haya-post-like .haya-post-like-loved {
+		color: var(--<?php echo isset($haya_post_like_config['post_loved_color']) ? $haya_post_like_config['post_loved_color'] : 'secondary'; ?>) !important;
+	}
+	</style>
+	<span class="haya-post-like ml-2">
+		<?php if (!empty($uid)) { ?>
+			<?php if($haya_post_like_check){ ?>
+				<a href="javascript:;" class="text-muted haya-post-like-loved js-haya-post-like-post-del" data-pid="<?php echo $_post['pid'];?>" title="<?php echo $haya_post_like_is_delete ? lang('haya_post_like_unlike') : lang('haya_post_like_has_like'); ?>">
+					<i class="icon icon-thumbs-up" aria-label="<?php echo $haya_post_like_is_delete ? lang('haya_post_like_unlike') : lang('haya_post_like_has_like'); ?>"></i>
+					<span class="haya-post-like-post-user-count"><?php echo intval($_post['likes']); ?></span>
+				</a>
+			<?php } else { ?>
+				<a href="javascript:;" class="text-muted js-haya-post-like-post-add" data-pid="<?php echo $_post['pid'];?>" title="<?php echo lang('haya_post_like_like_post'); ?>">
+					<i class="icon icon-thumbs-o-up" aria-label="<?php echo lang('haya_post_like_like_post'); ?>"></i>
+					<span class="haya-post-like-post-user-count"><?php echo intval($_post['likes']); ?></span>
+				</a>
+			<?php } ?>	
+		<?php } else { ?>
+			<a href="javascript:;" class="text-muted js-haya-post-like-post-tip" data-pid="<?php echo $_post['pid'];?>" title="<?php echo lang('haya_post_like_like_post'); ?>">
+				<i class="icon icon-thumbs-o-up" aria-label="<?php echo lang('haya_post_like_like_post'); ?>"></i>
+				<span class="haya-post-like-post-user-count"><?php echo intval($_post['likes']); ?></span>
+			</a>
+		<?php } ?>
+	</span>
+
+<?php } ?>

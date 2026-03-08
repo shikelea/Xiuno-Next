@@ -379,3 +379,45 @@
 .embed-responsive-4by3::before  { padding-top: 75%; }
 .embed-responsive-1by1::before  { padding-top: 100%; }
 .embed-responsive-21by9::before { padding-top: 42.857143%; }
+
+/* ===== 颜色/文本兼容 ===== */
+
+/* text-gray (旧插件常用，BS5 无此类) */
+.text-gray { color: #6c757d !important; }
+
+/* ===== 头像尺寸兼容 ===== */
+
+/* avatar-N 系列（旧插件常用，如 tt_sign / tt_ranklist） */
+.avatar-1 { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+.avatar-2 { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+.avatar-3 { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.avatar-4 { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
+.avatar-5 { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; }
+img.avatar-1, img.avatar-2, img.avatar-3, img.avatar-4, img.avatar-5 {
+    vertical-align: middle;
+}
+
+/* ===== 缺失资源降级 ===== */
+
+/*
+ * 当旧插件通过 inline style 引用了不存在的背景图时，
+ * JS 兼容层会自动添加 .bs4c-bg-fallback 类，此处定义降级样式。
+ * 同时提供 .bs4c-img-fallback 给失败的 <img> 元素。
+ */
+.bs4c-bg-fallback {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+.bs4c-img-fallback {
+    display: inline-block;
+    background: #e9ecef;
+    color: #adb5bd;
+    text-align: center;
+    line-height: 1;
+    font-size: .75rem;
+    object-fit: contain;
+}
+
+/* ===== 旧版 icon 前缀兼容 ===== */
+
+/* icon-calendar-check-o (Font Awesome 4 旧名) — 部分签到插件使用 */
+.icon-calendar-check-o:before { content: "\f274"; }

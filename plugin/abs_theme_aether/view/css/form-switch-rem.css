@@ -1,0 +1,65 @@
+.form-switch {
+    --switch-handle-size: 0.75rem;
+    --switch-handle-scale: 1;
+    --switch-handle-placement: 0;
+    --switch-handle-shadow-placement: 0;
+    --switch-handle-shadow-opacity: 0;
+    --switch-handle-bg: currentColor
+}
+
+.form-switch .form-check-input {
+    height: 1.5rem
+}
+
+.form-switch .form-check-input:checked~.form-check-label {
+    --switch-handle-placement: calc(100% + calc(var(--switch-handle-size) / 3));
+    --switch-handle-scale: 1.5;
+    --switch-handle-shadow-placement: calc(100% - var(--switch-handle-size) + 0.25rem);
+    --switch-handle-bg: var(--bs-theme-popup-bg)
+}
+
+.form-switch .form-check-input:checked~.form-check-label:active {
+    --switch-handle-scale: 1.7
+}
+
+.form-switch .form-check-label:not(:empty) {
+    margin-left: 1rem
+}
+
+.form-switch .form-check-label:after {
+    content: "";
+    color: var(--bs-body-color);
+    width: var(--switch-handle-size);
+    height: var(--switch-handle-size);
+    background-color: var(--switch-handle-bg);
+    position: absolute;
+    left: calc(var(--switch-handle-size) / 2);
+    top: calc(var(--switch-handle-size) / 2);
+    border-radius: 50%;
+    translate: var(--switch-handle-placement) 0;
+    scale: var(--switch-handle-scale);
+    transition: scale .2s cubic-bezier(.34,1.56,.64,1),translate .2s cubic-bezier(.34,1.56,.64,1),color .2s
+}
+
+.form-switch .form-check-label:before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc(var(--switch-handle-size) * 2);
+    height: calc(var(--switch-handle-size) * 2);
+    background-color: #6a95b933;
+    scale: 1.25;
+    border-radius: 50%;
+    translate: var(--switch-handle-shadow-placement) 0;
+    transition: translate .2s cubic-bezier(.34,1.56,.64,1),opacity .2s;
+    opacity: var(--switch-handle-shadow-opacity)
+}
+
+.form-switch .form-check-label:active {
+    --switch-handle-scale: 1.5
+}
+
+.form-switch:hover {
+    --switch-handle-shadow-opacity: 1
+}

@@ -68,6 +68,7 @@
 	$.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN',csrf_token);}});
 	</script>
 	<script src="<?php echo $conf['view_url'];?>js/bbs.js<?php echo $static_version;?>"></script>
+	<?php theme_render_scripts(); ?>
 	<!--{hook footer_js_after.htm}-->
 	
 </body>

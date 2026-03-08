@@ -1,0 +1,7 @@
+<?php if(!empty($uid)) { ?>
+	<li class="nav-item position-relative usernotice <?php echo $user['unread_notices'] !=0 ? 'current':''; ?>" id="nav-usernotice" data-active="nav-usernotice">
+		<a class="nav-link " href="<?php echo url("my-notice");?>"><span class="iconfont icon-xiaoxizhongxin" data-toggle="tooltip" data-placement="top" title="<?php echo lang('notice');?>"></span> <span class="hidden-lg"><?php echo lang('notice');?></span> <span class="d-none unread  position-absolute" id="nav-usernotice-unread-notices"><span class="hidden-sm hidden-md badge badge-danger badge-pill"><?php echo $user['unread_notices']; ?></span></span>			
+		</a>
+	</li>
+<?php }?>
+			

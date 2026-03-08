@@ -1,0 +1,265 @@
+<div class="container">
+
+    <?php if ($SHEET_MODE === 'FULL_PAGE'): ?>
+    <div hx-get="<?= url('forum-' . $thread['fid']) ?>" hx-target="#S2" hx-trigger="revealed once" hx-swap="innerHTML"
+        hx-on:htmx:after-request="this.remove()" class="reverse-loader"></div>
+    <?php endif; ?>
+
+    <!-- 帖子头部信息 -->
+    <header class="post-header card-body mb-4 px-3">
+        <!--{hook thread_subject_before.htm}-->
+        <h1 class="h2 mb-2 position-relative">
+            <!--{hook thread_subject_start.htm}-->
+            <?= $thread['subject'];?>
+            <!--{hook thread_subject_end.htm}-->
+        </h1>
+        <!--{hook thread_subject_after.htm}-->
+
+        <div class="d-flex align-items-center justify-content-between my-3 small">
+            <div>
+                <i class="la la-folder"></i>
+                <a href="<?= url('forum-' . $thread['fid']);?>" hx-get="<?= url('forum-' . $thread['fid']);?>"
+                    hx-target="#S2" hx-trigger="click" hx-swap="innerHTML" hx-on:click="Aether.hideS3()"
+                    hx-push-url="true" class="reverse-loader">
+                    <?= $forum['name'];?>
+                </a>
+            </div>
+            <div class="d-flex flex-wrap gap-2 text-muted">
+                <span>
+                    <i class="la la-eye"></i>
+                    <small class="visually-hidden">浏览：</small>
+                    <span>
+                        <?= $thread['views'];?>
+                    </span>
+                </span>
+                <?php if(isset($thread['likes'])) : ?>
+                <span>
+                    <i class="la la-thumbs-up"></i>
+                    <small class="visually-hidden">点赞：</small>
+                    <span>
+                        <?= $thread['likes'];?>
+                    </span>
+                </span>
+                <?php endif; ?>
+                <?php if(isset($thread['favorites'])) : ?>
+                <span>
+                    <i class="la la-star"></i>
+                    <small class="visually-hidden">收藏：</small>
+                    <span>
+                        <?= $thread['favorites'];?>
+                    </span>
+                </span>
+                <?php endif; ?>
+                <span>
+                    <i class="la la-comment"></i>
+                    <small class="visually-hidden">回复：</small>
+                    <span>
+                        <?= $thread['posts'];?>
+                    </span>
+                </span>
+            </div>
+        </div>
+
+
+    </header>
+    <section class="post-content card border-0">
+
+        <!-- 作者信息和统计 -->
+        <div class="d-flex align-items-center justify-content-between card-body pb-0">
+            <a class="d-flex align-items-center" href="<?= url('user-' . $thread['uid']);?>"
+                hx-get="<?= url('user-' . $thread['uid']);?>" hx-target="#S4" hx-on:click="Aether.showS4()">
+                <img src="<?= $thread['user_avatar_url'];?>" class="avatar avatar-lg me-3" width="48" height="48"
+                    alt="<?= $thread['username'];?>">
+                <div>
+
+                    <div class="fw-bold">
+                        <!--{hook thread_username_before.htm}-->
+                        <span class="username">
+                            <?= $thread['username'];?>
+                        </span>
+                    </div>
+                    <div class="text-muted small">
+                        <time datetime="<?= $thread['create_date'];?>">
+                            <?= $thread['create_date_fmt'];?>
+                        </time>
+                        <!--{hook thread_views_after.htm}-->
+                    </div>
+
+                </div>
+            </a>
+            <div class="text-end">
+                <!--{hook thread_user_username_after.htm}-->
+            </div>
+        </div>
+
+        <article class="message card-body">
+            <?php if($page == 1) { ?>
+            <!--{hook thread_message_before.htm}-->
+            <?= $first['message_fmt'];?>
+            <!--{hook thread_message_after.htm}-->
+
+            <!--{hook thread_filelist_before.htm}-->
+            <?php if(!empty($first['filelist'])): ?>
+            <section id="aether-attachment-container">
+                <div class="card border">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <div class="card-title fs-5 m-0"><i class="las la-paperclip"></i> 附件</div>
+                    </div>
+                    <ul id="attachment-list" class="list-group list-group-flush list-group-horizontal row">
+                        <?= aether_post_file_list_html($first['filelist']);?>
+                    </ul>
+                </div>
+            </section>
+            <?php endif; ?>
+            <!--{hook thread_filelist_after.htm}-->
+
+            <?php } else { ?>
+            <!--{hook thread_message_more_before.htm}-->
+            <div class="text-center py-4">
+                <a href="<?= url(" thread-$tid");?>" class="btn btn-primary">
+                    <i class="icon-eye" aria-hidden="true"></i>
+                    <?= lang('view_thread_message');?>
+                </a>
+            </div>
+            <!--{hook thread_message_more_after.htm}-->
+            <?php } ?>
+        </article>
+
+        <!-- 帖子互动功能区 -->
+        <div class="post-interactions card-footer pt-0">
+            <!--{hook thread_plugin_before.htm}-->
+            <div class="plugin d-flex flex-wrap justify-content-center align-items-center">
+                <!--{hook thread_plugin_body.htm}-->
+            </div>
+            <!--{hook thread_plugin_after.htm}-->
+        </div>
+    </section>
+
+
+    <?php if($abs_theme_aether_setting['thread']['basic']['thread_pre_next']): 
+    $arrlist_n = db_find_one('thread', array('fid' => $fid, 'tid' => array('>' => $tid)), array('tid' => 1));
+			$arrlist_p = db_find_one('thread', array('fid' => $fid, 'tid' => array('<' => $tid)), array('tid' => -1));
+    ?>
+
+    <!-- 帖子导航 -->
+    <section class="post-navigation mt-4" hx-boost="true" hx-target="#S3">
+        <div class="card" style="background-color: var(--bs-tertiary-content-bg);">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <?php if($arrlist_p): ?>
+                        <a href="<?= url(" thread-" . $arrlist_p['tid']);?>" class="text-decoration-none">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">←</span>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="small text-muted">上一篇</div>
+                                    <div class="text-truncate h5">
+                                        <?= $arrlist_p['subject'];?>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <?php if($arrlist_n): ?>
+                        <a href="<?= url(" thread-" . $arrlist_n['tid']);?>" class="text-decoration-none">
+                            <div class="d-flex align-items-center justify-content-end">
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="small text-muted">下一篇</div>
+                                    <div class="text-truncate h5">
+                                        <?= $arrlist_n['subject'];?>
+                                    </div>
+                                </div>
+                                <span class="ms-2">→</span>
+                            </div>
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
+
+
+    <!--{hook thread_postlist_before.htm}-->
+
+
+    <!-- 推荐帖子区域 -->
+    <section class="recommended-posts mt-4" hidden>
+        <h5 class="mb-3 px-3">WIP 相关推荐</h5>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <a href="thread-45-1-1.html" class="col-md-4">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">日本京都樱花季摄影全攻略</h5>
+                            <small class="text-muted flex-shrink-0">3天前</small>
+                        </div>
+                        <p class="mb-1">分享在京都拍摄樱花的最佳机位和拍摄技巧...</p>
+                        <small class="text-muted">浏览 1.2k · 回复 34</small>
+                    </a>
+                    <a href="thread-38-1-1.html" class="col-md-4">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">无锡鼋头渚夜樱观赏体验分享</h5>
+                            <small class="text-muted flex-shrink-0">1周前</small>
+                        </div>
+                        <p class="mb-1">夜樱观赏的独特体验和注意事项...</p>
+                        <small class="text-muted">浏览 2.1k · 回复 56</small>
+                    </a>
+                    <a href="thread-32-1-1.html" class="col-md-4">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">家庭旅行摄影器材选择指南</h5>
+                            <small class="text-muted flex-shrink-0">2周前</small>
+                        </div>
+                        <p class="mb-1">适合家庭旅行的轻便摄影设备推荐...</p>
+                        <small class="text-muted">浏览 3.4k · 回复 89</small>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- 回帖列表区域 -->
+    <section class="replies-section mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 px-3">
+            <h5 class="mb-0">
+                <?= lang('new_post');?>（<span class="posts">
+                    <?= $thread['posts'];?>
+                </span>）
+            </h5>
+            <!--{hook thread_post_list_title_right.htm}-->
+
+        </div>
+        <div class="card">
+            <div class="card-body postlist py-0">
+                <!-- 单个回帖 -->
+                <span class="dummy" hx-get="<?= url('thread-' . $tid . '-1') ?>" hx-trigger="load, revealed once"
+                    hx-swap="outerHTML" hx-include=".pagination_extra_param">
+                    <!--{hook aether_skeleton__post_list.htm}-->
+                </span>
+                <?php /*include _include(APP_PATH.'view/htm/post_list.inc.htm');*/ ?>
+
+                <!-- 分页 -->
+                <?php if($pagination) { ?>
+                <nav aria-label="Page navigation" class="mb-5">
+                    <ul class="pagination justify-content-center shadow-sm" hx-boost="true" hx-target=".postlist"
+                        hx-push-url="true">
+                        <input type="hidden" name="IS_IN_PAGINATION" value="1" class="pagination_extra_param">
+                        <input type="hidden" name="IS_IN_POSTLIST" value="1" class="pagination_extra_param">
+                        <?= $pagination; ?>
+                    </ul>
+                </nav>
+                <?php } else { ?>
+                <input type="hidden" name="IS_IN_PAGINATION" value="1" class="pagination_extra_param">
+                <input type="hidden" name="IS_IN_POSTLIST" value="1" class="pagination_extra_param">
+                <?php } ?>
+            </div>
+        </div>
+    </section>
+
+</div>

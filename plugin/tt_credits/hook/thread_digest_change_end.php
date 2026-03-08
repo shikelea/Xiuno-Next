@@ -1,0 +1,3 @@
+if($digest!=0) $update_array = array('credits+'=>$credits_set['digest'.$digest.'_exp'] - $before_credits['credits'] ,'golds+'=>$credits_set['digest'.$digest.'_gold']- $before_credits['golds'] ,'rmbs+'=>$credits_set['digest'.$digest.'_rmb'] - $before_credits['rmbs']);
+else $update_array = array('credits+'=>0 - $before_credits['credits'] ,'golds+'=>0 - $before_credits['golds'] ,'rmbs+'=>0 - $before_credits['rmbs']);
+user_update($uid,$update_array);

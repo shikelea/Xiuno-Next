@@ -1,0 +1,191 @@
+<?php include _include(ADMIN_PATH.'view/htm/header.inc.htm'); ?>
+
+<div class="row">
+	<div class="col-sm-12">
+		
+		<div class="card">
+			<div class="card-body">
+				<form action="<?php echo url('plugin-setting-haya_follow');?>" method="post" id="formcreate">
+					<h4 class="card-title mb-3">用户关注设置</h4>
+					
+					<hr class="mb-4" />
+					
+					<div class="form-group row">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="show_my_dynamic">
+							<b class="text-dark">个人中心动态：</b>
+						</label>
+						<div class="col-md-8">							
+							<div class="custom-radio-box" id="show_my_dynamic">
+								<?php if (isset($config['show_my_dynamic']) && $config['show_my_dynamic'] == 1) { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="show_my_dynamic" value="1" checked="checked"> 启用
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="show_my_dynamic" value="0"> 关闭
+									</label>
+								<?php } else { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="show_my_dynamic" value="1"> 启用
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="show_my_dynamic" value="0" checked="checked"> 关闭
+									</label>
+								<?php } ?>
+							</div>		
+							
+							<div class="figure-caption mt-2">
+								个人中心是否显示关注用户及自己的发帖及回帖时间线。
+							</div>
+						</div>
+					</div>	
+
+					<div class="form-group row mb-3 mt-4">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="my_dynamic_post_num">
+							个人中心动态数量：
+						</label>
+						<div class="col-md-8">
+							<input type="text" name="my_dynamic_post_num" id="my_dynamic_post_num" value="<?php echo isset($config['my_dynamic_post_num']) ? intval($config['my_dynamic_post_num']) : 20; ?>" class="form-control">
+							<div class="figure-caption mt-2">
+								设置个人中心最新动态要显示的最多数量。
+							</div>
+						</div>
+					</div>					
+
+					<div class="form-group row mb-3 mt-4">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="timeline_post_pagesize">
+							时间线动态数量：
+						</label>
+						<div class="col-md-8">
+							<input type="text" name="timeline_post_pagesize" id="timeline_post_pagesize" value="<?php echo isset($config['timeline_post_pagesize']) ? intval($config['timeline_post_pagesize']) : 20; ?>" class="form-control">
+							<div class="figure-caption mt-2">
+								设置个人中心的时间线动态每页要显示的数量。
+							</div>
+						</div>
+					</div>
+					
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="delete_follower">
+							移除粉丝：
+						</label>
+						<div class="col-md-8">
+							<div class="custom-radio-box" id="delete_follower">
+								<?php if ($config['delete_follower'] == 1) { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="delete_follower" value="1" checked="checked"> 启用
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="delete_follower" value="0"> 关闭
+									</label>
+								<?php } else { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="delete_follower" value="1"> 启用
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="delete_follower" value="0" checked="checked"> 关闭
+									</label>
+								<?php } ?>
+							</div>		
+							
+							<div class="figure-caption mt-2">
+								在个人中心处，用户是否可以移除自己的粉丝。
+							</div>
+						</div>
+					</div>
+
+					<div class="form-group row mb-3 mt-4">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="followed_life_time">
+							缓存时间：
+						</label>
+						<div class="col-md-8">
+							<input type="text" name="followed_life_time" id="followed_life_time" value="<?php echo isset($config['followed_life_time']) ? intval($config['followed_life_time']) : 86400; ?>" class="form-control">
+							<div class="figure-caption mt-2">
+								个人中心的用户的关注动态列表的相关用户数据的缓存时间，0 表示不缓存，默认 1 天。单位：秒。
+							</div>
+						</div>
+					</div>
+					
+					<div class="form-group row">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="show_user_dynamic">
+							<b class="text-dark">用户中心动态：</b>
+						</label>
+						<div class="col-md-8">							
+							<div class="custom-radio-box" id="show_user_dynamic">
+								<?php if (isset($config['show_user_dynamic']) && $config['show_user_dynamic'] == 1) { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="show_user_dynamic" value="1" checked="checked"> 启用
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="show_user_dynamic" value="0"> 关闭
+									</label>
+								<?php } else { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="show_user_dynamic" value="1"> 启用
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="show_user_dynamic" value="0" checked="checked"> 关闭
+									</label>
+								<?php } ?>
+							</div>		
+							
+							<div class="figure-caption mt-2">
+								用户中心是否显示发主题及回复动态。
+							</div>
+						</div>
+					</div>	
+
+					<div class="form-group row mb-3 mt-4">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="user_dynamic_pagesize">
+							用户中心动态数量：
+						</label>
+						<div class="col-md-8">
+							<input type="text" name="user_dynamic_pagesize" id="user_dynamic_pagesize" value="<?php echo isset($config['user_dynamic_pagesize']) ? intval($config['user_dynamic_pagesize']) : 20; ?>" class="form-control">
+							<div class="figure-caption mt-2">
+								设置用户中心最新动态每页要显示的主题及回复数量。
+							</div>
+						</div>
+					</div>					
+
+					<div class="form-group row mb-3 mt-4">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="follow_user_pagesize">
+							关注数量：
+						</label>
+						<div class="col-md-8">
+							<input type="text" name="follow_user_pagesize" id="follow_user_pagesize" value="<?php echo isset($config['follow_user_pagesize']) ? intval($config['follow_user_pagesize']) : 20; ?>" class="form-control">
+							<div class="figure-caption mt-2">
+								设置个人中心及用户中心的关注及被关注列表每页要显示的数量。
+							</div>
+						</div>
+					</div>
+					
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label"></label>
+						<div class="col-md-2">
+							<button type="submit" class="btn btn-primary btn-block mr-2 mb-2" id="submit">确认</button>
+						</div>
+						<div class="col-md-2">
+							<a role="button" class="btn btn-secondary btn-block mb-2" href="javascript:history.back();">返回</a>
+						</div>
+					</div>
+					
+				</form>
+			</div>
+			<div class="card-footer">
+				<div class="input-group mb-3">
+					<input type="text" class="form-control" readonly value="已通过Aether兼容性测试" aria-label="Recipient's username" aria-describedby="button-addon2">
+					<div class="input-group-append">
+						
+					  
+					</div>
+				  </div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<?php
+include _include(ADMIN_PATH.'view/htm/footer.inc.htm');
+?>
+
+<script>
+$('#nav li.nav-item-plugin').addClass('active');
+</script>

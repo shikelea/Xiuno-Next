@@ -1,0 +1,40 @@
+function initAutoMD5() {
+    document.querySelectorAll('input[type="password"][data-auto-md5]').forEach(function (pwInput) {
+        const name = pwInput.name;
+        if (!name) {
+            console.warn('【Auto MD5】跳过：密码输入框缺少 name 属性', pwInput);
+            return;
+        }
+
+        const hashedId = name + '_hashed';
+
+        if (document.getElementById(hashedId)) {
+            console.warn(`【Auto MD5】已存在目标元素 #${hashedId}，跳过`, pwInput);
+            return;
+        }
+
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = name;
+        hiddenInput.id = hashedId;
+        hiddenInput.value = '';
+
+        pwInput.parentNode.insertBefore(hiddenInput, pwInput.nextSibling);
+
+        function syncHash() {
+            hiddenInput.value = this.value ? md5(this.value) : '';
+        }
+
+        pwInput.addEventListener('input', syncHash);
+        pwInput.addEventListener('paste', syncHash); // 粘贴也要处理
+        pwInput.addEventListener('change', syncHash); // 兜底
+
+        console.debug(`【Auto MD5】已启用：${name} → #${hashedId}`);
+    });
+}
+
+// 页面首次加载时执行
+document.addEventListener('DOMContentLoaded', initAutoMD5);
+
+// HTMX 动态内容插入后也执行
+document.addEventListener('htmx:afterSettle', initAutoMD5);

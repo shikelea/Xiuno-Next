@@ -1,0 +1,38 @@
+<template include="./plugin/tt_ranklist/view/htm/my_ranklist.template.htm">
+	<slot name="ranklist_body"><div class="col-md-12 mx-auto">
+		<?php $num_pid = db_count('user');
+		$page = param(2,1);
+		$data =  db_find('user',array(), array('posts'=>-1), $page, $pagesize = 20);
+		$pagination = pagination(url("my-ranklist_posts-{page}"), $num_pid, $page, $pagesize);
+		$i=1;
+		?>
+		<table class="table"><tr><th>排名</th><th>用户名</th><th class="num_thread">主题数</th><th class="num_post">帖子数</th><th class="num_exp"><?php echo lang('credits1');?></th><th class="num_gold"><?php echo lang('credits2');?></th><th class="num_rmb"><?php echo lang('credits3');?></th></tr>
+			<?php foreach($data as $v){
+				$userimg = 'upload/avatar/000/'.$v['uid'].'.png'; 
+				if(file_exists($userimg)==false){
+					$userimg = 'view/img/avatar.png';
+				}
+				?><tr style="<?php if($v['uid']==$uid)echo 'font-weight:bold;';?>">
+			<?php if(!$page){$ranknum = $i++;}else{ $ranknum = ($page-1)*$pagesize+$i++;};?>
+				<td><span class="badge badge-pill badge-<?php if($ranknum==1){echo 'warning';}elseif($ranknum==2){echo 'success';}elseif($ranknum==3){echo 'primary';}else{echo 'light';}?>"><?php echo $ranknum;?></span></td>
+				<td><a href="/<?php echo url("user-$v[uid]")?>" ><img class="avatar-2 mr-1" src="<?php echo $userimg;?>" ><?php echo $v['username'];?></a></td>
+				<td class="num_thread"><?php echo $v['threads'];?></td><td class="num_post"><?php echo $v['posts'];?></td><td class="num_exp"><?php echo $v['credits'];?></td><td class="num_gold"><?php echo $v['golds'];?></td><td class="num_rmb"><?php echo $v['rmbs']/100.0;?></td>
+			</tr><?php }?>
+		</table>
+		<nav class="text-center"><ul class="pagination"><?php echo $pagination; ?></ul></nav>
+	</div></slot></template>
+<script>
+    $('a[data-active="my-ranklist_posts"]').addClass('active');
+</script>
+<script>
+    var jthread=$(".num_thread");var jpost=$(".num_post");var jexp=$(".num_exp");var jgold=$(".num_gold");var jrmb=$(".num_rmb");
+    window.onresize = function(){ONRESIZE();};
+    ONRESIZE();
+    function ONRESIZE(){
+        if(document.body.clientWidth<=1024){
+            jthread.fadeOut();jexp.fadeOut();jgold.fadeOut();jrmb.fadeOut();
+        } else{
+            jthread.fadeIn();jexp.fadeIn();jgold.fadeIn();jrmb.fadeIn();
+        }
+    }
+</script>

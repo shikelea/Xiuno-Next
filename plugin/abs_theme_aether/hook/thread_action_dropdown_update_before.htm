@@ -1,0 +1,20 @@
+<?php if(function_exists('haya_favorite_find_by_uid_and_tid')): ?>
+<li>
+    <a href="#"
+    class="dropdown-item"
+    data-target="haya-favoriter-modal"
+    hx-on:click="toggleModal(event)"
+    hx-trigger="click" 
+    hx-target="#haya-favoriter-modal .haya-favorite-users" 
+    hx-swap="innerHTML" 
+    hx-post="<?= url('thread-favorite',['tid'=>$tid] ); ?>" 
+    title="<?= lang('haya_favorite_show_favorite_users') ?>">
+    <i class="las la-star" aria-hidden="true"  data-target="haya-favoriter-modal"></i>
+    <?= lang('haya_favorite_users'); ?>
+    
+    <?php if (intval($thread['favorites']) > 0): ?>
+    (<?= intval($thread['favorites']) ?>)
+        <?php endif; ?>
+    </a>
+</li>
+<?php endif; ?>

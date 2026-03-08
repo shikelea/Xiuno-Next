@@ -1,0 +1,19 @@
+<div class="haya-favoriter">
+	<div class="text-center d-none haya-favorite-show-users">
+		<div class="text-left m-0 p-0 col-md-6 mx-auto">
+			<div class="modal-content">
+				<div class="modal-header small">
+					<b><?php echo lang('haya_favorite_users'); ?>（<span class="haya-favorite-user-count"><?php echo intval($thread['favorites']); ?></span>）</b>
+					
+					<span class="close small p-3 haya-favorite-close js-haya-favorite-show-users" data-dismiss="dodal">X</span>
+				</div>
+			
+				<div class="modal-body p-3">
+					<div class="text-muted haya-favorite-users small break-all">
+						<div class="text-muted"><?php echo lang('haya_favorite_loading'); ?></div>
+					</div>
+				</div>
+			</div>	
+		</div>
+	</div>
+</div>

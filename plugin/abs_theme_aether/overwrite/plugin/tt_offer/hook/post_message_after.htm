@@ -1,0 +1,20 @@
+<?php if($isfirst&&$group['allowOffer']=="1"&&$action == 'create') { $set_offer=setting_get('tt_offer');$offer_script=1;?>
+<section class="plugin-toggle-group">
+    <input type="hidden" name="offer_status" value="0">
+    
+    <div class="plugin-toggle-header">
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" 
+                   name="offer_status" value="1" 
+                   id="offer_status_cb">
+            <label class="form-check-label" for="offer_status_cb">
+                <?= lang('offer');?>
+            </label>
+        </div>
+    </div>
+    <div class="plugin-toggle-content">
+        <label for="offer_num"><?= lang('credits'.$set_offer['credits_type']).($set_offer['credits_type']=='3'?' (单位:分)':'');?></label>
+        <input maxlength="8" type="number" step="1" class="form-control" name="offer_num" placeholder="" id="offer_num" />
+    </div>
+</section>
+<?php } ?>

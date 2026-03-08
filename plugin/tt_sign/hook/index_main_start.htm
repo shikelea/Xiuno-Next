@@ -1,0 +1,21 @@
+<?php if($uid){$today0 = strtotime(date('Y-m-d',time()))-1;$num=0; ?>
+<?php $isSigned = db_find_one('sign',array('uid'=>$uid,'time'=>array('>'=>$today0)));?>
+<?php if(!$isSigned){ ?>
+<div class="card sign_alert" style="background: url('./plugin/zaesky_theme_light/view/img/itemBg1.png') center center / cover;">
+    <div class="card-body d-block">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="text-left">
+          <p class="fs-lg fw-semibold mb-0 font-weight-bold h5">
+            每日签到
+          </p>
+          <p class="text-muted mb-0 text-muted small mt-2">
+            坚持每日签到，获取更多积分！
+          </p>
+        </div>
+        <div>
+            <button type="button" id="sign_mobile" class="btn btn-primary btn-lg rounded-pill"><i class="icon-calendar-check-o"></i> <?php echo $isSigned ?'已签到':'立即签到';?></button>
+        </div>
+      </div>
+    </div>
+  </div>
+<?php }} ?>

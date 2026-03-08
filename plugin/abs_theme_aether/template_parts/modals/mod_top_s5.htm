@@ -1,0 +1,30 @@
+<form action="<?= url("mod-top");?>" method="post" id="mod_top_form" hx-post="<?= url("mod-top");?>" hx-trigger="submit">
+	<?php foreach($tidarr as $v): ?>
+	<input type="hidden" name="tidarr[]" value="<?= $v ?>">
+	<?php endforeach; ?>
+
+	<!-- 信息展示区 -->
+	<div class="info-section mb-4">
+		<div class="text-muted">操作概览</div>
+		<div class="fw-medium"><?= lang('total');?>：<span class="total text-primary"><?= $count ?></span> <?= lang('piece');?> <?= lang('thread') ?></div>
+
+	</div>
+	<!-- 表单字段 -->
+	<div class="form-fields">
+		<div class="form-group mb-4">
+			<label class="form-label" for="top_range"><?= lang('top_range') ?>：</label>
+
+			<select class="form-select" name="top" id="top_range">
+				<option value="0" selected><?= lang('top_0') ?></option>
+				<option value="1"><?= lang('top_1') ?></option>
+				<option value="3"><?= lang('top_3') ?></option>
+			</select>
+		</div>
+	</div>
+
+	<footer class="d-flex gap-2 justify-content-end">
+		<button type="button" class="btn btn-outline-secondary btn-block" data-target="htmx-modal" hx-on:click="toggleModal(event)"><?= lang('close');?></button>
+		<button type="submit" class="btn btn-primary btn-block" data-loading-text="<?= lang('submiting');?>..."><?= lang('confirm');?></button>
+
+	</footer>
+</form>

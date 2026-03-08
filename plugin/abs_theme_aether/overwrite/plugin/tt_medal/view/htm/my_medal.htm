@@ -1,0 +1,77 @@
+<?php if(empty($uid)) die();
+    $num_pid = db_count('medal',array());
+	$page = param(2,1);
+	$medallist =  medal_list_get($page,20);
+	$medallist = cache_get('medal_list_get_'.$page);
+	if(is_null($medallist)) {
+	$medallist =  medal_list_get($page,20);
+	cache_set('medal_list_get_'.$page,$medallist,60);
+	}
+	$pagination = pagination(url("my-medal-{page}"), $num_pid, $page,20);
+	$medal_user = medal_user_read($uid);
+?>
+<template include="./plugin/abs_theme_aether/overwrite/plugin/tt_medal/view/htm/my_medal.template.htm">
+	<slot name="my_body">
+		<h3 class="h2">
+			<?= lang('medal') . lang('list') ?>
+		</h3>
+		<ul class="row list-unstyled">
+			<?php foreach($medallist as $m): ?>
+			<li class="d-block col-sm-6 col-md-4 col-lg-3">
+				<div class="card mb-4">
+					<div class="card-body d-flex flex-column text-center">
+						<div class="flex-shrink-0 mx-auto">
+							<div class="v_avatar v_avatar-user">
+								<img loading="lazy" decoding="async" src="./plugin/tt_medal/img/<?= $m['filename'];?>" alt="<?= $m['name'];?>" class="d-block h-auto ms-0  rounded user-profile-img avatar-4">
+							</div>
+						</div>
+						<div class="flex-grow-1 mt-3 ">
+							<div class="d-flex flex-column align-items-center justify-content-center gap-4">
+								<div class="user-profile-info">
+									<h4>
+										<?= $m['name'];?>
+									</h4>
+									<p>
+										<?= $m['description'];?>
+									</p>
+									<section>
+										<?php if(medal_user__havemedal($m['mid'],$medal_user)){ ?>
+										<button type="button" class="btn btn-success"><?= lang('owned') ?></button>
+										<?php }elseif($m['isbuy']==1) {?>
+										<button type="button" class="btn btn-outline-primary" data-modal-url="<?= url('my-medal_apply', ['mid'=>$m['mid']]);?>">
+											<?= credits_get_text($m['money_type'],$m['money']);?>
+											购买
+											<?= isset($m['time']) ? ($m['time']==0 ?'永久':$m['time'].'天') : '' ?> </button>
+										<?php }elseif($m['isbuy']==0){ 
+													    $mcListOne=db_count('medal_check',array('uid'=>$uid,'mid'=>$m['mid']));
+													    if($mcListOne==0){
+													?>
+										<!-- data-bs-toggle="modal" data-bs-target="#applyModal" onclick="click_apply('<?= $m['mid'];?>','<?= $m['name'];?>')" -->
+										<button type="button" id="btn_apply" class="btn btn-primary" data-modal-url="<?= url('my-medal_apply', ['mid'=>$m['mid']]);?>">申请勋章 </button>
+										<?php }else{ ?>
+										<button type="button" class="btn btn-outline-primary">正在申请</button>
+										<?php }}else{ ?>
+										<button type="button" class="btn btn-secondary">未拥有</button>
+										<?php } ?>
+									</section>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</li>
+			<?php endforeach; ?>
+		</ul>
+		<?php if($pagination) { ?>
+		<nav>
+			<ul class="pagination justify-content-center flex-wrap"><?= $pagination; ?></ul>
+		</nav>
+		<?php } ?>
+		<script>
+			AetherExec(function () {
+				setActive("my-medal", "*", ".my_nav");
+			});
+		</script>
+
+	</slot>
+</template>

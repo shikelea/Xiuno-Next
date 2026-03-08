@@ -1,0 +1,25 @@
+<div class="alert alert-success">
+	<div class="alert-heading h4"><?php echo lang('tran_credits');?></div><hr >
+	<div class="tt_content">
+		<form method="post" id="form_trans" action="<?php echo url('my-trade');?>">
+		
+		
+		<div class="d-flex mt-3">
+			<input type="text" class="form-control mr-1" maxlength="36" id="trans_username" name="trans_username"
+				placeholder="<?php echo lang('please_input_to_username');?>"  />
+			<input type="text" class="form-control" maxlength="36" id="trans_num" name="trans_num"
+				placeholder="<?php echo lang('please_input_to_money');?>" oninput="trans_ONInput($('#trans_num'));" />
+				</div>
+				<div class="d-flex mt-3 justify-content-between">
+				<select name="trans_credits" class="form-control w-50" >
+					<option value="1"><?php echo lang('credits1');?></option>
+					<option value="2" selected><?php echo lang('credits2');?></option>
+					<option value="3"><?php echo lang('credits3');?></option>
+				</select>
+				<button type="button" class="btn btn-info justify-content-end" id="trans_use"
+					data-loading-text="<?php echo lang('submiting');?>..."><?php echo lang('tran_credits');?></button>
+				</div>
+			
+		</form>
+	</div>
+</div>

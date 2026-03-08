@@ -1,0 +1,8 @@
+<?php if(!$IS_HTMX || ($IS_HTMX && boolval(param('refresh',0)))): ?>
+<?php if($user): ?>
+<!-- 轮询触发器 -->
+<li hx-get="<?= url('forum-' . $fid, array_merge(['update_since' => time()])) ?>"  hx-target="#new-thread-indicator"  hx-trigger="every 60s"  hx-swap="innerHTML" class="d-block dummy"></li>
+<button hx-get="<?= url('forum-' . $fid, array_merge(['update_since' => time()])) ?>"  hx-target="#new-thread-indicator"  hx-trigger="click"  hx-swap="innerHTML" class="d-block dummy">刷新</button>
+<li id="new-thread-indicator" class="d-block"></li>
+<?php endif; ?>
+<?php endif; ?>

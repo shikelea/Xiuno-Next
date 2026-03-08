@@ -1,0 +1,13 @@
+<?php if($uid){?>
+<script>
+var jsign = $("#tt_sign"); var jtitle=$("#sign_title"); var now_num = parseInt("<?php echo $num;?>",10)+1;
+jsign.on("click",function(){
+if(jtitle.text()=="签到")
+    $.xpost(xn.url("my-sign"),"",function(code,message){
+    {cocoMessage.info(message, 5000);$("#sign_title").text("已签");$("#peo").text(now_num);}
+    });
+else
+    window.location=xn.url("my-credits");
+});
+</script>
+<?php }?>

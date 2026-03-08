@@ -1,0 +1,21 @@
+<?php
+	if(empty($uid)) die();
+    $num_pid = db_count('user_pay',array('uid'=>$uid));
+	$page = param(2,1);
+	$data =  db_find('user_pay',array('uid'=>$uid), array('time'=>-1), $page, $pagesize = 20);
+	$pagination = pagination(url("my-record-{page}"), $num_pid, $page, $pagesize);
+function subject($tid)
+{$r = db_find_one('thread',array("tid"=>$tid));return $r['subject'];}
+?>
+<template include="./plugin/tt_credits/view/htm/my_credits.template.htm">
+	<slot name="my_body"><div class="table-responsive"><table class="table" style="min-width:600px;"><thead><tr><th><?php echo lang("c_time");?></th><th><?php echo lang("c_type");?></th><th><?php echo lang("credits");?></th><th><?php echo lang("record");?></th></tr></thead><tbody>
+		<?php foreach($data as $v) {$c_type = $v['credit_type'];?><tr>
+			<td><?php echo date('Y-m-d H:i:s',$v['time']); ?></td><td><?php echo $g_credits_type_array[$v['type']];?>,<?php echo $g_credits_status_array[$v['status']+1];?></td><td><?php if($v['num']>0) {echo $c_type=='3'?$v['num']/100.0:$v['num'],' '.$c_type<=3?lang('credits'.$c_type):'';}else{echo '-';} ?></td><td><?php echo $v['code'];?></td>
+			</tr>
+		<?php }?></tbody></table></div>
+		<nav class="text-center"><ul class="pagination"><?php echo $pagination; ?></ul></nav>
+	</slot>
+</template>
+<script>
+    $('a[data-active="my-record"]').addClass('active');
+</script>

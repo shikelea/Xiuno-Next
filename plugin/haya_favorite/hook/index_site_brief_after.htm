@@ -1,0 +1,42 @@
+<?php 
+$haya_favorite_config = setting_get('haya_favorite');
+if ($haya_favorite_config['show_hot_favorite'] == 1) {
+
+	$haya_favorite_hot_favorite_count = intval($haya_favorite_config['hot_favorite_count']);
+	$haya_favorite_hot_favorite_cache_time = intval($haya_favorite_config['hot_favorite_cache_time']);
+	$haya_favorite_hot_favorite_find_time = intval($haya_favorite_config['hot_favorite_find_time']);
+	$haya_favorite_hot_threads = haya_favorite_hot_threads_base_user_favorite($haya_favorite_hot_favorite_count, $haya_favorite_hot_favorite_cache_time, $haya_favorite_hot_favorite_find_time); 
+?>
+
+	<div class="card">
+		<div class="card-header">
+			<?php echo lang('haya_favorite_hot_favorite_name'); ?>（<?php echo $haya_favorite_hot_favorite_count; ?>）
+		</div>
+	
+		<div class="card-body py-3">
+			
+			<ul class="list-unstyled postlist m-0">
+				<?php $haya_favorite_i = 1; ?>
+				<?php if($haya_favorite_hot_threads) { foreach($haya_favorite_hot_threads as & $haya_favorite_hot_thread) { ?>
+					<li class="media post line-height-2" data-tid="<?php echo $haya_favorite_hot_thread['tid'];?>">
+						<div class="media-body small">
+							<a title="<?php echo $haya_favorite_hot_thread['subject'];?>（<?php echo intval($haya_favorite_hot_thread['favorites']); ?> <?php echo lang('haya_favorite_name'); ?>）" href="<?php echo url("thread-$haya_favorite_hot_thread[tid]");?>">
+								<?php echo $haya_favorite_hot_thread['subject'];?>
+							</a>
+							
+							<span class="pull-right haya-favorite-count" title="<?php echo intval($haya_favorite_hot_thread['favorites']); ?> <?php echo lang('haya_favorite_name'); ?>">
+								<i class="icon icon-star-o text-muted" aria-label="<?php echo lang('haya_favorite_name'); ?>"></i>
+								<?php echo intval($haya_favorite_hot_thread['favorites']); ?>
+							</span>
+						</div>
+					</li>
+					<?php $haya_favorite_i ++; ?>
+				<?php }} else { ?>
+					<li class="media py-1">
+						<div class="text-center text-muted"><?php echo lang('haya_favorite_no_hot_favorite'); ?></div>
+					</li>
+				<?php } ?>
+			</ul>
+		</div>
+	</div>
+<?php } ?>

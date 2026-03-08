@@ -1,0 +1,31 @@
+<?php if($first['purchased']=='0'){
+$str = '<div style="margin-bottom:8px;text-align:center;width:100%;"><h4 style="color:dodgerblue;">'.str_replace('\'','',$thread['subject']).'</h4><img class="avatar-2" src="'.$thread['user']['avatar_url'].'">&nbsp;'.$thread['user']['username'].'<div style="color:orange;">'.credits_get_icon_html($thread['content_buy_type']).' '.credits_get_text($thread['content_buy_type'],$thread['content_buy'],0).'</div>';
+?>
+<script>
+    var jbutton = $("#b_p");
+    jbutton.on('click', function(){
+        $.tt_confirm('<?php echo $str;?>',function(){
+            jbutton.button('loading');
+            $.xpost(jbutton.attr('data-active'),'' , function(code, message) {
+                if(code == 0) {
+                    $.alert(message);
+                    setTimeout(function () {
+                        window.location.reload();
+                        jbutton.button('reset');
+                    }, 1000); return;
+                }else if(code==-2){
+                    $.tt_confirm(message,function(){location=xn.url('user-login');},null,"<?php echo lang('login');?>");
+                    jbutton.button('reset');
+                }else if(code==-3){
+                    $.tt_confirm(message,function(){location=xn.url('my-credits');},null,"<?php echo lang('my_credits');?>");
+                    jbutton.button('reset');
+                } else {
+                    $.alert(message);
+                    jbutton.button('reset');
+                }
+            });
+            return false;
+        },null,'<?php echo lang("pay_comfirm");?>');
+    });
+</script>
+<?php } ?>

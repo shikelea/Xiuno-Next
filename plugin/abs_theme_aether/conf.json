@@ -1,0 +1,14 @@
+{
+    "name": "Aether 以太主题 WIP B2",
+    "brief": "HTMX驱动的现代Xiuno BBS主题，为 Xiuno BBS 重生而生。虽在迟暮之年，仍想点亮星火。Here lies the future.",
+    "version": "1.0.2",
+    "bbs_version": "4.0.4",
+    "installed": 0,
+    "enable": 0,
+    "hooks_rank": {
+        "post_update_post_end.php": -100,
+        "thread_create_thread_end.php": -100
+    },
+    "overwrites_rank": [],
+    "dependencies": []
+}

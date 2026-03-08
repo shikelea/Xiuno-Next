@@ -1,0 +1,16 @@
+<?php 
+if ($uid && $thread['uid'] != $uid) { 
+	$haya_follow_check_follow_user = haya_follow_find_by_uid_and_follow_uid($thread['uid'], $uid);
+?>
+	<?php if ($haya_follow_check_follow_user) { ?>
+		<button class="btn btn-outline-primary js-haya-follow-del" data-uid="<?php echo $thread['uid'];?>" title="取消关注">
+			<i class="iconfont icon-wodeguanzhu" aria-label="取消关注"></i>
+			<span class="haya-follow-btn">已关注</span>
+		</button>
+	<?php } else { ?>
+		<button class="btn btn-primary js-haya-follow-add" data-uid="<?php echo $thread['uid'];?>" title="关注">
+			<i class="iconfont icon-guanzhu" aria-label="关注"></i>
+			<span class="haya-follow-btn">关注</span>
+		</button>
+	<?php } ?>
+<?php } ?>

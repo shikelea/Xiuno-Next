@@ -1,0 +1,18 @@
+<template include="./view/htm/user.common.template.htm">
+
+	<slot name="user_nav">
+		<ul class="nav nav-tabs card-header-tabs">
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo url("user-follow-follows-".$_uid);?>" data-active="user-follow-follows">Ta关注的</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo url("user-follow-fans-".$_uid);?>" data-active="user-follow-fans">关注Ta的</a>
+			</li>
+		</ul>
+	</slot>
+	
+</template>
+
+<script>
+$('a[data-active="menu-user-follow"]').addClass('active');
+</script>

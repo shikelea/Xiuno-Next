@@ -1,0 +1,15 @@
+<template include="./view/htm/my.common.template.htm">
+	<slot name="my_nav">
+		<ul class="nav nav-tabs card-header-tabs">
+			<!--{hook my_nav_credits_before.htm}-->
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo url("my-credits");?>" data-active="my-credits"><?php echo lang('credits');?></a>
+			</li>
+			<!--{hook my_nav_credits_after.htm}-->
+		</ul>
+	</slot>
+</template>
+
+<script>
+$('a[data-active="menu-my-credits"]').addClass('active');
+</script>

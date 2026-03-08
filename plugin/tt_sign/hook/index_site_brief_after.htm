@@ -1,0 +1,66 @@
+<?php
+$today0 = strtotime(date('Y-m-d',time()))-1;$num=0;
+$signed = db_find('sign',array('time'=>array('>'=>$today0)),array('time'=>-1),1,5);
+$user_signed = db_count('sign',array('uid'=>$uid,'time'=>array('>'=>$today0)));
+?>
+
+	<div class="card">
+		<div class="card-header d-flex justify-content-between align-items-center" style="background: url('./plugin/zaesky_theme_light/view/img/itemBg1.png') center center / cover;">
+
+			<div class="fblock">
+				<div>
+					<div class="h5 font-weight-bold">每日签到</div>
+					<div class="small text-muted">今日共<?php $cache = cache_get('tt_sign'); if(isset($cache['num'])) {echo $cache['num'];$num=$cache['num'];} else {$num=db_count('sign',array('time'=>array('>'=>$today0)));cache_set('tt_sign',array('num'=>$num),600); echo $num;}  ?>人签到</div>
+					<!-- 人数：<span class="badge badge-success badge-pill" id="peo"><?php $cache = cache_get('tt_sign'); if(isset($cache['num'])) {echo $cache['num'];$num=$cache['num'];} else {$num=db_count('sign',array('time'=>array('>'=>$today0)));cache_set('tt_sign',array('num'=>$num),600); echo $num;}  ?></span> -->
+				</div>
+				<!-- <div class="line"><span class="small text-gray" id="day"><?php echo date('Y-m-d',time());?></span></div> -->
+			</div>
+		<div  class="tt_signpanel JD_sign">
+		<div class="btn rounded-pill btn-lg <?php if($user_signed){?>btn-light<?php }else{ ?>btn-primary<?php } ;?>" id="tt_sign">
+			<?php if($uid){?>
+			<span id="sign_title" ><i class="icon-calendar-check-o"></i> <?php echo db_find_one('sign',array('uid'=>$uid,'time'=>array('>'=>$today0)))?'今日已签到':'立即签到';?></span>
+			<?php }else{?>
+				<span id="sign_title" >请先登录</span>
+			<?php }?>
+		</div>
+	</div>
+		</div>
+		<div class="card-body py-0">
+			<ul class="list-unstyled mb-0">
+			<?php 
+			if($signed){
+			
+			foreach($signed as $user){
+				$signed_user = db_find_one('user',array('uid'=>$user['uid']));
+				$avatar_link = 'upload/avatar/000/'.$user['uid'].'.png';
+
+				if(file_exists($avatar_link)==false){
+					$avatar_link = 'view/img/avatar.png';
+				}
+				
+				?>
+					<li class="my-2">
+						<div class="d-flex justify-content-between align-items-center">
+						<div class="media">
+							<img class="avatar-3 mt-2 mr-2" src="<?php echo $avatar_link;?>" alt="">
+							<div class="media-body">
+								<span class="sign_name">
+								<?php echo $signed_user['username'];?>
+								</span>
+								<span class="sign_time d-block text-gray small mt-1">
+									<?php echo humandate($user['time']);?>
+								</span>
+							</div>
+						</div>
+						<div class="badge badge-light"><i class="fa fa-coins"></i> <?php echo $user['golds'] ;?></div>
+
+					</div>
+					</li>
+			 <?php }
+				
+			}else{?>
+				<p class="text-center text-muted my-3">今日还没有人签到哦~</p>
+			<?php }?>
+			</ul>
+		</div>
+	</div>

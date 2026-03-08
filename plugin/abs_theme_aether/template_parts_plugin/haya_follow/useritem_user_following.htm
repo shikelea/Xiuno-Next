@@ -1,0 +1,26 @@
+<li class="list-group-item list-group-item-action haya-follower-<?= $haya_follow_follows_user['uid'];?>" data-uid="<?= $haya_follow_follows_user['uid'];?>">
+	<div class="media d-flex align-items-center">
+		<a href="<?= url('user-' . $haya_follow_follows_user['uid']);?>" hx-get="<?= url('user-' . $haya_follow_follows_user['uid']);?>" hx-target="#S2" title="<?= $haya_follow_follows_user['follow_user']['username'];?>" class="me-2">
+			<img class="avatar avatar-lg" src="<?= $haya_follow_follows_user['follow_user']['avatar_url'];?>">
+		</a>
+
+		<div class="media-body flex-grow-1">
+			<div>
+				<a href="<?= url('user-' . $haya_follow_follows_user['uid']);?>" hx-get="<?= url('user-' . $haya_follow_follows_user['uid']);?>" hx-target="#S2" title="<?= $haya_follow_follows_user['follow_user']['username'];?>" >
+					<?= $haya_follow_follows_user['follow_user']['username'];?>
+				</a>
+			</div>
+
+			<div class="mt-1 haya-follow-follower-fans">
+				<span class="small haya-follower-fans">
+					粉丝：<?= intval($haya_follow_follows_user['follow_user']['followeds']); ?>
+				</span>
+			</div>
+		</div>
+		<div class="text-end flex-shrink-0">
+            <?php include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts_plugin/haya_follow/btn_follow__user_follow_user_item.htm'); ?>
+		
+		</div>
+	</div>
+	
+</li>

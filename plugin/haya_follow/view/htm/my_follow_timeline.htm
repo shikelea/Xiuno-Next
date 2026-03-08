@@ -1,0 +1,16 @@
+<template include="./plugin/haya_follow/view/htm/my_follow.template.htm">
+	<slot name="my_body">
+		<?php include _include(APP_PATH.'plugin/haya_follow/view/htm/my_follow_timeline_tab.htm'); ?>
+		
+		<?php include _include(APP_PATH.'plugin/haya_follow/view/htm/my_follow_thread.htm'); ?>
+		
+		<?php if (!empty($haya_follow_user_post_pagination)) { ?>
+			<nav><ul class="pagination justify-content-center"><?php echo $haya_follow_user_post_pagination; ?></ul></nav>
+		<?php } ?>
+	</slot>
+</template>
+
+<script>
+$('a[data-active="my-follow-timeline"]').addClass('active');
+$('a[data-active="tab-my-follow-timeline-<?php echo $action3; ?>"]').addClass('active');
+</script>

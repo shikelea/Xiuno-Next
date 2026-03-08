@@ -1,0 +1,23 @@
+<div id="card_header_dropdown" class="card-header-dropdown" <?= isset($FROM_CARD_HEADER_DROPDOWN) && $FROM_CARD_HEADER_DROPDOWN ? 'hx-swap-oob="true"' : '' ?> >
+    <div class="dropdown">
+        <button class="btn btn-icon btn-outline-secondary" type="button" data-bs-toggle="dropdown" title="<?= lang('orderby');?>" >
+            <i class="la la-sort-amount-down"></i>
+        </button>
+        <ul class="dropdown-menu fade" hx-boost="true" hx-target=".threadlist" hx-trigger="click" hx-swap="innerHTML" hx-include=".pagination_extra_param, .header_dropdown_extra_param">
+            <li>
+                <a class="dropdown-item" href="<?= url("forum-$fid-1", array('orderby'=>'tid') + $extra);?>">
+                    <i class="las text-primary <?= $orderby == 'tid' ? 'la-check' : '';?>" aria-hidden="true"></i>
+                    <?= lang('thread_create_date');?>
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="<?= url("forum-$fid-1", array('orderby'=>'lastpid') + $extra);?>">
+                    <i class="las text-primary <?= $orderby == 'lastpid' ? 'la-check' : '';?>" aria-hidden="true"></i>
+                    <?= lang('post_create_date');?>
+                </a>
+            </li>
+            <!--{hook forum_thread_list_dropdown_menu.htm}-->
+        </ul>
+    </div>
+    <input type="hidden" class="header_dropdown_extra_param" name="FROM_CARD_HEADER_DROPDOWN" value="1">
+</div>

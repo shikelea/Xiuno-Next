@@ -1,0 +1,10 @@
+{
+    "name": "帖子排行榜",
+    "brief": "总浏览量排行榜，一周浏览量排行榜，板块热门排行榜，三合一。基于之前后台下载的排行榜插件整合。<br/>由<a href='https://www.noteweb.top'  target='_blank'><b>NOTEWEB</b></a>整合制作",
+    "version": "2.0",
+    "bbs_version": "4.0",
+    "installed": 0,
+    "enable": 0,
+    "hooks_rank": [],
+    "dependencies": []
+}

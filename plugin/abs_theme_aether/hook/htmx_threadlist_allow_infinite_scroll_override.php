@@ -1,0 +1,2 @@
+
+$ALLOW_INFINITE_SCROLL  = false;

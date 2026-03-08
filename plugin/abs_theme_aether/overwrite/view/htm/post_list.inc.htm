@@ -1,0 +1,17 @@
+<?php
+empty($allowupdate) AND $allowupdate = 0;
+empty($allowdelete) AND $allowdelete = 0;
+empty($allowpost) AND $allowpost = 0;
+?>
+
+<!--{hook post_list_inc_start.htm}-->
+
+<?php if($postlist) : 
+foreach($postlist as $_post) : 
+include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/components/postlist_item.htm');
+endforeach;
+else:
+include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/fragments/empty_no_reply.htm');
+endif; ?>
+
+<!--{hook post_list_inc_end.htm}-->

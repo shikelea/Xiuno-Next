@@ -1,0 +1,410 @@
+<?php include _include(ADMIN_PATH.'view/htm/header.inc.htm'); ?>
+
+<div class="row">
+	<div class="col-sm-12">
+		
+		<div class="card">
+			<div class="card-body">
+				<form action="<?php echo url('plugin-setting-haya_post_like');?>" method="post" id="formcreate">
+					<h4 class="card-title mb-3"><?php echo $header['title']; ?></h4>
+					
+					<hr class="mb-4" />
+					
+					<div class="form-group row">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="open_thread">
+							<b class="text-dark"><?php echo lang('haya_post_like_setting_open_thread'); ?>：</b>
+						</label>
+						<div class="col-md-8">
+							<div class="open-thread" id="open_thread">
+							
+								<?php if (isset($config['open_thread']) && $config['open_thread'] == 1) { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_thread" value="1" checked="checked"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_thread" value="0"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } else { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_thread" value="1"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_thread" value="0" checked="checked"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } ?>
+							</div>		
+							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_open_thread_tip'); ?>
+							</div>
+						</div>
+					</div>	
+
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="list_show_likes">
+							<?php echo lang('haya_post_like_setting_list_show_likes'); ?>：
+						</label>
+						<div class="col-md-8">
+							<div class="open-post" id="list_show_likes">
+								<?php if (isset($config['list_show_likes']) && $config['list_show_likes'] == 1) { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="list_show_likes" value="1" checked="checked"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="list_show_likes" value="0"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } else { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="list_show_likes" value="1"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="list_show_likes" value="0" checked="checked"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } ?>
+							</div>
+							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_list_show_likes_tip'); ?>
+							</div>
+						</div>
+					</div>
+					
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="thread_like_position">
+							<?php echo lang('haya_post_like_setting_thread_like_position'); ?>：
+						</label>
+						<div class="col-md-8">							
+							<select name="thread_like_position" id="thread_like_position" class="form-control">
+								<option value="1" <?php if (isset($config['thread_like_position']) && $config['thread_like_position'] == 1) { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_thread_like_position_update_before'); ?></option>
+								<option value="2" <?php if (isset($config['thread_like_position']) && $config['thread_like_position'] == 2) { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_thread_like_position_message_after'); ?></option>
+							</select>
+							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_thread_like_position_tip'); ?>
+							</div>
+						</div>
+					</div>	
+					
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="open_post">
+							<b class="text-dark"><?php echo lang('haya_post_like_setting_open_post'); ?>：</b>
+						</label>
+						<div class="col-md-8">
+							<div class="open-post" id="open_post">
+								<?php if (isset($config['open_post']) && $config['open_post'] == 0) { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_post" value="1"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_post" value="0" checked="checked"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } else { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_post" value="1" checked="checked"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_post" value="0"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } ?>
+							</div>
+							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_open_post_tip'); ?>
+							</div>
+						</div>
+					</div>	
+					
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="post_like_position">
+							<?php echo lang('haya_post_like_setting_post_like_position'); ?>：
+						</label>
+						<div class="col-md-8">							
+							<select name="post_like_position" id="post_like_position" class="form-control">
+								<option value="1" <?php if (isset($config['post_like_position']) && $config['post_like_position'] == 1) { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_position_create_date_after'); ?></option>
+								<option value="2" <?php if (isset($config['post_like_position']) && $config['post_like_position'] == 2) { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_position_quote_before'); ?></option>
+								<option value="3" <?php if (isset($config['post_like_position']) && $config['post_like_position'] == 3) { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_position_filelist_after'); ?></option>
+								<option value="4" <?php if (isset($config['post_like_position']) && $config['post_like_position'] == 4) { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_position_filelist_after_right'); ?></option>
+								<option value="5" <?php if (isset($config['post_like_position']) && $config['post_like_position'] == 5) { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_position_filelist_after_media'); ?></option>
+							</select>
+							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_post_like_position_tip'); ?>
+							</div>
+						</div>
+					</div>	
+					
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="post_loved_color">
+							<?php echo lang('haya_post_like_setting_post_like_loved_color'); ?>：
+						</label>
+						<div class="col-md-8">							
+							<select class="custom-select custom-select-md" name="post_loved_color">
+								<option value="secondary" <?php if (isset($config['post_loved_color']) && $config['post_loved_color'] == 'secondary') { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_loved_color_secondary'); ?></option>
+								<option value="primary" <?php if (isset($config['post_loved_color']) && $config['post_loved_color'] == 'primary') { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_loved_color_primary'); ?></option>
+								<option value="danger" <?php if (isset($config['post_loved_color']) && $config['post_loved_color'] == 'danger') { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_loved_color_danger'); ?></option>
+								<option value="warning" <?php if (isset($config['post_loved_color']) && $config['post_loved_color'] == 'warning') { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_loved_color_warning'); ?></option>
+								<option value="success" <?php if (isset($config['post_loved_color']) && $config['post_loved_color'] == 'success') { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_loved_color_success'); ?></option>
+								<option value="info" <?php if (isset($config['post_loved_color']) && $config['post_loved_color'] == 'info') { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_loved_color_info'); ?></option>
+								<option value="dark" <?php if (isset($config['post_loved_color']) && $config['post_loved_color'] == 'dark') { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_loved_color_dark'); ?></option>
+								<option value="light" <?php if (isset($config['post_loved_color']) && $config['post_loved_color'] == 'light') { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_loved_color_light'); ?></option>
+								<option value="white" <?php if (isset($config['post_loved_color']) && $config['post_loved_color'] == 'white') { ?>selected="selected"<?php } ?>><?php echo lang('haya_post_like_setting_post_like_loved_color_white'); ?></option>
+							</select>							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_post_like_loved_color_tip'); ?>
+							</div>
+						</div>
+					</div>	
+					
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="open_hot_like">
+							<b class="text-dark"><?php echo lang('haya_post_like_setting_open_hot_like'); ?>：</b>
+						</label>
+						<div class="col-md-8">
+							<div class="open-post" id="open_hot_like">
+								<?php if (isset($config['open_hot_like']) && $config['open_hot_like'] == 1) { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_hot_like" value="1" checked="checked"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_hot_like" value="0"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } else { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_hot_like" value="1"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_hot_like" value="0" checked="checked"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } ?>
+							</div>
+							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_open_hot_like_tip'); ?>
+							</div>
+						</div>
+					</div>
+					
+					<div class="form-group row mb-3 mt-4">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="hot_like_post_low_count">
+							<?php echo lang('haya_post_like_setting_hot_like_post_low_count'); ?>：
+						</label>
+						<div class="col-md-8">
+							<input type="text" name="hot_like_post_low_count" id="hot_like_post_low_count" value="<?php echo isset($config['hot_like_post_low_count']) ? intval($config['hot_like_post_low_count']) : 10; ?>" class="form-control">
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_hot_like_post_low_count_tip'); ?>
+							</div>
+						</div>
+					</div>
+
+					<div class="form-group row mb-3 mt-4">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="hot_like_post_size">
+							<?php echo lang('haya_post_like_setting_hot_like_post_size'); ?>：
+						</label>
+						<div class="col-md-8">
+							<input type="text" name="hot_like_post_size" id="hot_like_post_size" value="<?php echo isset($config['hot_like_post_size']) ? intval($config['hot_like_post_size']) : 5; ?>" class="form-control">
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_hot_like_post_size_tip'); ?>
+							</div>
+						</div>
+					</div>	
+
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="hot_like_isfirst">
+							<?php echo lang('haya_post_like_setting_hot_like_isfirst'); ?>：
+						</label>
+						<div class="col-md-8">
+							<div class="open-post" id="hot_like_isfirst">
+								<?php if (isset($config['hot_like_isfirst']) && $config['hot_like_isfirst'] == 0) { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="hot_like_isfirst" value="1"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="hot_like_isfirst" value="0" checked="checked"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } else { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="hot_like_isfirst" value="1" checked="checked"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="hot_like_isfirst" value="0"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } ?>
+							</div>
+							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_hot_like_isfirst_tip'); ?>
+							</div>
+						</div>
+					</div>	
+
+					<div class="form-group row mb-3 mt-4">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="hot_like_life_time">
+							<?php echo lang('haya_post_like_setting_hot_like_life_time'); ?>：
+						</label>
+						<div class="col-md-8">
+							<input type="text" name="hot_like_life_time" id="hot_like_life_time" value="<?php echo isset($config['hot_like_life_time']) ? intval($config['hot_like_life_time']) : 86400; ?>" class="form-control">
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_hot_like_life_time_tip'); ?>
+							</div>
+						</div>
+					</div>	
+					
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="clear_hot_like">
+							<?php echo lang('haya_post_like_setting_clear_hot_like'); ?>：
+						</label>
+						<div class="col-md-8">							
+							<select name="clear_hot_like" id="clear_hot_like" class="form-control">
+								<option value="1" ><?php echo lang('haya_post_like_setting_now_clear_hot_like'); ?></option>
+								<option value="2" selected="selected"><?php echo lang('haya_post_like_setting_no_clear_hot_like'); ?></option>
+							</select>
+							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_clear_hot_like_tip'); ?>
+							</div>
+						</div>
+					</div>	
+					
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="like_is_delete">
+							<b class="text-dark"><?php echo lang('haya_post_like_setting_like_is_delete'); ?>：</b>
+						</label>
+						<div class="col-md-8">
+							<div class="open-post" id="like_is_delete">
+								<?php if (isset($config['like_is_delete']) && $config['like_is_delete'] == 1) { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="like_is_delete" value="1" checked="checked"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="like_is_delete" value="0"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } else { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="like_is_delete" value="1"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="like_is_delete" value="0" checked="checked"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } ?>
+							</div>
+							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_like_is_delete_tip'); ?>
+							</div>
+						</div>
+					</div>	
+					
+					<div class="form-group row mb-3 mt-4">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="delete_time">
+							<?php echo lang('haya_post_like_setting_delete_time'); ?>：
+						</label>
+						<div class="col-md-8">
+							<input type="text" name="delete_time" id="delete_time" value="<?php echo isset($config['delete_time']) ? intval($config['delete_time']) : 0; ?>" class="form-control">
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_delete_time_tip'); ?>
+							</div>
+						</div>
+					</div>
+
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="open_my_post_like">
+							<b class="text-dark"><?php echo lang('haya_post_like_setting_open_my_post_like'); ?>：</b>
+						</label>
+						<div class="col-md-8">
+							<div class="open-post" id="open_my_post_like">
+								<?php if (isset($config['open_my_post_like']) && $config['open_my_post_like'] == 1) { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_my_post_like" value="1" checked="checked"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_my_post_like" value="0"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } else { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_my_post_like" value="1"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="open_my_post_like" value="0" checked="checked"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } ?>
+							</div>
+							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_open_my_post_like_tip'); ?>
+							</div>
+						</div>
+					</div>
+
+					<div class="form-group row mb-3 mt-4">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="my_post_like_pagesize">
+							<?php echo lang('haya_post_like_setting_my_post_like_pagesize'); ?>：
+						</label>
+						<div class="col-md-8">
+							<input type="text" name="my_post_like_pagesize" id="my_post_like_pagesize" value="<?php echo isset($config['my_post_like_pagesize']) ? intval($config['my_post_like_pagesize']) : 10; ?>" class="form-control">
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_my_post_like_pagesize_tip'); ?>
+							</div>
+						</div>
+					</div>
+					
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label text-md-right pr-0" for="post_like_count_type">
+							<b class="text-dark"><?php echo lang('haya_post_like_setting_post_like_count_type'); ?>：</b>
+						</label>
+						<div class="col-md-8">
+							<div id="post_like_count_type">
+								<?php if (isset($config['post_like_count_type']) && $config['post_like_count_type'] == 1) { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="post_like_count_type" value="1" checked="checked"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="post_like_count_type" value="0"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } else { ?>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="post_like_count_type" value="1"> <?php echo lang('enable'); ?>
+									</label>
+									<label class="custom-input custom-radio mr-3">
+										<input type="radio" name="post_like_count_type" value="0" checked="checked"> <?php echo lang('disable'); ?>
+									</label>
+								<?php } ?>
+							</div>
+							
+							<div class="figure-caption mt-2">
+								<?php echo lang('haya_post_like_setting_post_like_count_type_tip'); ?>
+							</div>
+						</div>
+					</div>
+					
+					<div class="form-group row mb-3">
+						<label class="col-md-2 form-control-label"></label>
+						<div class="col-md-2">
+							<button type="submit" class="btn btn-primary btn-block mr-2 mb-2" id="submit"><?php echo lang('save'); ?></button>
+						</div>
+						<div class="col-md-2">
+							<a role="button" class="btn btn-secondary btn-block mb-2" href="javascript:history.back();"><?php echo lang('back'); ?></a>
+						</div>
+					</div>
+					
+				</form>
+			</div>
+			<div class="card-footer">
+				<div class="input-group mb-3">
+					<input type="text" class="form-control" readonly value="已通过Aether兼容性测试" aria-label="Recipient's username" aria-describedby="button-addon2">
+					<div class="input-group-append">
+						
+					  
+					</div>
+				  </div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<?php
+include _include(ADMIN_PATH.'view/htm/footer.inc.htm');
+?>
+
+<script>
+$('#nav li.nav-item-plugin').addClass('active');
+</script>

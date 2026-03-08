@@ -1,0 +1,87 @@
+<header class="p-3 forum-info-card">
+    <section class="media d-flex">
+        <img class="avatar avatar-lg mr-3" src="<?= $forum['icon_url'];?>">
+        <div class="media-body flex-grow-1 ms-3">
+            <h5><?= $forum['name'];?></h5>
+            <?php if($forum['brief']) { ?>
+                <div class="mb-3">
+                    <?= $forum['brief'];?>
+                </div>
+                <?php  } ?>
+            <ul class="list-inline g-3">
+                <li class="list-inline-item">
+                    <?= lang('threads');?>:
+                    <?= $forum['threads'];?>
+                </li>
+                <li class="list-inline-item">
+                    <?= lang('today_posts');?>:
+                    <?= $forum['todayposts'];?>
+                </li>
+            </ul>
+                <?php if($forum['announcement']) { ?>
+                <div class="border border-primary rounded p-3" role="alert">
+
+                    <h5 class="alert-heading"><i class="las la-bullhorn text-primary"></i> <?= lang('forum_anouncement');?></h5>
+
+                    <?= $forum['announcement'];?>
+                </div>
+                <?php  } ?>
+
+                <div class="mt-3">
+                    <?php if($forum['modlist']) { ?>
+                    <span><?= lang('forum_moderator');?>：</span>
+                    <?php foreach ($forum['modlist'] as $mod) { ?>
+                    <a href="<?= url('user-' . $mod['uid']);?>" title="<?= $mod['username'];?>"><img src="<?= $mod['avatar_url'];?>" class="avatar" alt="<?= $mod['username'];?>"></a> &nbsp;
+                    <?php } ?>
+                    <?php } ?>
+                </div>
+        </div>
+    </section>
+</header>
+
+<section>
+    <!--{hook forum_breadcrumb_before.htm}-->
+
+    <!--{hook forum_breadcrumb_after.htm}-->
+</section>
+
+<section class="header-sub-header rounded-pill">
+    <ul class="nav nav-pills text-center flex-grow-1 threadlist-nav" hx-boost="true" hx-trigger="click" hx-target=".threadlist" hx-swap="innerHTML" hx-include=".pagination_extra_param, .header_tabs_extra_param">
+        <input type="hidden" class="header_tabs_extra_param" name="FROM_CARD_HEADER_TABS" value="1">
+
+        <li class="nav-item">
+            <a class="nav-link <?= $active == 'default' ? 'active' : '';?>" href="<?= url("forum-$fid");?>" data-active="nav-default"><?= lang('new_thread');?></a>
+
+        </li>
+        <!--{hook forum_thread_list_nav_item_after.htm}-->
+
+    </ul>
+</section>
+
+<ul class="list-group list-group-flush threadlist">
+    <!--{hook forum_threadlist_before.htm}-->
+    <?php $__forum_uri = ltrim(preg_replace("#^" . dirname($_SERVER['SCRIPT_NAME']) . "#", '', $_SERVER['REQUEST_URI']) , '/'); ?>
+    <span class="dummy" hx-get="<?= !empty($__forum_uri) ? $__forum_uri . (strpos($__forum_uri, '?') === false ? '?' : '&') . http_build_query(['IS_IN_PAGINATION'=>1,'IS_IN_THREADLIST'=>1]) : url('forum-'.$fid.'-1-0', ['IS_IN_PAGINATION'=>1,'IS_IN_THREADLIST'=>1]); ?>" hx-trigger="load, revealed" hx-swap="outerHTML">
+        <!--{hook aether_skeleton__thread_list.htm}-->
+    </span>
+
+    <?php /* include _include(APP_PATH.'view/htm/thread_list.inc.htm'); */ ?>
+    <!--{hook forum_threadlist_after.htm}-->
+</ul>
+
+<!--{hook index_page_before.htm}-->
+<nav class="my-3">
+    <ul class="pagination justify-content-center flex-wrap" hx-boost="true" hx-target=".threadlist" hx-push-url="true">
+        <input type="hidden" name="IS_IN_PAGINATION" value="1" class="pagination_extra_param">
+        <input type="hidden" name="IS_IN_THREADLIST" value="1" class="pagination_extra_param">
+        <?= $pagination; ?>
+    </ul>
+</nav>
+
+<script>
+    AetherExec(function () {
+        setActive("s1_tab_discover", '*', '#S1 .nav');
+    });
+</script>
+
+<!--{hook index_page_end.htm}-->

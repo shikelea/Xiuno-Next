@@ -1,0 +1,51 @@
+<?php if (intval($page) === 1): ?>
+	<ol id="ranklist_top3" class="p-0 d-block d-lg-flex align-items-end justify-content-center my-4" hx-boost="true" hx-target="#S3" hx-swap="innerHTML">
+		<?php for ($i = 0; $i < 3; $i++):
+			if (isset($data[$i])):
+				$ranklist_top3_user = $data[$i];
+				user_format($ranklist_top3_user);
+				$ranklist_top3_bg_color = 'secondary';
+				$ranklist_top3_font_size = 6;
+				$ranklist_top3_font_weight = '';
+				$ranklist_top3_order = 3;
+				switch ($i) {
+					case 0:
+						$ranklist_top3_bg_color = 'warning';
+						$ranklist_top3_font_size = 4;
+						$ranklist_top3_order = 2;
+						break;
+					case 1:
+						$ranklist_top3_bg_color = 'info';
+						$ranklist_top3_font_size = 5;
+						$ranklist_top3_order = 1;
+						break;
+					case 2:
+						break;
+				}
+		?>
+				<li class="d-block order-<?= $ranklist_top3_order ?> m-1">
+					<div class="card p-3 flex-row flex-lg-column justify-content-between align-content-center text-center border border-<?= $ranklist_top3_bg_color ?>">
+						<div class="d-flex flex-row flex-lg-column align-items-center">
+							<small class="h5 mb-0 mb-md-2 p-1 d-flex align-items-center justify-content-center rounded-pill text-center bg-<?= $ranklist_top3_bg_color ?> text-white shadow position-absolute" style="width:1.5em;top:0;left:0;">
+								<?= $i + 1 ?>
+							</small>
+							<img loading="lazy" decoding="async" src="<?= $ranklist_top3_user['avatar_url'] ?>" alt="<?= $ranklist_top3_user['username'] ?>" class="avatar avatar-lg img-fluid mx-2">
+							<span class="<?= 'h' . $ranklist_top3_font_size ?> my-0 my-md-2">
+								<?= $ranklist_top3_user['username'] ?>
+							</span>
+						</div>
+						<div class="d-flex flex-row flex-lg-column align-items-center">
+							<small class="mx-1">
+								<?= $CURRENT_ACTIVE__LABEL ?>
+							</small>
+							<data class="font-monospace">
+								<?= $ranklist_top3_user[$RANKLIST_SORT_KEY] ?>
+							</data>
+						</div>
+					</div>
+				</li>
+		<?php
+			endif;
+		endfor; ?>
+	</ol>
+<?php endif; ?>

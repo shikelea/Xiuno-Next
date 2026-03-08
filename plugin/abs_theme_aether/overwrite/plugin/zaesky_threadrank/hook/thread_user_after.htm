@@ -1,0 +1,40 @@
+<?php
+if (!function_exists('thread_hot_list')) {
+	function thread_hot_list($fid) {
+		$result = cache_get('get_site_thread_hot_list_' . $fid);
+		if (empty($result)) {
+			$result = thread__find(array('fid' => $fid), array('views' => -1), 1, 10);
+			cache_set('get_site_thread_hot_list_' . $fid, $result, 3600); //有效期1小时
+		}
+		return $result;
+	}
+}
+
+?>
+<div class="card">
+	<div class="card-header">
+		<span class="card-title">版块热门</span>
+	</div>
+	<div class="card-body py-2">
+
+		<div class="site-top">
+			<ul class="list-unstyled">
+				<?php
+				$thread_hot_list = thread_hot_list($forum['fid']);
+				thread_list_access_filter($thread_hot_list, $gid);
+				$loopNum = 1;
+				if ($thread_hot_list) {
+					foreach ($thread_hot_list as $_fthread) { ?>
+
+						<li>
+							<span class="badge badge-pill me-2 <?php if ($loopNum <= 3) { ?> bg-danger <?php } else { ?> bg-secondary <?php } ?>"><?=  $loopNum++; ?></span><a href="<?= url("thread-$_fthread[tid]"); ?>" style='font-size:12px;color:#343a40;'><?= $_fthread['subject']; ?></a>
+
+						</li>
+					<?php }
+				} else { ?>
+					<?= lang('none'); ?>
+				<?php } ?>
+			</ul>
+		</div>
+	</div>
+</div>

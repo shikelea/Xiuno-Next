@@ -1,0 +1,81 @@
+<li class="thread list-group-item style-news_v1  <?= $_thread['top_class'];?>" data-style="news_v1">
+    <section class="mb-2">
+        <?php if(!is_null($_post_message_image)): ?>
+
+        <?php if(is_array($_post_message_image)): ?>
+        <h5> <?php include _include(APP_PATH.'plugin/abs_theme_aether/template_parts/common/fragments/threadlist_subject.htm');?>
+        </h5>
+        <p>
+            <?= $_post_message_excerpt ?>
+        </p>
+        <div class="row g-1 news_image_grid_3">
+            <?php foreach($_post_message_image as $key => $image):
+            if($key >= 3){break;}
+            ?>
+
+            <div class="col-4">
+                <a class="ratio ratio-4x3 m-0" href="<?= url('thread-'.$_thread['tid']);?>" hx-get="<?= url('thread-' . $_thread['tid']);?>" hx-target="#S3" hx-swap="innerHTML" hx-on:click="Aether.openInS3('thread')" hx-push-url="true">
+                    <img src="<?= $image;?>" class="img-fluid rounded " alt="图片">
+                </a>
+            </div>
+
+            <?php endforeach; ?>
+        </div>
+
+
+        <?php else: ?>
+        <div class="row">
+            <div class="col-8">
+                <h5> <?php include _include(APP_PATH.'plugin/abs_theme_aether/template_parts/common/fragments/threadlist_subject.htm');?>
+                </h5>
+                <p>
+                    <?= $_post_message_excerpt ?>
+
+                </p>
+            </div>
+            <div class="col-4">
+                <a class="ratio ratio-4x3 m-0" href="<?= url('thread-'.$_thread['tid']);?>" hx-get="<?= url('thread-' . $_thread['tid']);?>" hx-target="#S3" hx-swap="innerHTML" hx-on:click="Aether.openInS3('thread')" hx-push-url="true">
+                    <img src="<?= $_post_message_image;?>" class="img-fluid rounded" alt="图片">
+                </a>
+            </div>
+        </div>
+
+
+        <?php endif; ?>
+        <?php else: ?>
+        <div class="row">
+            <div class="col">
+                <h5> <?php include _include(APP_PATH.'plugin/abs_theme_aether/template_parts/common/fragments/threadlist_subject.htm');?>
+                </h5>
+                <p>
+                    <?= $_post_message_excerpt ?>
+
+                </p>
+            </div>
+        </div>
+        <?php endif; ?>
+
+    </section>
+    <footer class="d-flex align-items-center justify-content-between flex-wrap">
+        <div class="d-flex align-items-center gap-2">
+            <a href="<?= url('user-'.$_thread['uid']);?>" hx-get="<?= url('user-' . $_thread['uid']);?>" hx-target="#S2" hx-swap="innerHTML" hx-push-url="true" class="d-flex align-items-center ">
+                <img src="<?= $_thread['user_avatar_url'];?>" class="avatar avatar-sm me-2" alt="头像">
+                <!--{hook thread_list_inc_avatar_after.htm}-->
+                <span class="username">
+                    <?php include _include(APP_PATH.'plugin/abs_theme_aether/template_parts/common/fragments/threadlist_username.htm');?>
+
+                </span>
+            </a>
+
+            <time class="text-muted small" datetime="2020-02-02"> 2020-02-02</time>
+        </div>
+        <div class="text-end">
+            <?php include _include(APP_PATH.'plugin/abs_theme_aether/template_parts/common/fragments/threadlist_views_count.htm');?>
+            <?php include _include(APP_PATH.'plugin/abs_theme_aether/template_parts/common/fragments/threadlist_posts_count_with_lastuid.htm');?>
+
+            <?php include _include(APP_PATH.'plugin/abs_theme_aether/template_parts/common/fragments/threadlist_checkbox.htm');?>
+
+
+        </div>
+    </footer>
+</li>
