@@ -196,6 +196,31 @@ safe_header('X-Custom: ' . $value);  // 即使 $value 不是 string 也不会报
 | `.tooltip()` | `bootstrap.Tooltip` | 初始化 / show / hide / toggle / dispose / enable / disable |
 | `.popover()` | `bootstrap.Popover` | 初始化 / show / hide / toggle / dispose / enable / disable |
 
+#### BS4 Button jQuery API 代理
+
+BS5 移除了 jQuery `.button()` 插件，但几乎所有旧插件都依赖它（424 处调用）：
+
+| 操作 | 说明 |
+|------|------|
+| `.button('loading')` | 禁用按钮 + 显示 `data-loading-text` 文本 |
+| `.button('reset')` | 恢复按钮原始文本 + 重新启用 |
+| `.button('toggle')` | 切换 `.active` 状态 |
+| `.button('disabled')` | 禁用按钮 |
+| `.button('enable')` | 启用按钮 |
+| `.button('自定义文本')` | 设置按钮文字（保留原始文本供 reset） |
+
+#### xiuno.js 核心方法保底
+
+当主题用自己的 `xiuno.js` 替换核心版本时，以下常用方法可能丢失。兼容层通过 `if(!jQuery.fn.xxx)` 检测，仅在缺失时提供 polyfill：
+
+| 方法 | 插件使用量 | 功能 |
+|------|-----------|------|
+| `.button()` | 424 | 按钮状态管理（见上） |
+| `.alert()` | 301 | 在控件上方显示 BS5 Tooltip 错误提示 |
+| `.reset()` | 116 | 重置表单（恢复按钮 + 清除验证） |
+| `.location()` | 61 | 延迟跳转（支持 jQuery 动画队列链式调用） |
+| `.checked()` | 31 | select/radio/checkbox 值设置与获取 |
+
 #### 资源 404 自动降级
 
 - **背景图检测**: 扫描所有 `[style*="url("]` 元素，用 `new Image()` 探测 URL 可达性。404 时自动添加 `.bs4c-bg-fallback` 类。
