@@ -45,7 +45,7 @@ if ($action == 'check') {
 		$latest_version = ltrim($latest['tag_name'], 'vV');
 		$has_update = version_compare($latest_version, $current_version) > 0;
 		$changelog = isset($latest['body']) ? $latest['body'] : '';
-		$download_url = isset($latest['zipball_url']) ? $latest['zipball_url'] : '';
+		$download_url = 'https://github.com/' . GITHUB_REPO . '/archive/refs/tags/' . $latest['tag_name'] . '.zip';
 	}
 
 	include _include(ADMIN_PATH . "view/htm/update.htm");
@@ -113,25 +113,27 @@ if ($action == 'check') {
 		message(0, lang('update_already_latest'));
 	}
 
-	$download_url = $latest['zipball_url'];
-	if (empty($download_url)) {
-		message(-1, lang('update_download_url_empty'));
-	}
+	// 使用 github.com/archive 直接下载链接（不走 API，无速率限制，代理兼容性更好）
+	$tag_name = $latest['tag_name'];
+	$download_url = 'https://github.com/' . GITHUB_REPO . '/archive/refs/tags/' . $tag_name . '.zip';
 
 	// 通过代理下载
 	$actual_url = update_proxied_url($download_url, $proxy);
 
 	// 下载 zip
 	$zipfile = $conf['tmp_path'] . 'update_' . $latest_version . '.zip';
-	$zipdata = update_github_download_binary($actual_url);
+	$dl_error = '';
+	$zipdata = update_github_download_binary($actual_url, 120, $dl_error);
 	if ($zipdata === FALSE || strlen($zipdata) < 100) {
 		// 代理不可用：自动回退直连重试
 		if (!empty($proxy)) {
-			$zipdata = update_github_download_binary($download_url);
+			$dl_error = '';
+			$zipdata = update_github_download_binary($download_url, 120, $dl_error);
 			$proxy_fallback_used = TRUE;
 		}
 		if ($zipdata === FALSE || strlen($zipdata) < 100) {
-			message(-1, lang('update_download_failed'));
+			$detail = $dl_error ? ' (' . $dl_error . ')' : '';
+			message(-1, lang('update_download_failed') . $detail);
 		}
 	}
 
@@ -301,7 +303,7 @@ function update_github_download($url) {
 /**
  * 下载二进制文件（不发送 JSON Accept 头，避免代理返回非 ZIP 内容）
  */
-function update_github_download_binary($url, $timeout = 60) {
+function update_github_download_binary($url, $timeout = 120, &$error = '') {
 	if (function_exists('curl_init')) {
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
@@ -309,25 +311,32 @@ function update_github_download_binary($url, $timeout = 60) {
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
 		curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Xiuno-Next-Updater');
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-			'Accept: application/octet-stream',
+			'Accept: */*',
 		));
 		$response = curl_exec($ch);
 		$httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$curl_error = curl_error($ch);
+		$curl_errno = curl_errno($ch);
+		$final_url = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
 		curl_close($ch);
 		if ($httpcode >= 200 && $httpcode < 400 && $response !== FALSE) {
 			return $response;
 		}
+		$error = "HTTP $httpcode";
+		if ($curl_errno) $error .= ", cURL #{$curl_errno}: {$curl_error}";
+		if ($final_url !== $url) $error .= ", redirect: " . substr($final_url, 0, 80);
 		return FALSE;
 	}
 	$opts = array(
 		'http' => array(
 			'method' => 'GET',
 			'timeout' => $timeout,
-			'header' => "User-Agent: Xiuno-Next-Updater\r\nAccept: application/octet-stream\r\n",
+			'header' => "User-Agent: Xiuno-Next-Updater\r\nAccept: */*\r\n",
 			'follow_location' => 1,
 			'max_redirects' => 10,
 		),
@@ -337,6 +346,7 @@ function update_github_download_binary($url, $timeout = 60) {
 	);
 	$ctx = stream_context_create($opts);
 	$s = @file_get_contents($url, false, $ctx);
+	if ($s === FALSE) $error = 'file_get_contents failed';
 	return $s !== FALSE ? $s : FALSE;
 }
 
