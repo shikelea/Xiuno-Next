@@ -103,7 +103,7 @@ ob_start(function($html) {
 		$body_inject .= '<script>'
 			. 'var csrf_token="' . $token . '";'
 			. 'document.addEventListener("DOMContentLoaded",function(){'
-			. 'if(typeof jQuery!=="undefined"){jQuery.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader("X-CSRF-TOKEN",csrf_token);}});}'
+			. 'if(typeof jQuery!=="undefined"&&!window._csrf_ajax_setup_done){jQuery.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader("X-CSRF-TOKEN",csrf_token);}});window._csrf_ajax_setup_done=true;}'
 			. '});'
 			. '</script>' . "\n";
 	}
