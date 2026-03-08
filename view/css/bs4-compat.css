@@ -417,6 +417,105 @@ img.avatar-1, img.avatar-2, img.avatar-3, img.avatar-4, img.avatar-5 {
     object-fit: contain;
 }
 
+/* ===== input-group-prepend / input-group-append (BS4→BS5) ===== */
+
+/*
+ * BS4 的 .input-group-prepend/.input-group-append 包裹层在 BS5 中被移除。
+ * BS5 中 .input-group-text / .btn 直接放入 .input-group 即可。
+ * 此兼容层让旧插件的包裹结构继续正常显示。
+ */
+.input-group-prepend,
+.input-group-append {
+    display: flex;
+}
+.input-group-prepend { margin-right: -1px; }
+.input-group-append  { margin-left: -1px; }
+.input-group > .input-group-prepend > .btn,
+.input-group > .input-group-prepend > .input-group-text,
+.input-group > .input-group-append > .btn,
+.input-group > .input-group-append > .input-group-text {
+    position: relative;
+    z-index: 2;
+}
+.input-group > .input-group-prepend > .btn:focus,
+.input-group > .input-group-append > .btn:focus {
+    z-index: 3;
+}
+
+/* ===== custom-file (BS4→BS5) ===== */
+
+/*
+ * BS4 的 .custom-file / .custom-file-input / .custom-file-label 在 BS5 中被移除，
+ * 替代方案为普通的 .form-control[type=file]。
+ * 此兼容层让旧插件的自定义文件上传组件继续正常显示。
+ */
+.custom-file {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    height: calc(1.5em + .75rem + 2px);
+    margin-bottom: 0;
+}
+.custom-file-input {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: calc(1.5em + .75rem + 2px);
+    margin: 0;
+    opacity: 0;
+}
+.custom-file-label {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1;
+    height: calc(1.5em + .75rem + 2px);
+    padding: .375rem .75rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.custom-file-label::after {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    display: block;
+    height: calc(1.5em + .75rem);
+    padding: .375rem .75rem;
+    line-height: 1.5;
+    color: #495057;
+    content: "Browse";
+    background-color: #e9ecef;
+    border-left: inherit;
+    border-radius: 0 .25rem .25rem 0;
+}
+
+/* ===== form-row (BS4→BS5) ===== */
+
+/*
+ * BS4 的 .form-row 在 BS5 中被移除，替代为 .row.g-3。
+ */
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -5px;
+    margin-left: -5px;
+}
+.form-row > .col,
+.form-row > [class*="col-"] {
+    padding-right: 5px;
+    padding-left: 5px;
+}
+
 /* ===== 旧版 icon 前缀兼容 ===== */
 
 /* icon-calendar-check-o (Font Awesome 4 旧名) — 部分签到插件使用 */

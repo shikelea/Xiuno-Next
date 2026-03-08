@@ -221,3 +221,64 @@
         return this;
     };
 })();
+
+// BS4 Tooltip JS API 兼容：代理 jQuery .tooltip() 方法到 BS5 Tooltip 实例
+(function() {
+    'use strict';
+    if (typeof jQuery === 'undefined') return;
+    var origTooltip = jQuery.fn.tooltip;
+    jQuery.fn.tooltip = function(action) {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+            return this.each(function() {
+                var instance = bootstrap.Tooltip.getInstance(this);
+                if (typeof action === 'object' || typeof action === 'undefined') {
+                    // 初始化：$('[data-toggle="tooltip"]').tooltip() 或 .tooltip({...})
+                    if (!instance) {
+                        var opts = (typeof action === 'object') ? action : {};
+                        instance = new bootstrap.Tooltip(this, opts);
+                    }
+                } else if (instance) {
+                    if (action === 'show') instance.show();
+                    else if (action === 'hide') instance.hide();
+                    else if (action === 'toggle') instance.toggle();
+                    else if (action === 'dispose') instance.dispose();
+                    else if (action === 'enable') instance.enable();
+                    else if (action === 'disable') instance.disable();
+                    else if (action === 'update') instance.update();
+                }
+            });
+        }
+        if (origTooltip) return origTooltip.apply(this, arguments);
+        return this;
+    };
+})();
+
+// BS4 Popover JS API 兼容：代理 jQuery .popover() 方法到 BS5 Popover 实例
+(function() {
+    'use strict';
+    if (typeof jQuery === 'undefined') return;
+    var origPopover = jQuery.fn.popover;
+    jQuery.fn.popover = function(action) {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Popover) {
+            return this.each(function() {
+                var instance = bootstrap.Popover.getInstance(this);
+                if (typeof action === 'object' || typeof action === 'undefined') {
+                    if (!instance) {
+                        var opts = (typeof action === 'object') ? action : {};
+                        instance = new bootstrap.Popover(this, opts);
+                    }
+                } else if (instance) {
+                    if (action === 'show') instance.show();
+                    else if (action === 'hide') instance.hide();
+                    else if (action === 'toggle') instance.toggle();
+                    else if (action === 'dispose') instance.dispose();
+                    else if (action === 'enable') instance.enable();
+                    else if (action === 'disable') instance.disable();
+                    else if (action === 'update') instance.update();
+                }
+            });
+        }
+        if (origPopover) return origPopover.apply(this, arguments);
+        return this;
+    };
+})();
