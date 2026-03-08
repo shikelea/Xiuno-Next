@@ -1,0 +1,33 @@
+<?php 
+if (!empty($forum['tagcatelist'])) { ?>
+    <?php foreach ($forum['tagcatelist'] as $i => $tagcate) { ?>
+
+        <fieldset>
+            <legend class="h6">
+                <?= $tagcate['name']; ?>
+            </legend>
+            <ul class="list-inline">
+            <?php foreach ($tagcate['taglist'] as $tag) { ?>
+                    <?php
+                    $tagactive = '';
+
+                    if (in_array($tag['tagid'], $checked_tags)) {
+                        $tagactive = ' checked';
+                    }
+                    ?>
+                    <li class="list-inline-item">
+                        <input type="checkbox" id="xn_tag__pos_<?= $i ?>__val_<?= $tag['tagid'] ?>" name="tagid[]" value="<?= $tag['tagid'] ?>" <?= $tagactive ?> />
+                        <label for="xn_tag__pos_<?= $i ?>__val_<?= $tag['tagid'] ?>">
+                            <span class="rounded bg-<?= !empty($tag['style']) ? $tag['style'] : '' ?>">
+                                &thinsp;
+                            </span>
+                            <?= $tag['name']; ?>
+                        </label>
+                    </li>
+
+                <?php } ?>
+                </ul>
+        </fieldset>
+
+    <?php }/* endforeach */ ?>
+<?php }/* endif */ ?>

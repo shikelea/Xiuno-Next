@@ -1,0 +1,16 @@
+
+<!--
+步骤：
+给select[name="fid"]添加onchange
+组装网址成 forum-gettagcatelist-{fid}-{tid}
+后端返回一系列复选框，每个复选框的结构是：
+
+<input type="checkbox" name="tagid[]" value="1" id="tagid_1">
+<label for="tagid_1">标签名字</label>
+
+-->
+<div id="nav_tag_list_div">
+	<span class="dummy" hx-get="<?= url('forum-gettagcatelist-' . $fid . (isset($post) && boolval($post['isfirst']) ? '-' . $tid : '') ); ?>" hx-trigger="revealed once" hx-target="this" hx-swap="outerHTML">
+		<!--{hook aether_skeleton.htm}-->
+</span>
+</div>

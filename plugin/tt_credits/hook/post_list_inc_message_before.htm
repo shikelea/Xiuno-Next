@@ -1,0 +1,10 @@
+<?php
+$show_flag=1;
+if($_post['isfirst']=='1') {
+    $raw_thread = thread_read($_post['tid']);
+    if($raw_thread['content_buy']!=0 && $raw_thread['uid']!=$uid){
+        $show_flag=0;
+    }
+}
+if($show_flag==1) {
+?>

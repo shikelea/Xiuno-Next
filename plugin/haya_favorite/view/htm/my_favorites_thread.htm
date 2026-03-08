@@ -1,0 +1,79 @@
+<?php 
+if($threadlist) { 
+	$have_allowtop = 0;
+	foreach($threadlist as &$_thread) {
+		$_thread['allowtop'] = forum_access_mod($_thread['fid'], $gid, 'allowtop');
+		if($_thread['allowtop']) $have_allowtop = 1;
+	}
+}
+?>
+
+<?php if($threadlist) { foreach($threadlist as &$_thread) { ?>
+<li class="media thread haya-favorite-thread-<?php echo $_thread['tid']; ?> <?php echo $_thread['top_class'];?> " data-href="<?php echo url("thread-$_thread[tid]");?>" data-tid="<?php echo $_thread['tid'];?>">
+	
+	<a href="<?php echo url("user-$_thread[uid]");?>" tabindex="-1" class="ml-1 mt-1 mr-3">
+		<img class="avatar-3" src="<?php echo $_thread['user_avatar_url'];?>">
+	</a>
+
+	<div class="media-body">
+		<div class="subject">
+		
+			<?php if($_thread['top'] > 0) { ?>
+				<i class="icon-top-<?php echo $_thread['top']; ?>"></i>
+			<?php } ?>
+
+			<a href="<?php echo url("forum-$_thread[fid]");?>" target="_blank" title="<?php echo $_thread['forumname'];?>" class="text-grey">[<?php echo $_thread['forumname'];?>]</a>
+			<a href="<?php echo url("thread-$_thread[tid]");?>" target="_blank"><?php echo $_thread['subject'];?></a>
+			
+			<?php if($_thread['files'] > 0) { ?><i class="icon small filetype other"></i><?php } ?>
+			
+			<?php if($_thread['closed'] > 0) { ?><i class="icon-lock"></i><?php } ?>
+			
+		</div>
+		<div class="d-flex justify-content-between small mt-1">
+			<div>
+				<span class="username text-grey mr-1" uid="<?php echo $_thread['uid'];?>"><?php echo $_thread['username'];?></span>
+				<span class="date text-grey"><?php echo $_thread['create_date_fmt'];?></span>
+				
+				<?php if($_thread['lastuid']) { ?>
+				<span>
+					<span class="text-grey mx-2">←</span>
+					<span class="username text-grey mr-1" uid="<?php echo $_thread['lastuid'];?>"><?php echo $_thread['lastusername'];?></span>
+					<span class="text-grey"><?php echo $_thread['last_date_fmt'];?></span>
+				</span>
+				<?php } ?>
+				
+				<span class="text-grey ml-2">
+					|
+				</span>
+				
+				<span class="text-grey ml-2">
+					<?php echo date("Y-m-d H:i:s", $_thread['favorite_create_date']); ?> 收藏
+				</span>
+			
+				<span class="ml-2">
+					<span class="text-grey mx-2">←</span>
+					<a href="javascript:;" class="text-grey text-small js-haya-favorite-remove" data-tid="<?php echo intval($_thread['tid']); ?>">
+						<i class="icon-remove" aria-hidden="true"></i> 
+						<?php echo lang('haya_favorite_remove_favorite'); ?>
+					<a>
+				</span>
+			</div>
+			<div class="text-muted small">
+				<span class="ml-2"><i class="icon-eye"></i> <?php echo $_thread['views'];?></span>
+				
+				<span class="ml-2"><i class="icon-comment-o"></i> <?php echo $_thread['posts'];?></span>
+
+				<span class="ml-2 mr-1">
+					<i class="icon-star-o" aria-hidden="true"></i> 
+					<?php echo intval($_thread['favorites']);?>
+				</span>
+			</div>
+		</div>
+	</div>
+</li>
+<?php }} else { ?>
+<li>
+	<div class="text-muted"><?php echo lang('haya_favorite_my_no_favorite'); ?></div>
+</li>
+<?php } ?>

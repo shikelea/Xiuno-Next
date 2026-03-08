@@ -1,0 +1,14 @@
+<form action="<?= url('my-medal_my');?>" method="post" id="form" hx-post="<?= url('my-medal_my');?>" hx-trigger="submit">
+  <input type="hidden" name="mid" value="<?= $mid; ?>">
+  <input type="hidden" name="do" value="kill">
+  <p class="lead text-danger mb-3">您确定要销毁吗？</p>
+  <p class="mb-3">销毁后将无法恢复！
+    <?php if(setting_get('tt_medal')['proportion'] > 0): ?>
+    且返还<?= setting_get('tt_medal')['proportion']*10 ?>%原价(向上取整)。
+    <?php endif; ?>
+  </p>
+  <footer class="d-flex gap-2 justify-content-end">
+    <button type="button" class="btn btn-outline-secondary cancel_button" data-target="htmx-modal" hx-on:click="toggleModal(event)"><?= lang('cancel');?></button>
+    <button type="submit" class="btn btn-danger confirm_button" data-loading-text="<?= lang('submiting');?>...">是的，我要销毁</button>
+  </footer>
+</form>

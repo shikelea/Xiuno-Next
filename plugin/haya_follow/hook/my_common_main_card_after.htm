@@ -1,0 +1,61 @@
+<?php 
+$haya_follow_config = setting_get('haya_follow');
+?>
+
+<?php 
+if (isset($haya_follow_config['show_my_dynamic']) 
+	&& $haya_follow_config['show_my_dynamic'] == 1
+	&& ($route == 'my' && $action == '')
+) { 
+?>
+
+	<?php 
+	$haya_follow_dynamic_post_num = intval($haya_follow_config['my_dynamic_post_num']);
+
+	$haya_follow_my_follow_user_count = haya_follow_count_cache(array('follow_uid' => $uid, 'show_dynamic' => 1), 86400);
+	$haya_follow_my_follow_uids = haya_follow_find_uids_by_follow_uid_cache($uid, $haya_follow_my_follow_user_count, 86400);
+	$haya_follow_my_follow_uids[] = $uid;		
+	
+	$haya_follow_user_post_list = post_find(array('uid' => $haya_follow_my_follow_uids), array('pid' => -1), 1, $haya_follow_dynamic_post_num);
+
+	$haya_follow_my_follow_user_remarks_uids = array();
+	if (!empty($haya_follow_user_post_list)) {
+		foreach ($haya_follow_user_post_list as & $haya_follow_user_post) {
+			$haya_follow_user_post['thread'] = thread_read_cache($haya_follow_user_post['tid']);
+	
+			if (!in_array($haya_follow_user_post['uid'], $haya_follow_my_follow_user_remarks_uids)) {
+				$haya_follow_my_follow_user_remarks_uids[] = $haya_follow_user_post['uid'];
+			}
+		}
+	}
+	
+	$haya_follow_my_follow_user_list = haya_follow__find(array('follow_uid' => $uid, 'uid' => $haya_follow_my_follow_user_remarks_uids), array('create_date' => -1), 1, count($haya_follow_my_follow_user_remarks_uids));
+	
+	$haya_follow_my_follow_user_remarks_list = array();
+	
+	if (!empty($haya_follow_my_follow_user_list)) {
+		foreach ($haya_follow_my_follow_user_list as $haya_follow_my_follow_user) {
+			$haya_follow_my_follow_user_remarks_list[$haya_follow_my_follow_user['uid']] = $haya_follow_my_follow_user;
+		}
+	}
+	?>
+			<div class="card">
+				<div class="card-header d-flex justify-content-between">
+					<div class="haya-follow-name">
+						最新动态
+					</div>
+					
+					<div class="haya-follow-more">
+						<a href="<?php echo url("my-follow"); ?>" class="small">
+							更多 >>
+						</a>
+					</div>				
+				</div>
+				
+				<div class="card-body">			
+					<?php include _include(APP_PATH.'plugin/haya_follow/view/htm/my_follow_thread.htm'); ?>
+				</div>
+
+			</div>
+
+<?php } ?>

@@ -1,0 +1,45 @@
+<?php
+	
+if (isset($haya_post_like_config['thread_like_position'])
+	&& $haya_post_like_config['thread_like_position'] == 1
+) {
+
+	if (isset($haya_post_like_config['open_thread'])
+		&& $haya_post_like_config['open_thread'] == 1
+	) {
+	?>
+		<?php $haya_post_like_thread_check = haya_post_like_find_by_uid_and_pid($uid, $first['pid']); ?>
+
+		<?php 
+		if(($allowupdate || $first['allowupdate']) 
+			|| ($allowdelete || $first['allowdelete'])
+		) {
+			$haya_post_like_mr = "mr-3";
+		} else {
+			$haya_post_like_mr = "";
+		}
+		?>
+		
+		<span class="haya-thread-like <?php echo $haya_post_like_mr; ?>">
+			<?php if (!empty($uid)) { ?>
+				<?php if($haya_post_like_thread_check){ ?>
+					<a href="javascript:;" class="text-grey js-haya-post-like-thread-del" data-pid="<?php echo $first['pid'];?>" title="<?php echo $haya_post_like_is_delete ? lang('haya_post_like_unlike') : lang('haya_post_like_has_like'); ?>">
+						<i class="icon icon-thumbs-up" aria-label="<?php echo $haya_post_like_is_delete ? lang('haya_post_like_unlike') : lang('haya_post_like_has_like'); ?>"></i>
+						<span class="haya-post-like-thread-user-count"><?php echo intval($first['likes']); ?></span>
+					</a>
+				<?php } else { ?>
+					<a href="javascript:;" class="text-grey js-haya-post-like-thread-add" data-pid="<?php echo $first['pid'];?>" title="点赞本帖">
+						<i class="icon icon-thumbs-o-up" aria-label="<?php echo lang('haya_post_like_like_thread'); ?>"></i>
+						<span class="haya-post-like-thread-user-count"><?php echo intval($first['likes']); ?></span>
+					</a>
+				<?php } ?>	
+			<?php } else { ?>
+				<a href="javascript:;" class="text-grey js-haya-post-like-thread-tip" data-pid="<?php echo $first['pid'];?>" title="点赞本帖">
+					<i class="icon icon-thumbs-o-up" aria-label="<?php echo lang('haya_post_like_like_thread'); ?>"></i>
+					<span class="haya-post-like-thread-user-count"><?php echo intval($first['likes']); ?></span>
+				</a>
+			<?php } ?>
+		</span>
+	<?php } ?>
+
+<?php } ?>

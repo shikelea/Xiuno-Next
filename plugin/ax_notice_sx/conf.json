@@ -1,0 +1,11 @@
+{
+    "name": "私信",
+    "brief": "本插件依赖于官方消息插件，重要：安装此插件之前要先安装消息插件，否则报错！<br/>此版本已通过Aether兼容性测试",
+    "version": "1.0",
+    "bbs_version": "4.0.3",
+    "installed": 0,
+    "enable": 0,
+    "hooks_rank": [],
+    "overwrites_rank": [],
+    "dependencies": []
+}

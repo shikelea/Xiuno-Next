@@ -1,0 +1,78 @@
+<style>
+.haya-follow-timeline-postlist .haya-follow-timeline-action {
+	position: relative;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    margin-top: 0.5rem;
+    background: var(--gray-200);
+}
+.haya-follow-timeline-postlist .haya-follow-timeline-action:after {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    bottom: -12px;
+    left: 50px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: var(--gray-200);
+    -webkit-transform-origin: 0 0;
+    -webkit-transform: rotate(135deg);
+    transform-origin: 0 0;
+    transform: rotate(135deg);
+}
+</style>
+
+<ul class="list-unstyled postlist haya-follow-timeline-postlist mb-0">
+	<?php if (!empty($haya_post_like_post_list)) { foreach ($haya_post_like_post_list as $haya_post_like_post) { ?>
+		<li class="media post haya-follow-timeline-<?php echo $haya_post_like_post['pid'];?>">
+			<a title="<?php echo $haya_post_like_post['user']['username'];?>" href="<?php echo url("user-$haya_post_like_post[uid]");?>" class="mr-3" tabindex="-1">
+				<img class="avatar-3" src="<?php echo $haya_post_like_post['user']['avatar_url'];?>">
+			</a>
+			
+			<div class="media-body">
+				<div class="d-flex justify-content-between text-muted">
+					<div class="haya-follow-timeline-title small">
+						<a class="text-grey font-weight-bold" href="<?php echo url("user-$haya_post_like_post[uid]");?>" title="<?php echo $haya_post_like_post['user']['username'];?>">
+							<?php echo $haya_post_like_post['user']['username'];?>
+						</a> 
+						
+						<span class="ml-2 text-grey small">
+							<?php echo haya_post_like_humandate($haya_post_like_post['create_date']); ?>
+						</span>
+					</div>
+				</div>
+				
+				<div class="message mt-2 break-all haya-follow-timeline-post tap" data-href="<?php echo url("thread-$haya_post_like_post[tid]");?>">
+					<div class="text-grey small haya-follow-timeline-action">
+						<?php if ($haya_post_like_post['post']['isfirst'] == 1) { ?>
+							点赞了该主题
+						<?php } else { ?>
+							点赞了主题
+							<a target="_blank" href="<?php echo url("thread-$haya_post_like_post[tid]");?>#post_<?php echo $haya_post_like_post['pid'];?>" title="<?php echo $haya_post_like_post['thread']['subject'];?>" class="text-grey">
+								《<?php echo $haya_post_like_post['thread']['subject'];?>》
+							</a> 
+							的回复
+						<?php } ?>
+					</div>
+					
+					<div class="mt-3">
+						<?php if ($haya_post_like_post['post']['isfirst'] == 1) { ?>
+							<a class="text-muted" target="_blank" href="<?php echo url("thread-$haya_post_like_post[tid]");?>" title="<?php echo $haya_post_like_post['thread']['subject'];?>">
+								<?php echo $haya_post_like_post['thread']['subject'];?>
+							</a>
+						<?php } else { ?>
+							<a class="text-muted" target="_blank" href="<?php echo url("thread-$haya_post_like_post[tid]");?>#post_<?php echo $haya_post_like_post['post']['pid'];?>" title="<?php echo $haya_post_like_post['post']['message'];?>">
+								<?php echo $haya_post_like_post['post']['message'];?>
+							</a> 
+						<?php } ?>
+					</div>
+				</div>
+			</div>
+		</li>
+	<?php }} else { ?>
+		<li class="media haya-follower-empty">
+			<div class="text-muted small">没有发现数据~</div>
+		</li>
+	<?php } ?>
+</ul>

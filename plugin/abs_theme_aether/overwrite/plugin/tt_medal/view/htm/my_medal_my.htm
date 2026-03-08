@@ -1,0 +1,70 @@
+<?php if(empty($uid)) die();
+    $num_pid = medal_user_count($uid);
+	$page = param(2,1);
+	$medallist =  medal_user_read_fmt($uid);
+	$pagination = pagination(url("my-medal_my-{page}"), $num_pid, $page, 20);
+?>
+<template include="./plugin/abs_theme_aether/overwrite/plugin/tt_medal/view/htm/my_medal.template.htm">
+	<slot name="my_body">
+		<h3 class="h2">
+			<?= lang('my_medal');?>
+
+		</h3>
+		<ul class="row list-unstyled">
+			<?php foreach($medallist as $m): ?>
+			<li class="d-block col-sm-6 col-md-4 col-lg-3">
+				<div class="card mb-4">
+					<div class="card-body d-flex flex-column text-center">
+						<div class="flex-shrink-0 mx-auto">
+							<div class="v_avatar v_avatar-user">
+								<img loading="lazy" decoding="async" src="./plugin/tt_medal/img/<?= $m['filename'];?>" alt="<?= $m['name'];?>" class="d-block h-auto ms-0  rounded user-profile-img avatar-4">
+							</div>
+						</div>
+						<div class="flex-grow-1 mt-3 ">
+							<div class="d-flex flex-column align-items-center justify-content-center gap-4">
+								<div class="user-profile-info">
+									<h4>
+										<?= $m['name'];?>
+									</h4>
+									<p>
+										<?= $m['description'];?>
+									</p>
+									<ul class="list-inline mb-0 d-flex align-items-center flex-wrap justify-content-center gap-2 small">
+										<li title="获得时间" data-bs-toggle="tooltip">
+											<span class="badge rounded-pill bg-primary">
+												<i class="la la-clock" aria-hidden="true"></i>
+											</span>
+											<?= date('Y-m-d',$m['time']);?>
+										</li>
+										<?php if(isset($m['validity'])): ?>
+										<li title="时效" data-bs-toggle="tooltip">
+											<span class="badge rounded-pill bg-warning">
+												<i class="la la-hourglass" aria-hidden="true"></i>
+											</span>
+											<?= intval(($m['validity']-strtotime('today'))/86400)>3650 ?'永久':intval(($m['validity']-strtotime('today'))/86400).'天'?>
+										</li>
+										<?php endif; ?>
+									</ul>
+									<section class="mt-2">
+										<?php if($m['isbuy']!=0){?>
+										<button type="button" class="btn btn-warning" data-modal-url="<?= url('my-medal_my',['do'=>'kill','mid'=>$m['mid']]);?>">销毁</button>
+										<?php }else{ ?>
+										<span class="text-secondary small">该<?= lang('medal') ?> 无法销毁</span>
+										<?php }?>
+									</section>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</li>
+			<?php endforeach; ?>
+		</ul>
+		<script>
+			AetherExec(function () {
+				setActive("menu-my-medal_my", "*", ".my_nav");
+			});
+		</script>
+	</slot>
+</template>
+

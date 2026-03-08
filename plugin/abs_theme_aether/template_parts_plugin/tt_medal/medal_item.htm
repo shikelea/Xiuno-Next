@@ -1,0 +1,47 @@
+<div class=" col-12 col-lg-6 col-xl-4 ">
+
+    <div class="d-flex align-items-start justify-content-between">
+
+        <img class="avatar avatar-lg avatar-no-squircle rounded-0 me-2" src="./plugin/tt_medal/img/<?= $_medal['filename'];?>">
+
+        <section class="media-body flex-grow-1">
+
+            <header>
+                <h5>
+                    <?= $_medal['name'];?>
+                </h5>
+                <p class="mb-0">
+                    <?= $_medal['description'];?>
+                </p>
+            </header>
+
+
+
+            <footer class="d-flex mt-1">
+
+                <?php if(medal_user__havemedal($_medal['mid'],$_medaledal_user)){ ?>
+                    <button type="button" class="btn btn-success"><?= lang('owned') ?></button>
+                    <?php }elseif($_medal['isbuy']==1) {?>
+                    <button type="button" class="btn btn-outline-primary" data-modal-url="<?= url('my-medal_apply', ['mid'=>$_medal['mid']]);?>">
+                        <?= credits_get_text($_medal['money_type'],$_medal['money']);?>
+                        购买
+                        <?= isset($_medal['time']) ? ($_medal['time']!=0 ? '有效期'.$_medal['time'].'天' :'永久') : '' ?> </button>
+                    <?php }elseif($_medal['isbuy']==0){ 
+                                    $_medalcListOne=db_count('medal_check',array('uid'=>$uid,'mid'=>$_medal['mid']));
+                                    if($_medalcListOne==0){
+                                ?>
+                    <!-- data-bs-toggle="modal" data-bs-target="#applyModal" onclick="click_apply('<?= $_medal['mid'];?>','<?= $_medal['name'];?>')" -->
+                    <button type="button" id="btn_apply" class="btn btn-primary" data-modal-url="<?= url('my-medal_apply', ['mid'=>$_medal['mid']]);?>">申请勋章 </button>
+                    <?php }else{ ?>
+                    <button type="button" class="btn btn-primary">正在申请</button>
+                    <?php }}else{ ?>
+                    <button type="button" class="btn btn-secondary">未拥有</button>
+                    <?php } ?>
+
+            </footer>
+
+
+        </section>
+
+    </div>
+</div>

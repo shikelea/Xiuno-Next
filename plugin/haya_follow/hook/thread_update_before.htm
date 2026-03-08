@@ -1,0 +1,24 @@
+<?php 
+if ($uid && $thread['uid'] != $uid) { 
+	$haya_follow_check_follow_user = haya_follow_find_by_uid_and_follow_uid($thread['uid'], $uid);
+
+	if (($allowupdate || $first['allowupdate'])
+		|| ($allowdelete || $first['allowdelete'])
+	) {
+		$haya_follow_thread_follow_mr = "mr-2";
+	} else {
+		$haya_follow_thread_follow_mr = "";
+	}
+?>
+	<?php if ($haya_follow_check_follow_user) { ?>
+		<a href="javascript:;" class="text-grey <?php echo $haya_follow_thread_follow_mr; ?> js-haya-follow-del" data-uid="<?php echo $thread['uid'];?>" title="取消关注">
+			<i class="icon icon-check" aria-label="取消关注"></i>
+			<span class="haya-follow-btn">已关注</span>
+		</a>
+	<?php } else { ?>
+		<a href="javascript:;" class="text-grey <?php echo $haya_follow_thread_follow_mr; ?> js-haya-follow-add" data-uid="<?php echo $thread['uid'];?>" title="关注Ta">
+			<i class="icon icon-plus" aria-label="关注Ta"></i>
+			<span class="haya-follow-btn">关注Ta</span>
+		</a>
+	<?php } ?>
+<?php } ?>

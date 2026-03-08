@@ -1,0 +1,41 @@
+<?php 
+$haya_follow_config = setting_get('haya_follow');
+?>
+
+<?php 
+if (isset($haya_follow_config['show_user_dynamic']) 
+	&& $haya_follow_config['show_user_dynamic'] == 1
+	&& ($route == 'user' && $action == '')
+) { 
+?>
+
+	<?php 
+	$haya_follow_dynamic_page = param(2, 1);
+	$haya_follow_dynamic_post_pagesize = intval($haya_follow_config['user_dynamic_pagesize']);
+	$haya_follow_user_post_count = post_count(array('uid' => $_uid));
+	$haya_follow_user_post_list = post_find(array('uid' => $_uid), array('pid' => -1), $haya_follow_dynamic_page, $haya_follow_dynamic_post_pagesize);
+	$haya_follow_dynamic_pagination = pagination(url("user-{$_uid}-{page}"), $haya_follow_user_post_count, $haya_follow_dynamic_page, $haya_follow_dynamic_post_pagesize);
+
+	if (!empty($haya_follow_user_post_list)) {
+		foreach ($haya_follow_user_post_list as & $haya_follow_user_post) {
+			$haya_follow_user_post['thread'] = thread_read_cache($haya_follow_user_post['tid']);
+		}
+	}
+	?>
+			<div class="card">
+				<div class="card-header d-flex justify-content-between">
+					<div class="haya-follow-name">
+						Ta的动态
+					</div>
+				</div>
+				
+				<div class="card-body">			
+					<?php include _include(APP_PATH.'plugin/haya_follow/view/htm/my_follow_thread.htm'); ?>
+				</div>
+
+				<?php if (!empty($haya_follow_dynamic_pagination)) { ?>
+					<nav><ul class="pagination justify-content-center"><?php echo $haya_follow_dynamic_pagination; ?></ul></nav>
+				<?php } ?>
+			</div>
+
+<?php } ?>

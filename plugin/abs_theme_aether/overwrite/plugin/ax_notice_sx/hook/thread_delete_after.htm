@@ -1,0 +1,8 @@
+<?php if ($uid && $thread['uid'] !=  $uid) { ?>
+
+<button type="button" class="btn btn-outline-secondary" data-modal-url="<?= url("sx",['to_uid' => $thread['user']['uid']]);?>" data-modal-title="给 <?= $thread['user']['username']; ?> 发送私信">
+    <i class="las la-envelope"></i>
+    <span class="d-none d-md-inline">发消息</span>
+</button>
+
+<?php } ?>

@@ -1,0 +1,8 @@
+<?php if ($route == 'my' && $action == 'favorite') { ?>
+<span class="ml-3">
+	<a href="javascript:;" title="<?php echo lang('haya_favorite_remove_favorite'); ?>" class="text-grey text-small js-haya-favorite-remove" data-tid="<?php echo intval($_thread['tid']); ?>">
+		<i class="icon-remove" aria-hidden="true"></i> 
+		<?php echo lang('haya_favorite_remove_favorite'); ?>
+	<a>
+</span>
+<?php } ?>

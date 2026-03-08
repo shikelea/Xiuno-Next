@@ -1,0 +1,74 @@
+<div class="container-fluid h-100">
+    <div class="row h-100 g-0">
+        <!-- 左侧登录表单区域 -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card w-100 h-100 border-0 rounded-0">
+                <!--{hook user_login_start.htm}-->
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <header class="mb-3">
+                        <a class="navbar-brand" href="<?= $header['mobile_link'];?>" hx-boost="true" hx-trigger="click" hx-target="#S2" hx-swap="innerHTML" hx-push-url="true" hx-on:click="Aether.hideS6()">
+                            <img src="<?= $conf['logo_mobile_url'];?>" class="logo-3 img-fluid mb-2" alt="<?= $conf['sitename'];?>" loading="lazy" decoding="async">
+                        </a>
+                        <h3 class="mb-0"><?= $abs_theme_aether_setting['page']['user_login']['title'] ?></h3>
+                        <p class="mb-0 mt-2 text-muted"><?= $abs_theme_aether_setting['page']['user_login']['subtitle'] ?></p>
+                        <!--{hook user_login_title_after.htm}-->
+                    </header>
+                    <section>
+                        <form action="<?= url('user-login');?>" hx-post="<?= url('user-login');?>" hx-trigger="submit" method="post" id="form" hx-target="#invalid_feedback" hx-indicator="#submit">
+                            <div class="mb-3">
+                                <div class="material-input">
+                                    <input type="text" class="form-control" id="email" placeholder="you@example.com" name="email">
+                                    <label for="email"> <?= lang('email');?></label>
+                                </div>
+                            </div>
+                            <!--{hook user_login_email_after.htm}-->
+                            <div class="mb-3">
+                                <div class="material-input">
+                                    <input type="password" class="form-control" id="password" placeholder=" " name="password" data-auto-md5>
+                                    <label for="password"> <?= lang('password');?></label>
+                                </div>
+                            </div>
+                            <!--{hook user_login_password_after.htm}-->
+
+                            <div id="invalid_feedback" class="text-center text-danger"></div>
+
+
+                            <button type="submit" class="btn btn-primary btn-block w-100 mb-3"><?= lang('login');?></button>
+                            <!--{hook user_login_submit_after.htm}-->
+
+                            <!--{hook user_login_form_footer_left.htm}-->
+
+                            <div class="text-center">
+                            </div>
+                        </form>
+                    </section>
+                    <footer class="text-center py-3">
+                        <!--{hook user_login_form_footer_right_start.htm}-->
+                        <p class="mb-0">
+                            <a href="<?= url('user-create');?>" hx-boost="true" hx-trigger="click" hx-target="#S6-Body" hx-swap="innerHTML" hx-push-url="true" class="text-muted"><?= lang('user_create');?></a>
+                            <a href="<?= url('user-resetpw');?>" class="text-muted" hx-boost="true" hx-trigger="click" hx-target="#S6-Body" hx-swap="innerHTML" hx-push-url="true"><?= lang('forgot_pw');?></a>
+
+                        </p>
+                        <!--{hook user_login_form_footer_right_end.htm}-->
+                    </footer>
+                </div>
+                <!--{hook user_login_end.htm}-->
+
+                <!--{hook footer_nav_before.htm}-->
+
+                <?php include _include(APP_PATH.'view/htm/footer_nav.inc.htm');?>
+
+                <!--{hook footer_nav_after.htm}-->
+            </div>
+
+
+        </div>
+
+        <!-- 右侧图片区域 -->
+        <div class="col-md-6 col-lg-9 d-none d-md-flex align-items-center justify-content-center">
+            <figure class="text-center">
+                <img src="./plugin/abs_theme_aether/view/img/看板娘-春日.png" class="img-fluid rounded" alt="看板娘-春日" style="max-height: 80vh; object-fit: contain;">
+            </figure>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,22 @@
+<?php if(param('inviter',0) !== 0): 
+$invite_user = user_read_cache(param('inviter',0));
+if(isset($invite_user['invitenums'])):
+?>
+<div class="card border border-2 shadow-lg border-primary text-white mb-4" role="alert">
+    <div class="card-body ">
+        <section class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="h4 m-0">
+                    <?= sprintf('%1$s 邀请您加入 %2$s ！',$invite_user['username'],$conf['sitename']) ?>
+                </h2>
+            </div>
+            <div>
+                <a href="<?= url('user-create') ?>" class="cta-btn btn btn-primary btn-lg">
+                    <i class="icon-user-plus" aria-hidden="true"></i>
+                    <?= lang('register') ?>
+                </a>
+            </div>
+        </section>
+    </div>
+</div>
+<?php endif; unset($invite_user); endif; ?>

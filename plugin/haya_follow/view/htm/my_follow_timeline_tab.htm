@@ -1,0 +1,9 @@
+<div class="row mb-3">
+	<div class="col-sm-12">
+		<a role="button" class="btn btn-sm mr-2 <?php if ($action2 == 'all') { ?>btn-primary active<?php } else { ?> btn-light<?php } ?>" data-active="tab-my-follow-timeline-all" href="<?php echo url('my-follow-timeline-all'); ?>">全部</a>
+		<a role="button" class="btn btn-sm mr-2 <?php if ($action2 == 'thread') { ?>btn-primary active<?php } else { ?> btn-light<?php } ?>" data-active="tab-my-follow-timeline-thread" href="<?php echo url('my-follow-timeline-thread'); ?>">主题</a>		
+		<a role="button" class="btn btn-sm mr-2 <?php if ($action2 == 'post') { ?>btn-primary active<?php } else { ?> btn-light<?php } ?>" data-active="tab-my-follow-timeline-post" href="<?php echo url('my-follow-timeline-post'); ?>">回复</a>		
+	</div>				
+</div>
+
+<hr class="hr" />

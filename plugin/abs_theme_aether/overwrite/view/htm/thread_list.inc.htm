@@ -1,0 +1,250 @@
+<!--{hook thread_list_inc_start.htm}-->
+<?php
+$have_allowtop = 0;
+if ($threadlist) :
+	foreach ($threadlist as &$_thread) :
+		$_thread['allowtop'] = forum_access_mod($_thread['fid'], $gid, 'allowtop');
+		if ($_thread['allowtop']) {
+			$have_allowtop = 1;
+		}
+
+		/**
+		* @var string $threadlist_username_extra_class 用户名额外class
+		*/
+	   $threadlist_username_extra_class = '';
+   
+	   /**
+		* @var array $_post_message 帖子完整内容数组
+		*/
+	   $_post_message = array();
+   
+	   /**
+		* @var string $_post_message_excerpt 帖子摘要
+		*/
+	   $_post_message_excerpt = '';
+   
+	   /**
+		* @var int $_post_excerpt_length 帖子摘要长度
+		*/
+	   $_post_excerpt_length = $abs_theme_aether_setting['threadlist']['summary']['thread_summary_words'];
+   
+	   /**
+		* @var array|string|null $_post_message_image 帖子里的图片地址：如果是array，则为全部图片；如果是string，则为第一张图片；如果是null，则为没有任何图片
+		*/
+	   $_post_message_image = NULL;
+   
+	   /**
+		* @var bool $_post_excerpt_has_showmore 帖子摘要是否需要折叠？
+		*/
+	   $_post_excerpt_has_showmore = false;
+   
+	   /**
+		* @var array|mixed $threadext_data 帖子扩展 ghx_threadext 插件数据
+		* 
+		* 由魔法驱动
+		*/
+	   $threadext_data = [];
+   
+	   if (function_exists('GetPostFlagEnable')) {
+		   if (empty($threadext_data)) {
+			   $threadext_data = cache_get("threadext_data_" . $_thread['tid']);
+			   if(is_null($threadext_data)) {
+				   $threadext_data = db_find_one($theadext_table, array('tid' => $_thread['tid']), array());
+				   cache_set("threadext_data_" . $_thread['tid'], $threadext_data, 60);
+			   }
+		   }
+		   if (boolval($threadext_data) !== false) {
+			   foreach ($threadext_data as $rsColName => $rsColVal) {
+				   if (!in_array($rsColName, array('tid'))) {
+					   $_thread[$rsColName] = $rsColVal;
+				   }
+			   }
+		   }
+	   }
+   
+	   if ($abs_theme_aether_setting['threadlist']['summary']['thread_summary'] || $abs_theme_aether_setting['threadlist']['summary']['thread_summary_images']) {
+		   $_post_message = post_read_cache($_thread['firstpid']);
+		   /**
+			* @var string $_post_message_full 帖子内容
+			*/
+		   $_post_message_full = isset($_post_message['message_fmt']) ? $_post_message['message_fmt'] : (isset($_post_message['message']) ? $_post_message['message'] : '');
+	   }
+	   if ($abs_theme_aether_setting['threadlist']['summary']['thread_summary'] && $_post_excerpt_length !== 0) {
+   
+		   if (!((isset($group['see_check']) && $group['see_check'] == '1') || $_thread['uid'] == $uid) && (isset($_post_message['OK']) && in_array($_post_message['OK'], [0, -1, -2])) || (isset($_post_message['readp']) && $group['readp'] < $_post_message['readp']) || (isset($_thread['location_procode']) && intval($_thread['location_procode']) === 999999)) {
+			   // 如果帖子不能被用户查看，清空帖子内容
+			   $_post_message_excerpt = '';
+		   } elseif (isset($_thread['passcode']) && !empty($_thread['passcode']) && (intval($uid) !== intval($_thread['uid']))) {
+			   // 被密码保护
+			   $_post_message_excerpt = '<div class="la la-exclamation-triangle" role="alert">'
+				   . '<i class="la la-lock"></i> '
+				   . lang('This post is password protected')
+				   . '</div>';
+		   } elseif ((isset($_thread['reply_hide']) && boolval($_thread['reply_hide'])) && (intval($uid) !== intval($_thread['uid']))) {
+			   // 被设置为仅允许作者可见
+			   $_post_message_excerpt = '<div class="text-warning" role="alert">'
+				   . '<i class="la la-lock"></i> '
+				   . lang('This post is only visible for author')
+				   . '</div>';
+		   } elseif (isset($_post_message['user']['deprecated']) && boolval($_post_message['user']['deprecated'])) {
+			   // 用户注销了，隐藏内容
+			   $_post_message_excerpt = '<div class="text-info">'
+				   . lang("This user is deactivated and the content is not visible")
+				   . '</div>';
+		   } elseif (stripos($_post_message_full, '[ttpay]') !== false) {
+			   // 付费帖子，隐藏内容
+			   $_post_message_excerpt = '<div class="text-warning" role="alert">'
+				   . '<i class="la la-coins"></i> '
+				   . lang('This post contains paid content')
+				   . '</div>';
+		   } else {
+			   // 正常情况
+   
+			   //去掉换行
+			   $_post_message_full = str_replace(PHP_EOL, "", $_post_message_full);
+			   //某些短代码不应该显示里面的内容
+			   $_post_message_full = preg_replace("/\[(music|netdisk|thread=(.*)|url)\]/i", "[…]", $_post_message_full); //单个
+			   $_post_message_full = preg_replace("/\[(login|reply|ttlogin|ttreply|foxlogin|foxreply|tabs|tabs_pane(.*)|url)\](.*)\[\/(login|reply|ttlogin|ttreply|foxlogin|foxreply|tabs|tabs_pane(.*)|url)\]/i", "[…]", $_post_message_full); //结对
+			   // 转换一些内容
+			   // [img]http://example.com/couple.png[/img] => <img loading=lazy decoding=async src="http://example.com/couple.png"/>
+			   $_post_message_full = preg_replace_callback("/\[img\](.*?)\[\/img\]/is", function ($match) {
+				   $file_name = "";
+				   if (!empty($match[1])) {
+					   //获取截取字符串开始位置
+					   $start = strrpos($match[1], '/') + 1;
+					   //获取截取字符串中的结束位置
+					   $end = strrpos($match[1], '.') - (strrpos($match[1], '/') + 1);
+					   //截取文档名称
+					   $file_name = substr($match[1], $start, $end);
+				   }
+				   return '<img loading=lazy decoding=async src="' . $match[1] . '" class="img-fluid" alt="' . $file_name . '">';
+			   }, $_post_message_full);
+   
+			   // [img width=150,height=120]http://example.com/couple.png[/img] => <img style="width:150px; height:120px" src="http://example.com/couple.png"/>
+			   $_post_message_full = preg_replace_callback("/\[img width=(\d+),height=(\d+)\](.*?)\[\/img\]/is", function ($match) {
+				   $file_name = "";
+				   if (!empty($match[3])) {
+					   //获取截取字符串开始位置
+					   $start = strrpos($match[3], '/') + 1;
+					   //获取截取字符串中的结束位置
+					   $end = strrpos($match[3], '.') - (strrpos($match[1], '/') + 1);
+					   //截取文档名称
+					   $file_name = substr($match[3], $start, $end);
+				   }
+				   return '<img loading=lazy decoding=async src="' . $match[3] . '" class="img-fluid" alt="' . $file_name . '">';
+			   }, $_post_message_full);
+   
+			   // 如果用了短代码引擎，转换里面的内容
+			   if (class_exists('BBCode')) {
+				   $_Shortcode =  new BBCode();
+				   $_post_message_full = htmlspecialchars_decode($_Shortcode->toHTML(html_entity_decode($_post_message_full)));
+			   }
+   
+			   if ($_post_excerpt_length === -1) {
+				   if (mb_strlen($_post_message_full) > $_post_excerpt_length) {
+					   $_post_excerpt_has_showmore = true;
+					   $_thread['top_class'] .= ' has-showmore';
+				   }
+				   $_post_message_excerpt = $_post_message_full;
+			   } else {
+				   $rs = cache_get('nciaer_keydesc_' . $_thread['tid']);
+				   if (is_null($rs)) {
+					   $rs = db_find_one('nciaer_keydesc', array('tid' => $_thread['tid']));
+					   cache_set('nciaer_keydesc_' . $_thread['tid'],$rs,3600);
+				   }
+				   if (isset($_thread['editornote']) && !empty($_thread['editornote'])) {
+					   $_post_message_excerpt = $_thread['editornote'];
+				   } elseif (isset($_thread['metadesc']) && !empty($_thread['metadesc'])) {
+					   $_post_message_excerpt = $_thread['metadesc'];
+				   } elseif(!empty($rs) && isset($rs['description']) && !empty($rs['description'])) {
+					   $_post_message_excerpt = strip_tags(mb_substr($rs['description'], 0, $_post_excerpt_length));
+				   } else {
+					   $_post_message_excerpt = strip_tags(mb_substr($_post_message_full, 0, $_post_excerpt_length));
+				   }
+				   if (mb_strlen($_post_message_excerpt) >= $_post_excerpt_length) {
+					   $_post_message_excerpt .= '&hellip;';
+				   }
+			   }
+		   }
+   
+		   if ($_post_excerpt_has_showmore) {
+			   $_post_message_excerpt = '<input type="checkbox" class="showmore-toggle" id="showmore_' . $_thread['tid'] . '">'
+				   . '<div class="showmore-container">'
+				   . $_post_message_excerpt
+				   . '</div>'
+				   . '<label class="showmore-label" for="showmore_' . $_thread['tid'] . '">'
+				   . lang('viewmore')
+				   . '</label>';
+		   }
+	   }
+   
+	   if ($abs_theme_aether_setting['threadlist']['summary']['thread_summary_images'] && !in_array($_post_excerpt_length, [-1, 0])) {
+		   if (in_array($abs_theme_aether_setting['threadlist']['style']['thread_list_style'], array('sns_v1', 'sns_v2','news_v1', 'news_v3'))) {
+			   // SNS风格，取所有图
+			   $_post_message_image = stately_catch_post_imgs($_post_message_full);
+			   if (isset($_thread['cover']) && !empty($_thread['cover']) && !empty($_post_message_image)) {
+				   // 如果设置了封面则加上封面
+				   if (is_array($_post_message_image)) {
+					   array_unshift($_post_message_image, $_thread['cover']);
+				   } else {
+					   // do nothing
+				   }
+				   
+			   }
+		   } else {
+			   // 其他风格，只取一张
+			   if (isset($_thread['cover']) && !empty($_thread['cover'])) {
+				   // 如果设置了封面则使用封面
+				   $_post_message_image = $_thread['cover'];
+			   } elseif(
+				   isset($TitleImgPath) && !empty($TitleImgPath) &&
+				   isset($TitleImgExt) && !empty($TitleImgExt) &&
+				   file_exists(APP_PATH . $TitleImgPath.$_thread['tid'].$TitleImgExt)
+			   ) {
+				   // 如果帖子扩展 ghx_threadext 插件设置了封面则使用封面；由魔法驱动
+				   $_post_message_image = $TitleImgPath.$_thread['tid'].$TitleImgExt;
+			   } else {
+				   $_post_message_image = stately_catch_post_imgs($_post_message_full, true);
+			   }
+		   }
+		   if (is_null($_post_message_image) && (isset($abs_theme_aether_setting['ui_tweek']['threadlist']['default_thumbnail']) && !empty($abs_theme_aether_setting['ui_tweek']['threadlist']['default_thumbnail']))) {
+			   $_post_message_image = $abs_theme_aether_setting['ui_tweek']['threadlist']['default_thumbnail'];
+		   }
+	   }
+	   /**
+		* @var string $lastreply_tooltip 最后回复的用户与时间的HTML属性
+		*/
+	   $lastreply_tooltip = '';
+	   if (function_exists("tag_taglist")) {
+		   $_thread_tags = tag_taglist($_thread['tid']);
+	   }
+	   if ($_thread['lastuid']) {
+		   $lastreply_tooltip = 'data-bs-toggle="tooltip" title="' . lang('new_post') . '：' . $_thread['lastusername'] . ' @ ' . $_thread['last_date_fmt'] . '"';
+	   }
+   
+   
+	   $_thread['posts'] = stately_format_number(intval($_thread['posts']));
+	   $_thread['views'] = stately_format_number(intval($_thread['views']));
+
+
+
+
+
+
+
+		if(file_exists(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/components/threadlist_item/' . $abs_theme_aether_setting['threadlist']['style']['thread_list_style'] . '.htm')) {
+			include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/components/threadlist_item/' . $abs_theme_aether_setting['threadlist']['style']['thread_list_style'] . '.htm');
+		} else {
+			if(DEBUG){
+				echo 'Current Style: ' . $abs_theme_aether_setting['threadlist']['style']['thread_list_style'] . ' not exists, FALLBACK TO classic_v1';
+			}
+			include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/components/threadlist_item.htm');
+
+		}
+
+
+	endforeach;
+else:
+	include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/fragments/empty.htm');
+endif; ?>
+<!--{hook thread_list_inc_end.htm}-->

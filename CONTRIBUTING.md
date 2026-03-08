@@ -128,6 +128,26 @@ CLI 工具基于 Symfony Console 组件。
     *   `user_verify_password($password, $user)` — 校验密码（自动兼容旧 MD5 和新 bcrypt）
     *   `user_upgrade_password($uid, $password)` — 将旧哈希升级为 bcrypt
 
+## 🎨 主题与插件兼容层开发
+
+本项目内置了三层兼容层体系，确保旧插件和第三方主题在新版核心上正常运行。详见 [docs/compat-layer.md](docs/compat-layer.md)。
+
+**开发原则**：
+
+*   **核心不直改插件**：遇到第三方插件兼容问题时，优先通过兼容层解决，而非修改插件源码。
+*   **主题能力声明**：主题应通过 `theme_register()` 声明自己的能力（如 `htmx_message`），核心据此决定是否使用通用 fallback。
+*   **资源注册优先**：主题加载 CSS/JS 应尽量使用 `theme_enqueue_style()` / `theme_enqueue_script()` 而非硬编码 `<link>` / `<script>` 标签。
+*   **Hook 优于 Overwrite**：新增兼容逻辑时，优先使用 `// hook` 钩子点注入，减少对核心模板的覆盖。
+
+**相关文件**：
+
+| 文件 | 作用 |
+|------|------|
+| `view/css/bs4-compat.css` | CSS 兼容层（BS4→BS5 类映射 + 资源降级样式） |
+| `view/js/bs4-compat.js` | JS 兼容层（data 属性转换 + 资源 404 降级 + Modal 代理） |
+| `xiunophp/php8_compat.php` | PHP 8+ 兼容层（TypeError 捕获 + polyfill） |
+| `model/misc.func.php` | 主题 API（`theme_register` / `url_extra_register` / `theme_enqueue_*`） |
+
 ## 💾 Git 提交规范
 
 我们推荐使用 **Conventional Commits** 规范，并**建议使用中文**描述。

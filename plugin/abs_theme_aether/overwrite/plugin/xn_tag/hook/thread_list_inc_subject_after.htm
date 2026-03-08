@@ -1,0 +1,3 @@
+<?php if(!empty($_thread['taglist'])) { foreach($_thread['taglist'] as $tag) { ?>
+<a hx-boost="true" hx-target="#S2" hx-on:click="Aether.hideS3()" href="<?= url("forum-$_thread[fid]-$page", array('tagids'=>$tag['tagid']));?>" class="badge text-<?= !empty($tag['style']) ? $tag['style'] : 'secondary';?> bg-<?= !empty($tag['style']) ? $tag['style'] : 'secondary';?>-subtle"><?= $tag['name'];?></a>
+<?php  }} ?>

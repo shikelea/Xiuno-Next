@@ -1,0 +1,27 @@
+<!-- 本文件不参与template机制 -->
+<footer class="footer-area d-flex flex-column justify-content-center gap-3 py-5 small">
+	<!-- Copywrite Text -->
+	<div class="copywrite-text text-center">
+		<span hx-boost="true" hx-trigger="click" hx-target="#S2" hx-swap="innerHTML" hx-push-url="true">
+			<!--{hook footer_footer_left_start.htm}-->
+		</span>
+
+		<span class="text-muted">
+			Powered by <a href="https://www.xiunobbs.cn/"><b>Xiuno BBS <span><?= $conf['version'];?></span></b></a>
+			and <a href="https://htmx.org/" title="high power tools for HTML"><span class="htmx_logo text-body">&lt;<span style="color:var(--blue,blue)">/</span>&gt; <span class="no-mobile">htm<span style="color:var(--blue,blue)">x</span></span></span></a>
+		</span>
+
+		<span hx-boost="true" hx-trigger="click" hx-target="#S2" hx-swap="innerHTML" hx-push-url="true">
+			<!--{hook footer_footer_left_end.htm}-->
+		</span>
+	</div>
+	<div class="footer-icon text-center">
+		<span hx-boost="true" hx-trigger="click" hx-target="#S2" hx-swap="innerHTML" hx-push-url="true">
+			<!--{hook footer_footer_right_start.htm}-->
+		</span>
+		<!--{hook htmx_usagedd.htm}-->
+		<span hx-boost="true" hx-trigger="click" hx-target="#S2" hx-swap="innerHTML" hx-push-url="true">
+			<!--{hook footer_footer_right_end.htm}-->
+		</span>
+	</div>
+</footer>

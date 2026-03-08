@@ -1,0 +1,23 @@
+<template include="./plugin/huux_notice/view/htm/my.common.template.htm">
+	<slot name="my_nav">
+		<div class="d-flex justify-content-between">
+		<ul class="nav nav-tabs card-header-tabs">
+			<!--{hook my_nav_notice_before.htm}-->
+			<li class="nav-item">
+				<a class="nav-link border-0" href="<?php echo url("my-notice");?>" data-active="my-notice"><?php echo lang('notice');?></a>
+			</li>
+			<!--{hook my_nav_notice_after.htm}-->
+		</ul>
+		<div>
+			<button class="btn btn-sm btn-outline-danger" data-confirm-text="<?php echo lang('notice_my_delete_thispagemessage')?>?" id="delete"><?php echo lang('notice_my_delete_thispagemessage')?></button>
+			<button class="btn btn-sm btn-outline-primary <?php echo $user['unread_notices'] == 0 ? '' : 'readall';?>" id="readall">
+				<?php echo $user['unread_notices'] == 0 ? lang('notice_my_update_allread'):lang('notice_my_marked_allread');?>
+			</button>
+		</div>
+		</div>
+	</slot>
+</template>
+
+<script>
+$('a[data-active="menu-my-notice"]').addClass('active');
+</script>

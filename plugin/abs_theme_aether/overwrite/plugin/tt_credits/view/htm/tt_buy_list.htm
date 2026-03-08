@@ -1,0 +1,82 @@
+<?php 
+if(empty($user)) {message(-1, '请先登录再查看购买记录!');}
+if(!$IS_HTMX){
+    include _include(APP_PATH.'view/htm/header.inc.htm');
+}
+$tid = param(2, 0); $page =  param(3, 1);
+$_thread=db_find_one('thread',array('tid'=>$tid));
+empty($_thread) AND message(-1, '主题不存在');
+thread_format($_thread);
+$data= db_find('paylist',array('tid'=>$tid),array('paytime'=>1), $page, $pagesize=20);
+$list_count = db_count('paylist',array('tid'=>$tid));
+$pagination = pagination(url("thread-sPay-{$tid}-{page}"), $list_count, $page, $pagesize=20);
+function get_user($uid){
+    $user = db_find_one('user',array('uid'=>$uid));
+    return $user;
+}
+$is_rmb = $_thread['content_buy_type']=='3'? 1:0 ;
+?>
+
+<?php if(!$IS_HTMX): ?>
+<section class="row">
+    <div class="col-lg-10 mx-auto">
+        <article class="card">
+            <div class="card-body">
+                <?php endif; ?>
+                <h4 class="visually-hidden">购买记录 - <?= $_thread['subject'];?></h4>
+                <p class="visually-hidden mb-2"><a href="<?= url("user-$_thread[uid]");?>" class="d-flex align-items-center gap-2" tabindex="-1"><img loading="lazy" decoding="async" class="avatar" src="<?= $_thread['user']['avatar_url'];?>" alt="<?= $_thread['user']['username'];?>"> <?= $_thread['user']['username'];?></a></p>
+                <div class="row">
+                    <div class="col-6">
+                        <dl>
+                            <dt class="small">数量</dt>
+                            <dd><?= $list_count;?></dd>
+                        </dl>
+                    </div>
+                    <div class="col-6">
+                        <dl>
+                            <dt class="small">金额</dt>
+                            <dd><?= ($is_rmb? $_thread['content_buy']/100.0 : $_thread['content_buy']) .' '.lang('credits'.$_thread['content_buy_type']);?></dd>
+                        </dl>
+                    </div>
+                </div>
+
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>用户</th>
+                            <th>时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <?php if($data): foreach($data as $v){$__user = get_user($v['uid']);user_format($__user); ?>
+                        <tr>
+                            <td><a href="<?= url("user-$v[uid]");?>" class="d-flex align-items-center gap-2"><img loading="lazy" decoding="async" class="avatar avatar-sm avatar-1" src="<?= $__user['avatar_url'];?>"> <?= $__user['username'];?></a></td>
+                            <td><?= date('Y-m-d H:i',$v['paytime']);?></td>
+                        </tr><?php } else: ?>
+                        <tr>
+                            <td colspan="2" class="text-center">暂无购买记录</td>
+                        </tr>
+                        <?php endif; ?>
+                    </tbody>
+
+                </table>
+                <nav class="text-center">
+                    <ul class="pagination">
+                        <!-- TODO 增加HTMX翻页支持 -->
+                        <?= $pagination; ?>
+                    </ul>
+                </nav>
+
+                <?php if(!$IS_HTMX): ?>
+            </div>
+        </article>
+    </div>
+</section>
+<?php endif; ?>
+<?php 
+if(!$IS_HTMX){
+include _include(APP_PATH.'view/htm/footer.inc.htm');
+}
+?>

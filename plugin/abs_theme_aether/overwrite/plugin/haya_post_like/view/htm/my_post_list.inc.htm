@@ -1,0 +1,60 @@
+<?php if (!empty($haya_post_like_post_list)) : ?>
+<section class="list-group list-group-flush haya-post-like-timeline">
+	<?php foreach ($haya_post_like_post_list as $haya_post_like_post) : ?>
+	<div class="message-item d-flex mb-3 haya-post-like-item-<?= $haya_post_like_post['pid'];?>">
+		<!-- 用户头像 -->
+		<a href="<?= url("user-$haya_post_like_post[uid]");?>" class="text-decoration-none" title="<?= $haya_post_like_post['user']['username'];?>">
+			<img src="<?= $haya_post_like_post['user']['avatar_url'];?>" class="avatar me-3 rounded-circle" alt="<?= $haya_post_like_post['user']['username'];?>" width="40" height="40">
+		</a>
+
+		<!-- 内容区域 -->
+		<div class="message-content flex-grow-1">
+			<!-- 用户信息和时间 -->
+			<div class="d-flex justify-content-between align-items-start mb-1">
+				<a href="<?= url("user-$haya_post_like_post[uid]");?>" class="fw-bold text-decoration-none text-body">
+					<b><?= $haya_post_like_post['user']['username'];?></b>
+				</a>
+				<span class="text-muted small"><?= haya_post_like_humandate($haya_post_like_post['create_date']); ?></span>
+			</div>
+
+			<!-- 点赞动作描述和帖子内容 -->
+			<div class="message-text bg-light rounded p-2">
+				<div class="d-flex align-items-center">
+					<i class="las la-heart text-danger me-2"></i>
+					<span>
+						<?php if ($haya_post_like_post['post']['isfirst'] == 1) { ?>
+						点赞了帖子
+						<a href="<?= url("thread-$haya_post_like_post[tid]");?>"
+						   hx-boost="true" hx-target="#S3"
+						   class="text-decoration-none fw-medium"
+						   title="<?= $haya_post_like_post['thread']['subject'];?>">
+							《<?= $haya_post_like_post['thread']['subject'];?>》
+						</a>
+						<?php } else { ?>
+						点赞了帖子
+						<a href="<?= url("thread-$haya_post_like_post[tid]");?>#post_<?= $haya_post_like_post['pid'];?>" hx-boost="true" hx-target="#S3"
+						   class="text-decoration-none fw-medium"
+						   title="<?= $haya_post_like_post['thread']['subject'];?>">
+							《<?= $haya_post_like_post['thread']['subject'];?>》
+						</a>
+						的回复
+						<?php } ?>
+					</span>
+				</div>
+				<?php if ($haya_post_like_post['post']['isfirst'] == 0) { ?>
+				<blockquote class="blockquote card-text mb-0 text-truncate">
+					<a href="<?= url("thread-$haya_post_like_post[tid]");?>#post_<?= $haya_post_like_post['post']['pid'];?>"
+					   hx-boost="true" hx-target="#S3"
+					   class="text-decoration-none text-body">
+						<?= $haya_post_like_post['post']['message'];?>
+					</a>
+				</blockquote>
+				<?php } ?>
+			</div>
+		</div>
+	</div>
+	<?php endforeach; ?>
+</section>
+<?php else :
+include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/fragments/empty_no_like.htm');
+endif; ?>

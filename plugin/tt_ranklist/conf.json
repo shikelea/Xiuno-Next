@@ -1,0 +1,11 @@
+{
+    "name": "排行榜",
+    "brief": "排行榜，发帖量、回帖量、经验值、金币、人民币排行榜！<br/>（原兔兔排行榜）由<a href='https://www.noteweb.top'>NOTEWEB</a>优化",
+    "version": "2.0",
+    "bbs_version": "4.0.4",
+    "installed": 0,
+    "enable": 0,
+    "hooks_rank": [],
+    "overwrites_rank": [],
+    "dependencies": []
+}

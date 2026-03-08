@@ -1,0 +1,22 @@
+<?php if($group['allowsell']=="1") {?>
+<script>
+    <?php if($action=='update') {$thread['content_buy_type']=='0' AND $thread['content_buy_type']='1';?>
+    var jselect = $("#content_type");
+    jselect.val("<?php echo lang('credits'.$thread['content_buy_type']);?>");
+    <?php } ?>
+    $(function(){
+        if($(":radio[name='content_num_status']:checked").val()==1)
+            $('#content_num_input').fadeIn();
+        else
+            $('#content_num_input').fadeOut();
+
+        $(":radio[name='content_num_status']").click(function(){
+            if($(this).val()==1)
+                $('#content_num_input').fadeIn();
+            else
+                $('#content_num_input').fadeOut();
+
+        })
+    })
+</script>
+<?php }?>

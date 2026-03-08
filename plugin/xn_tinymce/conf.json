@@ -1,0 +1,10 @@
+{
+    "name": "修罗中国TinyMCE编辑器（本地图片版)",
+    "brief": "TinyMCE是一款易用、且功能强大的所见即所得的富文本编辑器，内核为TinyMCE v6.0.3<br /><b>作者：修罗中国</b><br />插件更新以及更多内容请访问修罗中国，地址：https://xiuno.cn",
+    "version": "1.0",
+    "bbs_version": "4.0.4",
+    "installed": 0,
+    "enable": 0,
+    "hooks_rank": [],
+    "dependencies": []
+}

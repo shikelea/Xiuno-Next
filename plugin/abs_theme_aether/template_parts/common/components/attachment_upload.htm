@@ -1,0 +1,124 @@
+<section id="aether-attachment-container">
+    <?php $aether_upload_form_accept = aether_get_upload_accept(); ?>
+
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <div class="card-title fs-5 m-0"><i class="las la-paperclip"></i> 附件</div>
+            <section id="aether-upload-form" class="d-flex align-items-center gap-2 flex-row-reverse">
+
+                <!-- 上传按钮 -->
+                <button type="button" class="visually-hidden-focusable btn btn-outline-primary bg-primary-subtle btn-icon"
+                    hx-on:click="document.getElementById('aether-attach-input').click()" title="添加附件"
+                    data-bs-toggle="tooltip">
+                    <i class="las la-upload"></i>
+                </button>
+
+
+                <input type="file" name="file[]" id="aether-attach-input" hx-trigger="change" multiple
+                    hx-include="[name='is_image']" accept="<?= $aether_upload_form_accept ?>"
+                    hx-post="<?=url('attach-create')?>" hx-target="#attachment-list" hx-encoding="multipart/form-data"
+                    hx-swap="beforeend" hx-indicator="#upload-indicator" class="visually-hidden-focusable"
+                    aria-label="添加附件">
+
+                <input type="hidden" name="is_image" value="0" id="upload-is-image">
+
+
+
+                <!-- HTMX上传指示器 -->
+                <div id="upload-indicator" class="htmx-indicator ms-2">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">上传中...</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="drop-zone p-3" ondragover="event.preventDefault(); this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="handleDrop(event);" style="cursor: pointer;">
+
+            <div class="drop-zone-text text-center p-3 rounded" style="border: 2px dashed var(--bs-card-border-color);" hx-on:click="document.getElementById('aether-attach-input').click()">
+                <i class="las la-cloud-upload-alt display-4 mb-2"></i>
+                <p class="m-0">拖拽文件到此处或点击此处上传</p>
+            </div>
+        </div>
+
+        <!-- 附件列表 -->
+        <ul id="attachment-list" class="list-group list-group-flush list-group-horizontal row">
+            <?= aether_post_file_list_html($filelist, true); ?>
+        </ul>
+    </div>
+    <script>
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    const accept = document.getElementById('aether-attach-input').accept;
+    
+    // 过滤文件类型
+    const validFiles = Array.from(files).filter(file => {
+        if (!accept) return true;
+        
+        // 简单的accept验证
+        const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+        const acceptList = accept.split(',');
+        
+        return acceptList.some(pattern => {
+            if (pattern.startsWith('.')) {
+                return fileExt === pattern;
+            }
+            if (pattern.includes('/*')) {
+                const mimeType = pattern.split('/*')[0];
+                return file.type.startsWith(mimeType);
+            }
+            return file.type === pattern;
+        });
+    });
+    
+    if (validFiles.length === 0) {
+        showSnackbar({
+            type: 'warning',
+            title: '文件类型不支持',
+            content: '拖拽的文件类型不在允许范围内',
+            delay: 3000
+        });
+        return;
+    }
+    
+    if (validFiles.length < files.length) {
+        showSnackbar({
+            type: 'info',
+            title: '部分文件已过滤',
+            content: `${files.length - validFiles.length}个文件类型不支持`,
+            delay: 3000
+        });
+    }
+    
+    const input = document.getElementById('aether-attach-input');
+    const dataTransfer = new DataTransfer();
+    validFiles.forEach(file => dataTransfer.items.add(file));
+    input.files = dataTransfer.files;
+    
+    htmx.trigger(input, 'change');
+}
+    </script>
+    <style scoped>
+        #aether-attachment-container .htmx-indicator {
+            opacity: 0;
+            transition: opacity 200ms ease-in;
+        }
+
+        #aether-attachment-container .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
+
+        .drop-zone.dragover .drop-zone-text {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-container);
+    color: var(--bs-primary);
+}
+
+.drop-zone.dragover .drop-zone-text i {
+    transform: scale(1.1);
+    transition: transform 0.2s;
+}
+    </style>
+</section>

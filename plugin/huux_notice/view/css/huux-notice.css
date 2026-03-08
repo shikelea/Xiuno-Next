@@ -1,0 +1,79 @@
+@charset "UTF-8";
+/* 消息 */
+@keyframes post_shake {
+    0%,to {
+        transform: translateZ(0);
+    }
+
+    10%,30%,50% {
+        transform: translate3d(-5px,0,0);
+    }
+
+    70%,90% {
+        transform: translate3d(0,0,0);
+    }
+
+    20%,40%,60%,80% {
+        transform: translate3d(5px,0,0);
+    }
+}
+/* nav header */
+.nav-item.usernotice.current > .nav-link > .unread {
+    display: inline-block!important;
+    top: 13px;
+    left: 25px;
+}
+
+
+
+/* postlist*/
+.postlist > .post.current .avatar-3{
+    animation: post_shake 3s ease infinite;    
+} 
+
+/* my-notice */
+.noticelist > .notice {    
+    padding: 0.7rem 0
+}
+
+.noticelist > .notice:not(:last-child) {
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.noticelist > .notice .message {
+    color: var(--gray)
+}
+
+.noticelist > .notice .message a {    
+    color: var(--gray)
+}
+
+.noticelist > .notice.isread .message i.icon-circle { 
+    display: none
+}
+
+.noticelist > .notice .message .comment-info {
+    display: inline;
+    color: var(--gray-500);
+}
+
+.noticelist > .notice .message .quote-comment {
+     margin-top: 0.25rem;
+     color: var(--dark)
+}
+.noticelist > .notice .message .reply-comment {
+    position: relative;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    margin-top: 0.5rem;
+    background-color: var(--gray-200)
+}
+.noticelist > .notice .message .single-comment,.noticelist > .notice .message .reply-comment{
+    display: block;
+	color: var(--dark);
+	position: relative;
+	    padding: 0.5rem;
+	    border-radius: 0.25rem;
+	    margin-top: 0.5rem;
+	    background: var(--gray-200);
+}

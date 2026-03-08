@@ -1,0 +1,57 @@
+<?php if($noticelist) { foreach($noticelist as &$_notice) { ?>
+	<?php 
+$msg = $_notice['message']; 
+$msg = preg_replace("/\[em_([0-9]*)\]/i","<img src='/plugin/zaesky_theme_light/view/img/emoicon/$1.png' class='border-0 mb-0 mx-1' width='25px'/>",$msg);
+$_notice['message']=	$msg					
+?>
+<li class="notice media text-small <?php echo $_notice['isread'] == 1 ? 'isread' : '';?>" data-nid="<?php echo $_notice['nid']?>" >
+
+ 	<?php if($_notice['type'] == 1 || $_notice['type'] == 3 || $_notice['type'] == 99){?>
+ 	 	<div tabindex="-1" class="ml-1 mt-1 mr-3"><img class="avatar-3" src="<?php echo $_notice['from_user_avatar_url'];?>"></div>
+ 	<?php }else{?>
+ 	 	<div tabindex="-1" class="ml-1 mt-1 mr-3"><a href="<?php echo url("user-$_notice[fromuid]");?>"><img class="avatar-3" src="<?php echo $_notice['from_user_avatar_url'];?>"></a></div> 	   
+ 	<?php }?>
+
+ 	<div class="media-body">
+ 	 	 	
+ 	 	 	<div class="d-flex justify-content-between small">
+ 	 	 	 	
+ 	 	 	 	<?php if($_notice['type'] == 1 || $_notice['type'] == 3 || $_notice['type'] == 99){?>
+ 	 	 	 	 	<div>
+ 	 	 	 	 	 	<span class="username text-grey font-weight-bold mr-1"><?php echo $_notice['name'];?></span>
+ 	 	 	 	 	 	<span class="date text-grey"><?php echo $_notice['create_date_fmt'];?></span> 	 	 	 	 	 	   
+ 	 	 	 	 	</div>
+ 	 	 	 	<?php }else{?>
+ 	 	 	 	 	<div>
+ 	 	 	 	 	 	<span class="username text-grey font-weight-bold mr-1"><a class="text-grey" href="<?php echo url("user-$_notice[fromuid]");?>"><?php echo $_notice['from_username'];?></a></span>
+ 	 	 	 	 	 	<span class="date text-grey"><?php echo $_notice['create_date_fmt'];?></span> 	 	 	  
+ 	 	 	 	 	</div>
+ 	 	 	 	<?php }?>
+ 	 	 	 	<div class="d-flex justify-content-end">
+					<?php if($_notice['type'] == 7){?>
+						<div>
+					    <a  href="javascript:;" class="badge badge-light text-muted mr-1" data-username="<?php echo $_notice['from_username'];?>" data-uid="<?php echo $_notice['fromuid']; ?>" data-modal-url="<?php echo url("sx");?>" data-modal-title="<?php echo lang('notice_give');?> <?php echo $_notice['from_username'];?> <?php echo lang('notice_hfsx');?>" data-modal-arg="<?php echo $_notice['fromuid']; ?>" title="发送私信"><i class="icon-reply"></i> <?php echo lang('notice_hf');?></a>
+						</div>
+							<?php }?>
+							<div>
+ 	 	 	 	 	<?php echo $_notice['isread'] == 1 ? '<span  class="font-weight-normal badge badge-light text-muted">'.lang('notice_my_update_readed').'</span>' : '<span class="readbtn font-weight-normal badge badge-light text-muted" data-nid="'.$_notice['nid'].'"><i class="fas fa-check"></i> '.lang('notice_my_marked_read').'</span>';?></div>
+ 	 	 	 	 	<div>
+					<span  class="deletebtn font-weight-normal badge badge-light ml-1 text-muted" data-nid="<?php echo $_notice['nid']?>"><i class="icon-remove"></i> <?php echo lang('delete');?></span>
+				</div>
+				</div>
+ 	 	 	</div>
+ 	 	 	<div class="message break-all mt-1">
+ 	 	 	 	  <span><i class=" icon icon-circle text-danger"></i></span>  <?php echo $_notice['message'];?>
+ 	 	 	</div>
+ 	</div>
+</li>
+ 
+<?php }} else { ?>
+
+	 <li>
+ 	 	 	<div><?php echo lang('none');?></div>
+ 	</li>
+ 	
+<?php } ?>
+
+

@@ -1,0 +1,13 @@
+<script>
+  var jmsign = $("#sign_mobile");
+  jmsign.on("click",function(){
+      $.xpost(xn.url("my-sign"),"",function(code,message){
+        if(code == 0){
+          cocoMessage.info(message, 5000);
+          $('.sign_alert').fadeOut("slow");
+        }else{
+          cocoMessage.warning(message, 5000);
+        }
+			    });
+  });
+</script>

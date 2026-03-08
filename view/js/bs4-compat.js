@@ -124,6 +124,81 @@
     }
 })();
 
+// 缺失资源降级：检测 inline background-image 404 并自动降级
+(function() {
+    'use strict';
+    // 检查单个元素的背景图是否可加载
+    function checkBgImage(el) {
+        var style = el.getAttribute('style');
+        if (!style || style.indexOf('url(') === -1) return;
+        var match = style.match(/url\(['"]?([^'"\)]+)['"]?\)/);
+        if (!match || !match[1]) return;
+        var url = match[1];
+        // 跳过 data URI 和渐变
+        if (url.indexOf('data:') === 0 || url.indexOf('linear-gradient') !== -1) return;
+        var img = new Image();
+        img.onerror = function() {
+            el.classList.add('bs4c-bg-fallback');
+        };
+        img.src = url;
+    }
+    function scanBgImages() {
+        var els = document.querySelectorAll('[style*="url("]');
+        for (var i = 0; i < els.length; i++) {
+            checkBgImage(els[i]);
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', scanBgImages);
+    } else {
+        scanBgImages();
+    }
+    // 监听动态插入的元素
+    if (typeof MutationObserver !== 'undefined') {
+        var observer = new MutationObserver(function(mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var nodes = mutations[i].addedNodes;
+                for (var j = 0; j < nodes.length; j++) {
+                    if (nodes[j].nodeType !== 1) continue;
+                    if (nodes[j].getAttribute && nodes[j].getAttribute('style')) {
+                        checkBgImage(nodes[j]);
+                    }
+                    // 也检查子元素
+                    var children = nodes[j].querySelectorAll ? nodes[j].querySelectorAll('[style*="url("]') : [];
+                    for (var k = 0; k < children.length; k++) {
+                        checkBgImage(children[k]);
+                    }
+                }
+            }
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            observer.observe(document.body, { childList: true, subtree: true });
+        });
+    }
+})();
+
+// 缺失资源降级：破损 <img> 自动隐藏或降级
+(function() {
+    'use strict';
+    function handleBrokenImg(img) {
+        // 避免重复处理
+        if (img.dataset.bs4cHandled) return;
+        img.dataset.bs4cHandled = '1';
+        img.classList.add('bs4c-img-fallback');
+        // 小头像类图片直接隐藏，大图保持占位
+        var w = img.width || img.offsetWidth || 0;
+        if (w > 0 && w <= 80) {
+            img.style.visibility = 'hidden';
+        }
+    }
+    // 全局 error 事件捕获（捕获阶段，能拦截所有资源加载失败）
+    document.addEventListener('error', function(e) {
+        if (e.target && e.target.tagName === 'IMG') {
+            handleBrokenImg(e.target);
+        }
+    }, true);
+})();
+
 // BS4 Modal JS API 兼容：代理 jQuery .modal() 方法到 BS5 Modal 实例
 (function() {
     'use strict';

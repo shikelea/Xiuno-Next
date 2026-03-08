@@ -1,0 +1,13 @@
+{
+    "name": "用户关注",
+    "brief": "关注自己喜欢的用户<br/>此版本已通过Aether兼容性测试",
+    "version": "1.6.5",
+    "bbs_version": "4.0.3",
+    "installed": 0,
+    "enable": 0,
+    "hooks_rank": {
+        "my_common_mobile_my_thread_after": 800,
+        "my_common_my_thread_after": 800
+    },
+    "dependencies": []
+}

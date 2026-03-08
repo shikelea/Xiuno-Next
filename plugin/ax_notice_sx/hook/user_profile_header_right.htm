@@ -1,0 +1,5 @@
+<?php if ($user && $uid != $_user['uid']) { ?>
+		<a class="btn btn-primary" href="javascript:;" data-username="<?php echo strip_tags($_user['username']); ?>" data-uid="<?php echo $_user['uid']; ?>" data-modal-url="<?php echo url('sx');?>" data-modal-title="给 <?php echo strip_tags($_user['username']); ?> 发送私信" data-modal-arg='<?php echo $_user["uid"]; ?>' title="发送私信">
+			<i class="iconfont icon-weixin"></i> 发消息
+		</a>
+<?php } ?><br>

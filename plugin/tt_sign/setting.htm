@@ -1,0 +1,43 @@
+<?php include _include(ADMIN_PATH.'view/htm/header.inc.htm'); $set = setting_get('tt_sign');
+$statics = db_count('sign',array('time'=>array('>'=>strtotime(date('Y-m-d',time()))-1)));
+?>
+<div class="row"><div class="col-lg-10 mx-auto">
+                <div class="card"><div class="card-body" ><h3>签到参数设定</h3>不要出现特殊字符。<form action="<?php echo url('plugin-setting-tt_sign');?>" method="post" id="form">
+                    <table style="width:95%;text-align: center;" class="table"><tr><th>-</th><th>经验</th><th>金币</th><th>人民币</th></tr>
+                        <tr><th>签到奖励(起始)</th><td><input class="form-control"name="credits_from" value="<?php echo $set['credits_from'];?>"/></td><td><input class="form-control"name="golds_from" value="<?php echo $set['golds_from'];?>"/></td><td><input class="form-control"name="rmbs_from" value="<?php echo $set['rmbs_from'];?>"/></td></tr>
+                        <tr><th>签到奖励(终止)</th><td><input class="form-control"name="credits_to" value="<?php echo $set['credits_to'];?>"/></td><td><input class="form-control"name="golds_to" value="<?php echo $set['golds_to'];?>"/></td><td><input class="form-control"name="rmbs_to" value="<?php echo $set['rmbs_to'];?>"/></td></tr>
+                        <tr><th>首签奖励(额外)</th><td><input class="form-control"name="first_credits" value="<?php echo $set['first_credits'];?>"/></td><td><input class="form-control"name="first_golds" value="<?php echo $set['first_golds'];?>"/></td><td><input class="form-control"name="first_rmbs" value="<?php echo $set['first_rmbs'];?>"/></td></tr>
+                        <tr><th>连签奖励(额外)</th><td><input class="form-control"name="con_credits" value="<?php echo $set['con_credits'];?>"/></td><td><input class="form-control"name="con_golds" value="<?php echo $set['con_golds'];?>"/></td><td><input class="form-control"name="con_rmbs" value="<?php echo $set['con_rmbs'];?>"/></td></tr>
+                        <tr><th>每周满勤奖励(额外)</th><td><input class="form-control"name="week_credits" value="<?php echo $set['week_credits'];?>"/></td><td><input class="form-control"name="week_golds" value="<?php echo $set['week_golds'];?>"/></td><td><input class="form-control"name="week_rmbs" value="<?php echo $set['week_rmbs'];?>"/></td></tr>
+                        <tr><th>每月满勤奖励(额外)</th><td><input class="form-control"name="month_credits" value="<?php echo $set['month_credits'];?>"/></td><td><input class="form-control"name="month_golds" value="<?php echo $set['month_golds'];?>"/></td><td><input class="form-control"name="month_rmbs" value="<?php echo $set['month_rmbs'];?>"/></td></tr>
+    </table>
+<button type="button" class="btn btn-primary btn-block" id="submit" data-loading-text="<?php echo lang('submiting');?>..."><?php echo lang('confirm');?></button>
+</form></div>
+<div class="card-footer">
+    <div class="input-group mb-3">
+        <input type="text" class="form-control" readonly value="已通过Aether兼容性测试" aria-label="Recipient's username" aria-describedby="button-addon2">
+        <div class="input-group-append">
+            
+          
+        </div>
+      </div>
+</div></div>
+    <div class="card"><div class="card-body" ><h3>统计</h3>
+今日签到人数:<?php echo $statics; ?>
+</div></div></div></div>
+<?php include _include(ADMIN_PATH.'view/htm/footer.inc.htm');?>
+<script>
+    var jform = $("#form");var jsubmit = $("#submit");
+    jsubmit.on('click', function(){
+        jform.reset();jsubmit.button('loading'); var postdata = jform.serialize();
+        $.xpost(jform.attr('action'), postdata, function(code, message) {
+            if(code == 0) {
+                $.alert(message);
+                setTimeout(function() {
+                    window.location.reload();
+                    jsubmit.button('reset');
+                }, 1000);
+                return;}
+                else {$.alert(message);jsubmit.button('reset');}});
+        return false;});
+</script>

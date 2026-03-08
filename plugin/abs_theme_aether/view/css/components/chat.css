@@ -1,0 +1,66 @@
+/* 消息相关样式 */
+.chat-conversation {
+    padding-bottom: 80px;
+}
+
+.message-bubble {
+    max-width: 75%;
+    position: relative;
+}
+
+.message-bubble.bg-light {
+    background-color: var(--bs-secondary-bg) !important;
+}
+
+.message-bubble.bg-primary {
+    background-color: var(--bs-primary) !important;
+}
+
+.chat-date-divider {
+    position: relative;
+}
+
+.chat-date-divider::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    top: 50%;
+    height: 1px;
+    background-color: var(--bs-border-color);
+    z-index: -1;
+}
+
+.chat-date-divider .badge {
+    background-color: var(--bs-body-bg);
+    padding: 4px 12px;
+}
+
+.message-content {
+    width: fit-content;
+  }
+  
+  .message-text {
+    width: fit-content;
+  }
+  
+  .message-item {
+    width: fit-content;
+  }
+  
+  .message-item.is_self {
+    margin-left: auto;
+  }
+  
+  .message-item.is_self header {
+    flex-direction: row-reverse;
+  }
+  
+  .message-item.is_self .message-text {
+    margin-left: auto;
+  }
+
+  .message-item .avatar-1 {
+    width: 1em;
+    height: 1em;
+  }

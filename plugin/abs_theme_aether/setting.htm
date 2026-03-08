@@ -1,0 +1,166 @@
+<?php include _include(ADMIN_PATH . 'view/htm/header.inc.htm'); ?>
+<script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/tinymce/5.10.0/tinymce.min.js" type="application/javascript"></script>
+<link rel="stylesheet" href="<?= $HTTP_TYPE . str_replace('admin/', '', WEBSITE_DIR) . PLUGIN_DIR ?>inc/kumquat-admin-style.css">
+<?php if ( $data['kumquat_config']['show_all_vars_table'] && (DEBUG == 1 or DEBUG == 2)) : ?>
+<pre class="all-var-table">
+    <h1 class="h1"><?= lang("All variables"); ?></h1>
+    <dl class="dl-horizontal">
+    <?php
+    foreach ($PLUGIN_SETTING as $key => $value) {
+      echo '<dt>' . $key . '</dt><dd>';
+      var_dump($value);
+      echo '</dd>';
+    }
+    ?>
+    </dl>
+  </pre>
+<?php endif; ?>
+
+<div class="container">
+    <form action='<?= url("plugin-setting-" . PLUGIN_NAME); ?>' method="post" id="form">
+        <div class="card">
+            <div class="card-header kumquat-card-header">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h2 class="card-title h4 m-0 text-primary">
+                        <?= ($PLUGIN_PROFILE['name'] . ' ' . lang('setting')); ?>
+                    </h2>
+                    <div class="d-none d-md-block">
+                    <?php if ($data['kumquat_config']['allow_reset_settings']) : 
+                    kumquat_reset_modal_button(); 
+                    endif; ?>
+
+                        <?= kumquat_save_button(); ?>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <?php kumquat_output_setting_frontend($data['panels'], $PLUGIN_SETTING); // Magic. Do not touch. ?>
+            </div>
+            <div class="card-footer">
+                <details>
+                    <summary class="text-danger">
+                        <?= lang('Danger zone') ?>
+                    </summary>
+                    <div class="form-group row">
+                        <label class="col-md-2 form-control-label">
+                            <?= lang('Location of plugin itself at frontend'); ?>
+                        </label>
+                        <div class="col-md-10">
+                            <?= form_text('THIS_LOCATION_FRONTEND', (isset($PLUGIN_SETTING['THIS_LOCATION_FRONTEND']) || !empty($PLUGIN_SETTING['THIS_LOCATION_FRONTEND'])) ? $PLUGIN_SETTING['THIS_LOCATION_FRONTEND'] : $data['THIS_LOCATION_FRONTEND']); ?>
+                            <p class="help-block">
+                                <?= lang('Improper change may cause the plugin to malfunction'); ?>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-md-2 form-control-label">
+                            <?= lang('Location of plugin itself'); ?>
+                        </label>
+                        <div class="col-md-10">
+                            <?= form_text('THIS_LOCATION', (isset($PLUGIN_SETTING['THIS_LOCATION']) || !empty($PLUGIN_SETTING['THIS_LOCATION'])) ? $PLUGIN_SETTING['THIS_LOCATION'] : $data['THIS_LOCATION']); ?>
+                            <p class="help-block">
+                                <?= lang('Improper change may cause the plugin to malfunction'); ?>
+                            </p>
+                        </div>
+                    </div>
+                    <?php if ($data['kumquat_config']['allow_delete_plugin_settings']) : ?>
+                    <div class="form-group row">
+                        <label class="col-md-2 form-control-label">
+                            <?= lang('Delete plugin settings when uninstalling'); ?>
+                        </label>
+                        <div class="col-md-10">
+                            <?= form_radio_yes_no('kumquat_flag/delete_plugin_settings', $PLUGIN_SETTING['kumquat_flag']['delete_plugin_settings']); ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </details>
+            </div>
+            <div class="card-footer kumquat-card-footer d-flex d-md-none">
+                <?php if ($data['kumquat_config']['allow_reset_settings']) : 
+                    kumquat_reset_modal_button(); 
+                    endif; ?>
+                <?= kumquat_save_button(true); ?>
+            </div>
+        </div>
+    </form>
+    <!-- 重置设置 -->
+    <?php if ($data['kumquat_config']['allow_reset_settings']) : ?>
+    <div class="modal fade" id="kumquatResetModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">
+                        <?= lang('Are you sure you want to reset all the settings') ?>
+                    </h4>
+                    <button type="button" class="close" data-dismiss="modal">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <?= lang('Click to reset') ?>
+                </div>
+                <div class="modal-footer">
+                    <form action="<?= url('plugin-setting-' . PLUGIN_NAME); ?>" method="post" id="kumquat_reset_form">
+                        <?= kumquat_reset_button(); ?>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+    
+    <footer class="text-center p-3">
+        <span class="badge rounded-pill bg-label-info">
+            <?= lang('Created with Kumquat Framework'); ?>
+        </span>
+    </footer>
+</div>
+<?php include _include(ADMIN_PATH . 'view/htm/footer.inc.htm'); ?>
+<script id="kumquat_js">
+    var jform = $("#form");
+    var jsubmit = $("#submit");
+    jform.on('submit',
+        function () {
+            jform.reset();
+            jsubmit.button('loading');
+            var postdata = jform.serialize();
+            $.xpost(jform.attr('action'), postdata,
+                function (code, message) {
+                    if (code == 0) {
+                        $.alert(message);
+                        jsubmit.text(message).delay(2000).button('reset');
+                        return;
+                    } else {
+                        $.alert(message);
+                        jsubmit.button('reset');
+                    }
+                });
+            return false;
+        });
+    var kumquat_reset_form = $("#kumquat_reset_form");
+    var kumquat_reset_submit = $("#kumquat_reset_confirm");
+    kumquat_reset_submit.on('click',
+        function () {
+            kumquat_reset_form.reset();
+            kumquat_reset_submit.button('loading');
+            var postdata = kumquat_reset_form.serialize();
+            $.xpost(kumquat_reset_form.attr('action'), postdata,
+                function (code, message) {
+                    if (code == 0) {
+                        $.alert(message);
+                        kumquat_reset_submit.text(message).delay(2000).button('reset');
+                        return;
+                    } else {
+                        $.alert(message);
+                        kumquat_reset_submit.button('reset');
+                    }
+                });
+            return false;
+        });
+    var kumquat_bg_select = $(".kumquat-background-presets > select");
+    kumquat_bg_select.on('change', function () {
+        selected_url = $(this).children('[value="' + this.value + '"]').attr('data-value');
+        $(this).parents('.kumquat-bgimage').children('.kumquat-background-url').children('input').val(selected_url);
+        $(this).parents('.kumquat-bgimage').children('.content-demo.bgimage_demo').css('background-image', 'url(' + selected_url + ')');
+    });
+</script>

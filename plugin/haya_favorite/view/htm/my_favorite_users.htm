@@ -1,0 +1,25 @@
+<?php if (!empty($haya_favorite_users)) { ?>
+	<div class="break-all line-height-3 d-none d-lg-block">
+		<?php foreach($haya_favorite_users as & $haya_favorite_user){ ?>
+			<span class="mr-3 mb-2 haya-favorite-user-<?php echo $haya_favorite_user['favorite_user']['uid']; ?>">
+				<a href="<?php echo url("user-".$haya_favorite_user['favorite_user']['uid']); ?>" target="_balnk" title="<?php echo $haya_favorite_user['favorite_user']['username']; ?>">
+					<img class="avatar-1" src="<?php echo $haya_favorite_user['favorite_user']['avatar_url']; ?>">
+				</a>
+				
+				<a href="<?php echo url("user-".$haya_favorite_user['favorite_user']['uid']); ?>" target="_balnk" title="<?php echo $haya_favorite_user['favorite_user']['username']; ?>">
+					<?php echo $haya_favorite_user['favorite_user']['username']; ?>
+				</a>
+			</span>
+
+			<?php $haya_favorite_user_list[] = '<a href="'.url("user-".$haya_favorite_user['favorite_user']['uid']).'" target="_balnk" title="'.$haya_favorite_user['favorite_user']['username'].'"><img class="avatar-1" src="'.$haya_favorite_user['favorite_user']['avatar_url'].'"> '.$haya_favorite_user['favorite_user']['username'].'</a>'; ?>
+		<?php } ?>
+	</div>	
+
+	<div class="text-muted break-all line-height-3 d-lg-none">
+		<?php echo implode('、', $haya_favorite_user_list); ?>
+	</div>
+<?php } else { ?>
+	<div class="text-muted">
+		<?php echo lang('haya_favorite_no_user_favorite'); ?>
+	</div>
+<?php } ?>

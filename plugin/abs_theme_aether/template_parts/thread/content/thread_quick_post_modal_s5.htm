@@ -1,0 +1,103 @@
+<aside title="S5 发表回复弹窗" class="offcanvas offcanvas-bottom" tabindex="-1" id="S5_post_reply_modal" aria-labelledby="offcanvasBottomLabel" data-bs-scroll="true" data-bs-backdrop="false">
+
+    <div class="offcanvas-manual-backdrop" data-bs-dismiss="offcanvas"></div>
+
+    <!-- 头部：精简无边框 -->
+    <div class="offcanvas-header pb-0 d-flex align-items-center justify-content-between">
+        <h5 class="offcanvas-title mb-0">发表回复</h5>
+        <div class="d-flex align-items-center gap-1">
+            <?php if($uid): ?>
+            <button hidden type="button" class="btn btn-sm btn-outline-secondary px-2 py-1"
+                    hx-on:click="Aether.toggleReplyMaximizeS5()"
+                    aria-label="全屏模式"
+                    title="全屏编辑">
+                <i class="las la-expand"></i>
+            </button>
+            <?php endif; ?>
+            <button type="button" class="btn btn-sm btn-light px-2 py-1 close"
+                    data-bs-dismiss="offcanvas"
+                    aria-label="关闭回复框"
+                    title="关闭">
+                <i class="las la-times"></i>
+            </button>
+        </div>
+    </div>
+
+
+    <!-- 主体：仅用pt-3创建视觉间隔 -->
+    <div class="offcanvas-body pt-3">
+        <?php if($uid): ?>
+        <form action="<?= url('post-create-' . $tid . '-1');?>"
+              method="post"
+              id="quick_reply_form"
+              hx-post="<?= url('post-create-' . $tid . '-1');?>"
+              hx-target=".postlist"
+              hx-swap="beforeend"
+              hx-on::before-request="this.querySelector('#submit').disabled = true"
+              hx-on::after-request="this.querySelector('#submit').disabled = false;if(event.detail.successful) {this.reset();document.querySelector('#S5_post_reply_modal .close').click()}">
+            <input type="hidden" name="doctype" value="1" />
+            <input type="hidden" name="return_html" value="1" />
+            <input type="hidden" name="quotepid" value="0" />
+
+            <div class="mb-3">
+                <textarea class="form-control shadow-sm rounded-3"
+                          placeholder="<?= $CANNOT_POST_TO_CLOSED_THREAD ? lang('thread_has_already_closed') : lang('message');?>"
+                          name="message"
+                          id="message"
+                          rows="4"
+                          style="resize: none;"
+                          <?= $CANNOT_POST_TO_CLOSED_THREAD ? 'disabled' : ''?>>
+                      </textarea>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div class="d-flex flex-grow-1 flex-wrap justify-content-start">
+                    <!--{hook thread_quick_reply_left_start.htm}-->
+
+                    <!--{hook thread_quick_reply_left_end.htm}-->
+
+                    <!--{hook thread_quick_reply_right_start.htm}-->
+
+                    <!--{hook thread_quick_reply_right_end.htm}-->
+                </div>
+                <div class="d-flex flex-grow-1 flex-wrap justify-content-end">
+
+
+
+                    <?php if(!$CANNOT_POST_TO_CLOSED_THREAD): ?>
+                    <a class="btn btn-outline-secondary"
+                       href="<?= url("post-create-$tid");?>"
+                       id="advanced_reply"
+                       hx-get="<?= url("post-create-$tid");?>"
+                       hx-target="#S3"
+                       hx-swap="innerHTML">
+                        <i class="las la-reply" aria-hidden="true"></i>
+                        <?= lang('advanced_reply');?>
+                    </a>
+                    <?php endif; ?>
+
+                    <button type="submit"
+                            class="btn btn-primary"
+                            id="submit"
+                            hx-on:click="if(typeof tinyMCE !== 'undefined'){tinyMCE.editors['message'].save();}"
+                            data-loading-text="<?= lang('submiting');?>..."
+                            <?= $CANNOT_POST_TO_CLOSED_THREAD ? 'disabled' : ''?>>
+                        <i class="las la-send" aria-hidden="true"></i>
+                        <?= lang('post_create');?>
+                    </button>
+                </div>
+            </div>
+        </form>
+        <?php else: ?>
+        <div class="d-flex align-items-center justify-content-between">
+
+            <p class="mb-0">登录后即可参与讨论，分享您的想法！</p>
+            <a class="btn btn-action flex-shrink-0" href="<?= url('user-login');?>" role="button" hx-get="<?= url('user-login');?>" hx-target="#S6-Body" hx-trigger="click" hx-swap="innerHTML" hx-push-url="true" hx-on:click="Aether.showS6()">
+                <i class="las la-user"></i>
+                <span>登录</span>
+            </a>
+        </div>
+        <?php endif; ?>
+    </div>
+
+</aside>

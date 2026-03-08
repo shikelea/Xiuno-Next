@@ -1,0 +1,32 @@
+<form action="<?= url('mod-digest'); ?>" method="post" id="mod_digest_form" hx-post="<?= url("mod-digest");?>" hx-trigger="submit">
+	<?php foreach($tidarr as $v): ?>
+	<input type="hidden" name="tidarr[]" value="<?= $v ?>">
+	<?php endforeach; ?>
+
+	<!-- 信息展示区 -->
+	<div class="info-section mb-4">
+		<div class="text-muted">操作概览</div>
+		<div class="fw-medium"><?= lang('total');?>：<span class="total text-primary"><?= $count ?? 0 ?></span> <?= lang('piece');?> <?= lang('thread') ?></div>
+	</div>
+	<!-- 表单字段 -->
+	<div class="form-fields">
+		<div class="form-group mb-4">
+			<label class="form-label" for="digest_level"><?= lang('digest_level'); ?>：</label>
+			<div>
+				<?php for ($digest_i = 0; $digest_i <= 3; $digest_i++) : ?>
+				<div class="form-check">
+					<input name="digest" class="form-check-input" type="radio" value="<?= $digest_i ?>" id="digest_<?= $digest_i ?>">
+					<label class="form-check-label" for="digest_<?= $digest_i ?>">
+						<?= lang('digest_' . $digest_i); ?>
+					</label>
+				</div>
+				<?php endfor; ?>
+			</div>
+		</div>
+	</div>
+
+	<footer class="d-flex gap-2 justify-content-end">
+		<button type="button" class="btn btn-outline-secondary btn-block" data-target="htmx-modal" hx-on:click="toggleModal(event)"><?= lang('close');?></button>
+		<button type="submit" class="btn btn-primary btn-block" data-loading-text="<?= lang('submiting');?>..."><?= lang('confirm');?></button>
+	</footer>
+</form>

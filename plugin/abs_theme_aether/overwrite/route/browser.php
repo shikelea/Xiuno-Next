@@ -1,0 +1,1 @@
+<?php include _include(APP_PATH . 'view/htm/browser.htm'); ?>

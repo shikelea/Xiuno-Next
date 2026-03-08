@@ -1,0 +1,3 @@
+<?php if ($uid && $thread['uid'] !=  $uid) { ?>
+<a  href="javascript:;" class="ml-2 btn-primary btn" data-username="<?php echo strip_tags($thread['user']['username']); ?>" data-uid="<?php echo $thread['uid']; ?>" data-modal-url="<?php echo url("sx");?>" data-modal-title="给 <?php echo strip_tags($thread['user']['username']); ?> 发送私信" data-modal-arg="<?php echo $thread['uid']; ?>" title="发送私信"><i class="iconfont icon-weixin"></i> 发消息</a>
+  <?php } ?>

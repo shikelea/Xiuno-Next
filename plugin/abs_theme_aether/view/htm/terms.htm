@@ -1,0 +1,65 @@
+<?php $AETHER_S3_VISIBLE = true; ?>
+
+<template include="./plugin/abs_theme_aether/template_parts/structure/router.htm">
+	<slot name="S3_Header">
+		<section class="header-main-toolbar ">
+			<div class="header-title-section">
+				<div class="d-block d-md-none me-2 ms-0">
+					<button title="返回上一级" type="button" class="btn btn-link text-body btn-icon" hx-on:click="Aether.hideS3()">
+						<i class="las la-arrow-left"></i>
+					</button>
+				</div>
+				<div class="flex-grow-1 overflow-hidden">
+					<h5 class="font-size-16 mb-0 text-truncate"><?= $abs_theme_aether_setting['page']['terms']['title'] ?> </h5>
+				</div>
+			</div>
+
+		</section>
+	</slot>
+	<slot name="S3_Body">
+		<?php if ($SHEET_MODE === 'FULL_PAGE'): ?>
+		<div hx-get="<?= url('about_us') ?>" hx-target="#S2" hx-trigger="revealed once" hx-swap="innerHTML" hx-on:htmx:after-request="this.remove()" class="reverse-loader"></div>
+		<?php endif; ?>
+		<section class="page-heading" role="heading">
+			<h1 class="h2 text-center my-5 mb-3 mx-2">
+				<?= $abs_theme_aether_setting['page']['terms']['title'] ?>
+			</h1>
+		</section>
+		<section class="card card-body">
+
+			<details>
+				<summary>新的帖子列表风格</summary>
+				<ul class="list-group">
+					<li class="thread list-group-item style-" title="瀑布流样式-单图">
+						<header>
+							<img src="./plugin/abs_theme_aether/view/img/看板娘.png" class="img-fluid" alt="帖子图片">
+						</header>
+						<section class="my-2">
+							<h5 class="mb-0"><a href="<?= url('thread-1') ?>">帖子标题</a></h5>
+						</section>
+						<footer class="d-flex align-items-center justify-content-between small border-top pt-2">
+							<div class="d-flex align-items-center gap-2">
+								<a href="<?= url('user-1') ?>" class="d-flex align-items-center">
+									<img src="./view/img/avatar.png" class="avatar avatar-sm me-2" alt="头像">
+									<span class="username">
+										用户名
+									</span>
+								</a>
+							</div>
+							<div class="text-end">
+								<span class="text-muted">d
+									<i class="las la-eye"></i>
+									42
+								</span>
+								<input type="checkbox" name="modtid[]" class="form-check-input" value="1" />
+
+							</div>
+						</footer>
+					</li>
+				</ul>
+			</details>
+<?= htmlspecialchars_decode($abs_theme_aether_setting['page']['terms']['content']) ?>
+
+		</section>
+	</slot>
+</template>

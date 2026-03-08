@@ -1,0 +1,207 @@
+<html lang="<?= $conf['lang']; ?>">
+
+    <head>
+        <meta charset="utf-8">
+        <?= defined('BASE_HREF') ? '<base href="' . BASE_HREF . '" />' : ''; ?>
+        <title><?= $header['title']; ?></title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+        <?php if (!empty($header['keywords'])) { ?>
+        <meta name="keywords" content="<?= strip_tags(htmlspecialchars($header['keywords'])); ?>" />
+        <?php } ?>
+        <meta name="description" content="<?= strip_tags(htmlspecialchars($header['description'])); ?>" />
+        <meta name="renderer" content="webkit">
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+        <link rel="shortcut icon" href="<?= $conf['view_url']; ?>img/favicon.ico" />
+        <link rel="icon" sizes="32x32" href="<?= $conf['view_url']; ?>img/favicon.ico">
+        <link rel="Bookmark" href="<?= $conf['view_url']; ?>img/favicon.ico" />
+
+        <?php ob_start();  ?>
+
+        <slot name="CSS_Head" />
+
+        <style id="aether_custom_css">
+            :root:not([style]),
+            body:not([style]),
+            [data-bs-theme=light]:not([style]),
+            [data-bs-theme=dark]:not([style]) {
+                --bs-body-font-size: <?=$abs_theme_aether_setting['appearance']['font']['font_size'] . 'px!important; /* custom */' ?>
+            }
+
+            <?=$abs_theme_aether_setting['advanced']['custom']['custom_css'] ?>
+        </style>
+
+        <?php
+    $aether_custom_css = ob_get_clean();
+    $ASSET->addCssCode(str_replace(['<style>', '<style id="aether_custom_css">', '</style>','<!-- CSS_Head to be inherited -->',], ['', '', '',''], $aether_custom_css));
+    unset($aether_custom_css);
+
+    /* aether_custom_css */ ?>
+
+        <?= $ASSET->Stylesheet('aether_h.min.css'); ?>
+
+        <script src="<?= $THIS_LOCATION_FRONTEND . 'view/js/aether_exec.js' ?>"></script>
+        <!--{hook header_link_before.htm}-->
+        <!--{hook header_bootstrap_before.htm}-->
+        <!--{hook header_bootstrap_after.htm}-->
+        <!--{hook header_bootstrap_bbs_before.htm}-->
+        <!--{hook header_bootstrap_bbs_after.htm}-->
+
+        <script src="<?= $THIS_LOCATION_FRONTEND . 'view/legacy/js/jquery-3.1.0.js' ?>"></script>
+
+        <!--{hook header_link_after.htm}-->
+
+        <slot name="JS_Head" />
+    </head>
+
+    <body class="<?= $conf['extra_html_class'] ?? '' ?>" data-bs-theme="light">
+        <div id="S0" data-sheet="S0" class="layout-Wrapper d-lg-flex">
+
+            <!-- S1: 左侧导航 -->
+            <nav id="S1" data-sheet="S1" title="App底部栏 容器" class="side-menu flex-lg-column me-lg-1 ms-lg-0">
+                <?php include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/navigation/s1.htm'); ?>
+            </nav>
+
+            <!-- S2: 一级区域 -->
+            <aside id="S2-Wrapper" class="s2-wrapper chat-leftsidebar <?= (isset($AETHER_S6_VISIBLE) && $AETHER_S3_VISIBLE) ? '' : 's2-full-width' ?>">
+                <section id="S2" data-sheet="S2">
+                    <header id="S2-Header" class="user-chat-topbar">
+                        <slot name="S2_Header" />
+                    </header>
+                    <main id="S2-Body" class="s2-body">
+                        <slot name="S2_Body" />
+                    </main>
+                </section>
+            </aside>
+
+            <!-- S3: 二级区域 -->
+            <section id="S3-Wrapper" class="s3-wrapper user-chat <?= (isset($AETHER_S6_VISIBLE) && $AETHER_S3_VISIBLE) ? 'user-chat-show' : '' ?>">
+                <div class="d-lg-flex h-100">
+                    <!-- 主要内容区 -->
+                    <section id="S3" data-sheet="S3" class="s3-main w-100 overflow-hidden position-relative">
+                        <header id="S3-Header">
+                            <slot name="S3_Header" />
+                        </header>
+                        <main id="S3-Body" class="chat-conversation">
+                            <slot name="S3_Body" />
+                        </main>
+                        <footer id="S3-Footer" class="chat-input-section p-3 border-top mb-0">
+                            <slot name="S3_Footer" />
+                        </footer>
+                        <slot name="S5_In_S3_Footer" />
+                    </section>
+
+                    <!-- S4: 侧边辅助区 -->
+                    <aside id="S4" data-sheet="S4" class="s4-sidebar user-profile-sidebar">
+                        <header id="S4-Header">
+                            <slot name="S4_Header" />
+                        </header>
+                        <main id="S4-Body">
+                            <slot name="S4_Body" />
+                        </main>
+                    </aside>
+                </div>
+            </section>
+        </div>
+
+        <!-- S5: 模态框区域 -->
+        <aside id="S5">
+            <dialog id="htmx-modal" class="s5 htmx-modal" <?= (isset($AETHER_S6_VISIBLE) && $AETHER_S5_VISIBLE) ? 'open' : '' ?>>
+                <article class="card">
+                    <header class="card-header">
+                        <button role="button" data-target="htmx-modal" hx-on:click="toggleModal(event)" class="btn close" title="<?= lang('close') ?>">&times;</button>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h3 class="h5 m-0 card-title modal-title "><?= lang('operation') ?></h3>
+                            <small class="modal-subtitle text-muted pr-3"></small>
+                        </div>
+                    </header>
+                    <div id="S5_Body" class="card-body modal-body">
+                        <slot name="S5" />
+                    </div>
+                </article>
+            </dialog>
+
+            <dialog id="searchModal" class="s5 htmx-modal">
+                <article class="card">
+                    <div class="modal-body p-0">
+                        <form action="<?= url('search') ?>" method="get" hx-get="<?= url('search') ?>" hx-target="#S3" hx-swap="innerHTML" hx-push-url="true">
+                            <div class="form-control h-auto p-0 m-0 form-group input-group border-0">
+                                <button type="button" data-target="searchModal" hx-on:click="toggleModal(event)" class="btn border-0" title="<?= lang('close') ?>"><i class="la la-arrow-left" aria-hidden="true" data-target="searchModal"></i><span class="sr-only">关闭</span></button>
+                                <input type="text" id="modalSearchInput" class="form-control fs-5 p-0 bg-transparent border-0 shadow-none" placeholder="输入关键词开始搜索..." hx-get="<?= url('quicksearch') ?>" hx-trigger="keyup changed delay:300ms, search" hx-target="#searchResults" hx-indicator="#searchSpinner" hx-params="keyword,ajax:true" hx-push-url="false" hx-include="#modalSearchInput" name="keyword" />
+                                <input type="hidden" name="fullpage" value="1">
+                                <button type="submit" class="btn border-0" title="<?= lang('search') ?>"><i class="la la-search" aria-hidden="true"></i><span class="sr-only">搜索</span></button>
+                            </div>
+                        </form>
+                        <div class="htmx-indicator text-center my-3" id="searchSpinner" style="display:none;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                        <div id="searchResults" class="search-result-list" hx-boost="true" hx-target="#S3" hx-swap="innerHTML">
+                            <div class="alert text-muted text-center">输入关键词开始搜索</div>
+                        </div>
+                    </div>
+                </article>
+            </dialog>
+
+            <?php if (DEBUG): 
+        include _include(APP_PATH . './plugin/abs_theme_aether/template_parts/common/aether_debuginfo.htm');
+        endif; ?>
+        </aside>
+
+        <!-- S6: 全屏区域 -->
+        <aside id="S6" class=" <?= (isset($AETHER_S6_VISIBLE) && $AETHER_S6_VISIBLE) ? 'show' : '' ?>">
+
+            <?php if ($SHEET_MODE === 'FULL_PAGE' && (isset($AETHER_S6_CLOSE_BUTTON_HREF) && !empty($AETHER_S6_CLOSE_BUTTON_HREF))): ?>
+            <button hx-get="<?= $AETHER_S6_CLOSE_BUTTON_HREF ?>" hx-target="#S2" hx-swap="outerHTML" hx-push-url="true" type="button" class="btn btn-link position-absolute top-0 left-0 mt-2 ms-2 mt-md-3 ms-md-3 mt-lg-4 ms-lg-4 sticky-top" hx-on:click="Aether.hideS6()">&times; <span class="d-none d-sm-inline"><?= lang('close') ?></span></button>
+            <?php else: ?>
+            <button type="button" class="btn btn-link position-absolute top-0 left-0 mt-2 ms-2 mt-md-3 ms-md-3 mt-lg-4 ms-lg-4 sticky-top" hx-on:click="Aether.hideS6()">&times; <span class="d-none d-sm-inline"><?= lang('close') ?></span></button>
+            <?php endif; ?>
+            <div id="S6-Body">
+                <slot name="S6_Body" />
+            </div>
+        </aside>
+
+        <template id="aether_skeleton__thread">
+            <!--{hook aether_skeleton__thread_s3.htm}-->
+        </template>
+        <template id="aether_skeleton__list">
+            <!--{hook aether_skeleton__list_s3.htm}-->
+        </template>
+        <template id="aether_skeleton__genetic">
+            <!--{hook aether_skeleton__genetic_s3.htm}-->
+        </template>
+        <template id="aether_skeleton__create">
+            <!--{hook aether_skeleton__create_s3.htm}-->
+        </template>
+        
+        <?php 
+    // ? 记录本次页面访问时间（仅在非HTMX请求且非轮询请求时更新）
+    if (!$IS_HTMX && !(isset($_SESSION['htmx_last_noticelist_check']))) {
+    	$_SESSION['htmx_last_noticelist_check'] = time();
+    }
+ ?>
+        <?php if($user): ?>
+        <div hx-get="<?= url('my-notice-getnew') ?>" hx-trigger="every 60s" hx-swap="innerHTML"></div>
+        <?php endif; ?>
+
+
+        <!-- JavaScript -->
+        <slot name="CSS_End" />
+
+        <style id="aether-md3-colors"></style>
+
+        <script src="https://unpkg.com/@material/ripple@14.0.0/dist/mdc.ripple.min.js" integrity="sha384-9QANVmWxL3S8VRs8x1Q+bF1Zzogpy7P/Qw1+y5qHLdC1ig0EuoHg9VbB1SXyecdZ" crossorigin="anonymous"></script>
+        <?= $ASSET->Javascript('aether.min.js'); ?>
+        <script>
+            var debug = DEBUG = <?= DEBUG; ?>;
+            var url_rewrite_on = <?= $conf['url_rewrite_on'];?>;
+            var forumarr = <?= xn_json_encode($forumarr);?>;
+            var fid = <?= $fid;?>;
+            var uid = <?= intval($uid);?>;
+            var gid = <?= intval($gid);?>;
+            /*xn.options.water_image_url = '<?= $conf['logo_water_url'];?>';*/
+        </script>
+
+        <slot name="JS_End" />
+
+    </body>
+
+</html>

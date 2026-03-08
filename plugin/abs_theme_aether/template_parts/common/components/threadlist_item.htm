@@ -1,0 +1,68 @@
+<li class="thread list-group-item list-group-item-action media d-flex align-items-center gap-3 style-classic_v1 style-fallback <?= $_thread['top_class'];?>" data-href="<?= url("thread-$_thread[tid]");?>" data-tid="<?= $_thread['tid'];?>">
+    <?php if($have_allowtop && $_thread['allowtop']) : ?>
+    <input type="checkbox" name="modtid[]" class="form-check-input" value="<?= $_thread['tid']; ?>" />
+    <?php endif; ?>
+    <a href="<?= url('user-' . $_thread['uid']);?>" tabindex="-1">
+        <img class="avatar avatar-lg rounded" src="<?= $_thread['user_avatar_url'];?>">
+        <!--{hook thread_list_inc_avatar_after.htm}-->
+    </a>
+    <div class="media-body flex-grow-1">
+        <div class="break-all">
+
+            <a class="h5" href="<?= url('thread-' . $_thread['tid']);?>" hx-get="<?= url('thread-' . $_thread['tid']);?>" hx-target="#S3" hx-swap="innerHTML" hx-on:click="Aether.openInS3('thread')" hx-push-url="true">
+
+                <!--{hook thread_list_inc_top_icon_before.htm}-->
+                <?php if($_thread['top'] > 0) { ?>
+                <i class="las la-flag icon-top-<?= $_thread['top']; ?>"></i>
+                <?php } ?>
+                <!--{hook thread_list_inc_subject_top_after.htm}-->
+
+                <!--{hook thread_list_inc_subject_before.htm}-->
+                <?= $_thread['subject'];?>
+                <!--{hook thread_list_inc_subject_after.htm}-->
+
+                <!--{hook thread_list_inc_filetype_icon_before.htm}-->
+                <?php if($_thread['files'] > 0) { ?><i class="icon small filetype other"></i><?php } ?>
+                <!--{hook thread_list_inc_filetype_icon_after.htm}-->
+
+                <!--{hook thread_list_inc_lock_icon_before.htm}-->
+                <?php if($_thread['closed'] > 0) { ?><i class="icon-lock"></i><?php } ?>
+                <!--{hook thread_list_inc_lock_icon_after.htm}-->
+
+            </a>
+
+        </div>
+
+        <div class="d-flex justify-content-between mt-1 flex-wrap small">
+            <div class="break-all text-truncate">
+
+                <!--{hook thread_list_inc_username_before.htm}-->
+                <span class="username  mr-1 <?php if($_thread['lastuid']) { ?> hidden-sm<?php } ?>" data-uid="<?= $_thread['uid'];?>"><?= $_thread['username'];?></span>
+                <time datetime="<?= $_thread['create_date'];?>" class="date <?php if($_thread['lastuid']) { ?> hidden-sm<?php } ?>"><?= $_thread['create_date_fmt'];?></time>
+                <!--{hook thread_list_inc_username_after.htm}-->
+
+                <!--{hook thread_list_inc_lastuid_before.htm}-->
+                <?php if($_thread['lastuid']) { ?>
+                <span>
+                    <i class="las la-reply"></i>
+                    <span class="username mr-1" uid="<?= $_thread['lastuid'];?>"><?= $_thread['lastusername'];?></span>
+                    <time datetime="<?= $_thread['last_date'];?>" ><?= $_thread['last_date_fmt'];?></time>
+                </span>
+                <?php } ?>
+                <!--{hook thread_list_inc_lastuid_after.htm}-->
+
+            </div>
+            <div class="text-muted  text-nowrap">
+
+                <!--{hook thread_list_inc_view_before.htm}-->
+                <span class="ml-2"><i class="las la-eye"></i> <?= $_thread['views'];?></span>
+                <!--{hook thread_list_inc_view_after.htm}-->
+
+                <!--{hook thread_list_inc_posts_before.htm}-->
+                <span class="ml-2"><i class="las la-comment"></i> <?= $_thread['posts'];?></span>
+                <!--{hook thread_list_inc_posts_after.htm}-->
+
+            </div>
+        </div>
+    </div>
+</li>

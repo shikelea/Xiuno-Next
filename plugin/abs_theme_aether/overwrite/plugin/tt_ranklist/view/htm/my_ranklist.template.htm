@@ -1,0 +1,71 @@
+<?php 
+$header['title_mobile'] = '排行榜';
+$header['title'] = $header['title_mobile'] . ' - ' . $conf['sitename'];
+
+ ?>
+<template include="./plugin/abs_theme_aether/template_parts/structure/router.htm">
+	<slot name="S2_Header">
+		<header title="App标题栏 - 左右下布局" id="S2-Header" class="user-chat-topbar">
+			<section title="App标题栏 主工具栏" class="header-main-toolbar ">
+
+				<div title="返回按钮">
+					<button title="<?= lang('back') ?>" type="button" class="btn btn-link text-body btn-icon" hx-get="<?= url('index');?>" hx-target="#S2">
+						<i class="las la-arrow-left"></i>
+					</button>
+				</div>
+				<div title="App标题栏 主工具栏 标题" class="header-title-section"><?= $header['title_mobile'] ?></div>
+
+			</section>
+			<section title="App标题栏 副标题栏" class="header-sub-header">
+				<ul class="nav nav-underline" hx-boost="true" hx-target="#S2-Body" hx-swap="innerHTML" hx-trigger="click" hx-push-url="true">
+					<li class="nav-item">
+						<a class="nav-link" href="<?= url('my-ranklist');?>" data-active="my-ranklist_threads">
+							<?= lang('threads');?>
+						</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" href="<?= url('my-ranklist_posts');?>" data-active="my-ranklist_posts">
+							<?= lang('posts');?>
+						</a>
+					</li>
+					<?php if(isset($user['credits'])): ?>
+					<li class="nav-item">
+						<a class="nav-link" href="<?= url('my-ranklist_credits');?>" data-active="my-ranklist_credits">
+							<?= $credits1_name ?>
+						</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" href="<?= url('my-ranklist_golds');?>" data-active="my-ranklist_golds">
+							<?= $credits2_name ?>
+						</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" href="<?= url('my-ranklist_rmbs');?>" data-active="my-ranklist_rmbs">
+							<?= $credits3_name ?>
+						</a>
+					</li>
+					<?php endif; ?>
+				</ul>
+			</section>
+		</header>
+
+	</slot>
+	<slot name="S2_Body">
+		<style scoped>
+			#ranklist-list .card {
+				--bs-card-spacer-x: 1rem;
+				--bs-card-spacer-y: 1rem;
+			}
+		</style>
+
+		<slot name="my_body" />
+
+		<script>
+			/*
+			AetherExec(function(){
+				setActive("menu-my-ranklist", "*", "#my_aside, #my_aside_mobile");
+			});
+			*/
+		</script>
+	</slot>
+</template>

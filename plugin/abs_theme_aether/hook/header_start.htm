@@ -1,0 +1,23 @@
+<?php
+
+if (isset($starttime) && isset($db) && is_object($db) && isset($db->sqls)) {
+$appTime = (microtime(true) - $starttime) * 1000;
+$dbTime = array_sum(array_map(function($sql) {
+    return (float)explode(' ', $sql)[0];
+}, $db->sqls)) * 1000;
+
+$metrics = [
+    'db' => round($dbTime, 2),
+    'app' => round($appTime, 2),
+    'cache' => 0
+];
+
+$serverTimingParts = [];
+foreach ($metrics as $name => $duration) {
+    $serverTimingParts[] = "{$name};dur={$duration}";
+}
+
+$serverTimingHeader = implode(', ', $serverTimingParts);
+header("Server-Timing: " . $serverTimingHeader);
+}
+?>

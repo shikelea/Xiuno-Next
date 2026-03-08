@@ -1,0 +1,32 @@
+<?php
+if ((isset($haya_post_like_config['open_post'])
+	&& $haya_post_like_config['open_post'] == 1)
+	&& (isset($haya_post_like_config['open_hot_like'])
+	&& $haya_post_like_config['open_hot_like'] == 1)
+) {
+?>
+
+<?php if (!empty($haya_post_like_hot_posts) && $page == 1) { ?>
+
+<section class="haya-post-like-hot-posts mt-4">
+	<h5 class="mb-3 px-3"><i class="la la-thumbs-o-up <?= isset($haya_post_like_config['post_loved_color']) ? 'text-' . $haya_post_like_config['post_loved_color'] : 'text-warning' ?>"></i> <?= lang('haya_post_like_hot_post'); ?></h5>
+
+	<div class="card">
+		<div class="card-body py-0">
+			<?php 
+					$haya_post_like_old_postlist = $postlist; 
+					$postlist = $haya_post_like_hot_posts;
+					?>
+
+			<?php include _include(APP_PATH.'view/htm/post_list.inc.htm'); ?>
+
+			<?php $postlist = $haya_post_like_old_postlist; ?>
+		</div>
+	</div>
+
+</section>
+
+
+<?php } ?>
+
+<?php } ?>

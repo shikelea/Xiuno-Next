@@ -53,7 +53,7 @@ $conf = (@include APP_PATH . 'conf/conf.php') or exit('<script>window.location="
 !isset($conf['logo_mobile_url']) and $conf['logo_mobile_url'] = 'view/img/logo.png';
 !isset($conf['logo_pc_url']) and $conf['logo_pc_url'] = 'view/img/logo.png';
 !isset($conf['logo_water_url']) and $conf['logo_water_url'] = 'view/img/water-small.png';
-$conf['version'] = '4.4.4'; // 版本号随代码发布，在线更新后新 index.php 会带新版本号
+$conf['version'] = '4.4.5'; // 版本号随代码发布，在线更新后新 index.php 会带新版本号
 
 // 转换为绝对路径，防止被包含时出错。
 substr($conf['log_path'], 0, 2) == './' and $conf['log_path'] = APP_PATH . $conf['log_path'];

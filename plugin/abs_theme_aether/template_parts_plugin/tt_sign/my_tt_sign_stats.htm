@@ -1,0 +1,117 @@
+<?php
+
+/*
+tt_sign__count_all
+tt_sign__last_timestamp
+tt_sign__is_signed_today
+tt_sign__count_month
+tt_sign__count_week
+
+*/
+
+$today0 = strtotime(date('Y-m-d', time())) - 1;
+
+$count_all = cache_get('tt_sign__count_all_' . $uid);
+if(is_null($count_all)) {
+$count_all = db_count('sign', array('uid' => $uid));
+cache_set('tt_sign__count_all_' . $uid, $count_all, 60);    
+}
+
+if (empty($count_all)){ $count_all = 0;}
+if ($count_all > 0) {
+    $last_timestamp = cache_get('tt_sign__last_timestamp_' . $uid);
+    if(is_null($last_timestamp)) {
+        $__tmp = db_find_one('sign', array('uid' => $uid), array('time' => -1));
+        $last_timestamp = $__tmp['time'];
+        cache_set('tt_sign__last_timestamp_' . $uid, $last_timestamp, 60);
+    }
+}
+$beginThismonth = strtotime(date('Y-m-01', strtotime('this month'))) - 1;
+$endThismonth = strtotime(date('Y-m-t', strtotime('this month'))) + 1;
+$_sql_month = cache_get('tt_sign__count_month_' . $uid);
+if(is_null($_sql_month)) {
+    $_sql_month = db_count('sign', array('uid' => $uid, 'time' => array('>' => $beginThismonth, '<' => $endThismonth)));
+    cache_set('tt_sign__count_month_' . $uid, $_sql_month, 60);
+}
+if (empty($_sql_month)){ $_sql_month = 0;}
+$beginWeek = strtotime(date("Y-m-d H:i:s", mktime(0, 0, 0, date("m"), date("d") - date("w"), date("Y")))) - 1;
+$endWeek = strtotime(date("Y-m-d H:i:s", mktime(23, 59, 59, date("m"), date("d") - date("w") + 6, date("Y")))) + 1;
+$_sql_week = cache_get('tt_sign__count_week_' . $uid);
+if(is_null($_sql_week)) {
+    $_sql_week = db_count('sign', array('uid' => $uid, 'time' => array('>' => $beginWeek, '<' => $endWeek)));
+    cache_set('tt_sign__count_week_' . $uid, $_sql_week, 60);
+}
+if (empty($_sql_week)){ $_sql_week = 0;}
+$is_signed_today = cache_get('tt_sign__is_signed_today_' . $uid);
+if(is_null($is_signed_today)) {
+    $is_signed_today = db_find_one('sign', array('uid' => $uid, 'time' => array('>' => $today0))) ? true : false;
+    cache_set('tt_sign__is_signed_today_' . $uid, $is_signed_today, 60);
+}
+
+?>
+<aside class="card my_common_total_info mb-3">
+    <?php if (isset($last_timestamp)): ?>
+    <section class="d-flex align-items-center justify-content-between border-bottom card-body">
+        <div class="h2 me-2">
+            <?= $is_signed_today ? '<i class="la la-check-circle text-success"></i>' : '<i class="la la-times-circle"></i>'; ?>
+
+        </div>
+        <div class="flex-grow-1">
+            <p class="fw-semibold font-weight-bold h5">
+                <?= $is_signed_today ? '今日已签' : '今日未签到'; ?>
+            </p>
+            <p class="text-muted mb-0">
+                最近签到时间：<?= date('Y-m-d h:i', $last_timestamp); ?>
+            </p>
+        </div>
+
+    </section>
+    <?php endif; ?>
+    <section class="row card-body">
+        <div class="col-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="h2 text-muted mb-0 me-2">
+                    <i class="la la-calendar"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="small">
+                        累计签到
+                    </div>
+                    <div class="h5 mb-0">
+                        <?= $count_all; ?>次
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="h2 text-muted mb-0 me-2">
+                    <i class="la la-check"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="small">
+                        本周签到
+                    </div>
+                    <div class="h5 mb-0">
+                        <?= $_sql_week; ?>次
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="h2 text-muted mb-0 me-2">
+                    <i class="la la-edit "></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="small">
+                        本月签到
+                    </div>
+                    <div class="h5 mb-0">
+                        <?= $_sql_month; ?>次
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</aside>

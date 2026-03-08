@@ -1,0 +1,5 @@
+<?php if ($user && $uid != $_user['uid']) { ?>
+<button type="button" class="btn btn-outline-primary" data-modal-url="<?= url("sx",['to_uid' => $_user['uid']]);?>" data-modal-title="给 <?= $_user['username']; ?> 发送私信">
+    <i class="las la-envelope"></i>
+    发消息</button>
+<?php } ?>

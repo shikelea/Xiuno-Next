@@ -1,0 +1,6 @@
+<a href="<?= url("user-follow-follows-".$_uid);?>" class="list-group-item list-group-item-action" data-active="menu-user-follow">关注</a>
+<?php if (isset($haya_follow_config['show_user_dynamic']) 
+&& $haya_follow_config['show_user_dynamic'] == 1
+) : ?>
+<a href="<?= url("user-follow-timeline-".$_uid);?>" class="list-group-item list-group-item-action" data-active="menu-user-follow-timeline">动态</a>
+<?php endif; ?>

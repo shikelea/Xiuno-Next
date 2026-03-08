@@ -1,0 +1,417 @@
+@font-face { 
+    font-family: 'power_symbols'; 
+    src: url(data:application/font-woff2;charset=utf-8;base64,d09GMgABAAAAAANQAAoAAAAABrgAAAMEAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAABmAAglIKhGyECAsOAAE2AiQDDgQgBYFPB38bjwXIHgfV7R3GNyxRxDDdFzEiCOaqqpNMNnvASAqe0UgAEO7V0fV2796P3WVSiSXod4FKVgL7uKjg+sAPVTFarV6/nw9/Ob618YA+gL+bg9PAxqZEs8iyuW2LJ5RTRi1uO/iOqHUq1fQIWSGuQUlW6lm6D6KJPDn93pqkBolSOdmo5hbT1kRXwDA6ztNf83yNzwtyBKi5GUjJrFH2eyZJBRrJdEOhkEDL5x3n/b+Alk+8kV/yb97p7AeMnPpvclAJ5XiLaAbIQEgkQkiyKl0qt65StVqlOHiwqfmUgPwYOUxjZccp4213jC9cun7zAxz7kVSMqmgeO87lvHltfIGAYx84fevYD/IRJYcdz10+xI5TzaXj9DAJ2THC+AL1dfJnWmWSXCAIooMkMQgQZc530JVeVJBsF0M0QuXqNwTsH4g6iMgpaoZlNQpV7l/agp9k35f+IJiuXvu6OepmVMF29dbXzcNhFNbYoWVv72VlB50Mnp3dpMfB0nXB5n+LRs9qrWtocN16tz/4v3+Dzy0K7v9XOxD87uM40iq2v43KPMlxw8O1x8zSnG56OzC7M6vzgJnYeqBe0Mws6LViMCOyGA0Uo0hq66hIhPyc3zkxi36fLbl9FHVUib+zjSv/dGD4xXPozJmTna0qORp1VAKlUNKD7brQ3O+GrK2NgMVLIiHvNhLhA7rnbRcFvfv2/GiyUb3TM7CTy9WORjNOd2PRLc2HfVzTYLSjhktHE9q67cqYfPX6jEYSNvwB6PjgtQTbjYe2EyhQPtwOBIIPbqTd41UH/V9ULMCXZ6qf2J28qOyLAgoJCIAMxedht4IhgvoJUcAdvdLRUdVMgdwgCUgQAsMAVHJHgBAIkMiFACnKBMhEQEoqKjblqCkVWbmQIJKopDZJ0dzMJKSkjpYNOfpvm+Msq51mzfbr0s02k622ynq7beaoOd9kh53W22qLZrrroptk1C3IiSTSyKIUeaW9Vbt/vDW1wU2pKV6pMTFJ3sJTWGtnr+AeJKa33FITGZ8RmRQNAAA=) format('woff2');
+    unicode-range: U+23FB-23FE, U+2B58;
+}
+
+::selection {
+	color: var(--bs-white-text, #fff);
+	background-color: var(--bs-primary);
+}
+
+:root,
+body,
+[data-bs-theme=light],
+[data-bs-theme=dark] {
+	--bs-font-sans-serif:  "HarmonyOS Sans", "HarmonyOS Sans SC", 'Liberation Sans','有爱魔兽圆体 CN', '有爱魔兽黑体 CN', '梦源黑体', Noto Sans CJK SC, Sourse Han Sans CN, '思源黑体 CN', '思源黑体', Sarasa UI SC, Sarasa Gothic SC, MiSans, PingFang SC, Microsoft YaHei, WenQuanYi Micro Hei, sans-serif, system-ui;
+	--bs-font-serif: '梦源宋体', Noto Serif CJK SC, Sourse Han Serif CN, '思源宋体 CN', "CMU Serif","Liberation Serif",'Times New Roman', SimSun, serif, system-ui;
+	--bs-font-monospace: Iosevka, Sarasa Mono SC, Sarasa Fixed SC, Sarasa Term SC, '等距更纱黑体 SC', '等距更纱黑体 T SC', '思源等宽', Source Han Mono, Source Code Pro, Inconsolata, Consolas, monospace;
+	--bs-font-cursive: '素材集市康康体', '851tegakizatsu', KaiTi, KaiTi_GB2312, cursive, system-ui;
+	--bs-font-fantasy: fangsong, FangSong, FangSong_GB2312, fantasy, system-ui;
+	--bs-body-font-family: var(--bs-font-sans-serif);
+	--bs-body-font-size: 16px;
+	--bs-body-line-height: 1.6;
+	font-size: var(--bs-body-font-size);
+	font-feature-settings: "ss08" on, "liga" on, "calt" on, "kern" on, "tnum" on;
+	font-family: var(--bs-body-font-family);
+}
+
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: var(--bs-body-font-family);
+	line-height: inherit;
+}
+
+.h1 a,
+.h2 a,
+.h3 a,
+.h4 a,
+.h5 a,
+.h6 a,
+h1 a,
+h2 a,
+h3 a,
+h4 a,
+h5 a,
+h6 a {
+	color: inherit;
+}
+
+/* 它们没有继承 font-feature-settings，需要手动设置 */
+input,
+button,
+textarea,
+select,
+i,
+span,
+svg,
+path,
+g,
+circle,
+rect,
+polygon,
+polyline,
+line,
+ellipse,
+image,
+text,
+tspan,
+use,
+symbol,
+defs,
+clipPath,
+mask,
+pattern,
+marker,
+foreignObject {
+    font-feature-settings: inherit !important;
+}
+
+/* 或者更暴力的方案 */
+*,
+::before,
+::after,
+::backdrop,
+::file-selector-button {
+    font-feature-settings: 
+        "ss08" on,
+        "liga" on,
+        "calt" on,
+        "kern" on,
+        "tnum" on !important;
+}
+
+/* 或者针对那些不继承的元素 */
+:where(input, button, textarea, select, i, span, svg, path) {
+    font-feature-settings: 
+        "ss08" on,
+        "liga" on,
+        "calt" on,
+        "kern" on,
+        "tnum" on;
+}
+
+a {
+	color: var(--bs-link-color);
+}
+
+/* 它应该叫post-content但积重难返 */
+.message {
+	max-width: 100%;
+	overflow: hidden
+}
+
+.message,
+.message p {
+	line-height: 2
+}
+
+.message a:hover {
+	text-decoration: underline
+}
+
+.post-wrap>* {
+	margin-bottom: var(--bs-marign-y)
+}
+
+.message>:not(p) {
+	margin-bottom: 2rem
+}
+
+.message>.row:not(:first-child) {
+	margin-top: 0
+}
+
+.message>hr,
+.post-wrap>hr {
+	margin: var(--bs-marign-y) 0
+}
+
+.message>h1,
+.message>h2,
+.message>h3,
+.message>h4,
+.message>h5,
+.message>h6 {
+	margin-top: 1.25em
+}
+
+.message h1,
+.message h2,
+.message>h3,
+.message>h4 {
+	margin-bottom: 1rem
+}
+
+.message>h5,
+.message>h6 {
+	margin-bottom: .5rem
+}
+
+.message>ul>li:not(:last-child) {
+	margin-bottom: .75em
+}
+
+.message>:first-child:not(.row),
+.post-wrap>:first-child {
+	margin-top: 0
+}
+
+.message>:last-child,
+.post-header>:last-child,
+.post-wrap>:last-child {
+	margin-bottom: 0
+}
+
+.message h1 {
+	font-size: calc(1.375em + 1.5vw)
+}
+
+@media (min-width:1200px) {
+	.message h1 {
+		font-size: 2.5em
+	}
+}
+
+.message h2 {
+	font-size: calc(1.325em + .9vw)
+}
+
+@media (min-width:1200px) {
+	.message h2 {
+		font-size: 2em
+	}
+}
+
+.message h3 {
+	font-size: calc(1.3em + .6vw)
+}
+
+@media (min-width:1200px) {
+	message h3 {
+		font-size: 1.75em
+	}
+}
+
+.message h4 {
+	font-size: calc(1.275em + .3vw)
+}
+
+@media (min-width:1200px) {
+	.message h4 {
+		font-size: 1.5em
+	}
+}
+
+.message h5 {
+	font-size: 1.25em
+}
+
+.message h6 {
+	font-size: 1em
+}
+
+blockquote.blockquote {
+	line-height: 2;
+	margin: 0;
+	padding: 1em 2em;
+	position: relative;
+	border-left: 2px solid var(--bs-info);
+}
+
+blockquote.blockquote .avatar-1 {
+    width:auto;
+    height:1.2em;
+}
+
+@media (max-width:575px) {
+	blockquote.blockquote {
+		padding: 0.75em 1em;
+
+	}
+}
+
+blockquote.blockquote p {
+	line-height: 1.3;
+	margin-bottom: 1.5rem
+}
+
+/*=============================================
+=                   Code Highlight                   =
+=============================================*/
+
+pre.prettyprint {
+	--base00: #212121;
+	--base01: #303030;
+	--base02: #353535;
+	--base03: #4A4A4A;
+	--base04: #B2CCD6;
+	--base05: #EEFFFF;
+	--base06: #EEFFFF;
+	--base07: #FFFFFF;
+	--base08: #F07178;
+	--base09: #F78C6C;
+	--base0A: #FFCB6B;
+	--base0B: #C3E88D;
+	--base0C: #89DDFF;
+	--base0D: #1e91ff;
+	--base0E: #C792EA;
+	--base0F: #FF5370;
+
+
+	/* Material You风格增强 */
+	background-color: var(--base00);
+	padding: 1.5em;
+	border-radius: 1.25em;
+	/* 更大的圆角 */
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-family: var(--bs-font-monospace);
+	font-size: 14px;
+	line-height: 1.8;
+	margin: 1.5em 0;
+}
+
+
+/* ========== 语法高亮 ========== */
+/* plaintext */
+pre.prettyprinted,
+pre,
+pre .pln {
+	color: var(--base05);
+}
+
+/* 字符串 - 绿色 */
+pre .str {
+	color: var(--base0B);
+}
+
+/* 关键字 - 紫色 + 斜体 */
+pre .kwd {
+	font-style: italic;
+	color: var(--base0E);
+	font-weight: 500;
+}
+
+/* 注释 */
+pre .com {
+	font-style: italic;
+	color: var(--base03);
+}
+
+/* 类型 - 黄色 */
+pre .typ {
+	color: var(--base0A);
+}
+
+/* 声明 - 青色 */
+pre .dec {
+	color: var(--base0C);
+}
+
+/* 字面量 - 橙色 */
+pre .lit,
+pre a {
+	color: var(--base09);
+}
+
+/* 标点符号 */
+pre .pun {
+	color: var(--base04);
+}
+
+pre .opn,
+pre .clo {
+	color: var(--base0F);
+}
+
+/* 变量 - 红色 */
+pre .var {
+	color: var(--base08);
+}
+
+/* HTML/XML标签 - 红色 */
+pre .tag {
+	color: var(--base08);
+}
+
+/* 属性名 - 使用你的主色调 */
+pre .atn {
+	color: var(--base0D);
+}
+
+/* 属性值 - 橙色 */
+pre .atv {
+	color: var(--base09);
+}
+
+
+/* ========== 浅色主题变体 ========== */
+
+[data-bs-theme="light"] pre.prettyprint {
+	--base00: #f8f9fa;
+	--base01: #e9ecef;
+	--base02: #dee2e6;
+	--base03: #adb5bd;
+	--base04: #495057;
+	--base05: #212529;
+	--base06: #212529;
+	--base07: #000000;
+
+	/* 浅色主题下调整颜色饱和度 */
+	--base08: #dc3545;
+	--base09: #fd7e14;
+	--base0A: #ffc107;
+	--base0B: #28a745;
+	--base0C: #17a2b8;
+	--base0D: #1e91ff;
+	/* 保持你的主色调 */
+	--base0E: #6f42c1;
+	--base0F: #e83e8c;
+
+}
+
+pre.prettyprint::before {
+	opacity: 0.2;
+}
+
+/* ========== 响应式调整 ========== */
+@media (max-width: 768px) {
+	pre.prettyprint {
+		padding: 1em;
+		border-radius: 1em;
+		margin: 1em 0;
+	}
+
+	ol.linenums {
+		padding-left: 2.5em;
+	}
+
+	ol.linenums>li::before {
+		left: -2.5em;
+		width: 2em;
+	}
+}
+
+
+/*============  End of Code Highlight  =============*/

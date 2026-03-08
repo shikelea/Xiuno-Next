@@ -1,0 +1,69 @@
+<template include="./plugin/tt_credits/view/htm/my_credits.template.htm">
+	<slot name="my_body"><div class="col-md-12 mx-auto">
+		<?php $set=setting_get('tt_credits');$convert = $set['convert_exchange'];?>
+		<!-- <style>div.tt_card{display:inline-block; width:100%;height:200px;border-radius:5px;background: linear-gradient(to bottom right, #eef6ff , #c8ffff);box-shadow: 0px 5px 10px 0px rgba(0,0,0,0.2);margin-bottom:35px;}
+		div.tt_card_s{display:inline-block; width:100%;height:<?php echo $convert==1?'375':'200';?>px;border-radius:5px;background: linear-gradient(to bottom right, #eef6ff , #C8FFFF);box-shadow: 0px 5px 10px 0px rgba(0,0,0,0.2);margin-bottom:35px;}
+		div.tt_card_title{margin-top:12px;margin-left:18px;font-size:24px;color:dodgerblue;}
+		div.tt_content{margin-top:16px;width:100%;margin-left:24px;margin-right:8px;display:inline-block;}
+		</style> -->
+		<div class="alert alert-primary"><div class="alert-heading h4"><?php echo lang('exchange');?></div><hr >
+		<div class="tt_content">
+			<?php if($convert==1){ ?>
+			<div class="ex_info mb-2"><?php echo lang('exchange_mode');?><span class="badge badge-warning mr-2"><?php echo lang('credits2');?></span> <?php echo lang("exchange_to");?><span class="badge badge-danger ml-2"><?php echo lang('credits3');?></span></div><form method="post" id="form2">
+				<input oninput="ONInput2(jinput2);" onblur="ONInput2(jinput2);" type="text" id="e_golds_c" name="e_golds_c"class="form-control" placeholder="<?php echo lang('credits3');?>" maxlength="10" /><div class="d-flex justify-content-between mt-3"><div class="ex-results"><?php echo lang("can_exchange");?> <span class="badge badge-danger" id="e_rmbs_c">0</span> <?php echo lang('credits3');?>，<?php echo lang("need_use");?> <span class="badge badge-warning" id="show_golds_c">0</span> <?php echo lang('credits2');?></div><button type="button" class="btn btn-success" id="submit2" data-loading-text="<?php echo lang('submiting');?>..." data-active="<?php echo url('my-trade');?>"><?php echo lang('exchange');?></button></div></form>
+				<?php } else{?>
+					<div class="ex_info mb-2"><?php echo lang('exchange_mode');?><span class=" badge badge-danger mr-2"><?php echo lang('credits3');?></span><?php echo lang("exchange_to");?><span class="badge badge-warning ml-2"><?php echo lang('credits2');?></span></div><form method="post" id="form">
+					
+						<input oninput="ONInput(jinput);" onblur="ONInput(jinput);" type="text" id="e_rmb" name="e_rmb" class="form-control" placeholder="<?php echo lang('credits2');?>" maxlength="10" /><div class="d-flex justify-content-between mt-3"><div class="ex-results"><?php echo lang("can_exchange");?> <span class="badge badge-warning" id="e_golds">0</span> <?php echo lang('credits2');?>，<?php echo lang("need_use");?> <span class="badge badge-danger" id="show_rmb">0</span> <?php echo lang("credits3");?></div> <button type="button" class="btn btn-success" id="submit" data-loading-text="<?php echo lang('submiting');?>..." data-active="<?php echo url('my-trade');?>" ><?php echo lang('exchange');?></button></div></form>
+				<?php } ?>
+				</div></div>
+		<!--{hook my_trade_after.htm}-->
+	</div></slot></template>
+<script>
+    $('a[data-active="my-trade"]').addClass('active');
+</script>
+<?php if($convert==1){ ?>
+<script>
+    var jinput2 = $("#e_golds_c"); var jsubmit2 = $('#submit2'); var jgolds2=$("#e_rmbs_c"); jshow_rmb2 = $("#show_golds_c");
+    jsubmit2.on('click', function(){
+        jinput2.val(jinput2.val().replace(/[^0-9\.]/g, ''));
+        if(jinput2.val()==''||jinput2.val()=='0') return false;
+        $.confirm('<?php echo lang("sure_to_exchange");?>',function(){
+            jsubmit2.button('loading');var postdata ="e_golds_c="+(parseFloat(jinput2.val())*100.0)+"&op=c";
+            $.xpost(jsubmit2.attr('data-active'), postdata, function(code, message) {
+                if(code == 0) {$.alert(message);jsubmit2.button(message).delay(3000).button('reset');
+                } else if(code < 0) {$.alert(message);jsubmit2.button('reset');
+                } else {alert(message);jsubmit2.button('reset');}
+            });
+            return false;
+        });
+    });
+    jinput2.bind('input propertychange',function(){
+        ONInput2(jinput2);
+	});
+    function ONInput2(input){
+        input.val(input.val().replace(/[^0-9\.]/g, ''));
+        jgolds2.text(input.val()==''?'0':input.val());jshow_rmb2.text(input.val()==''?'0':(input.val()*100.0)*parseFloat("<?php echo $set['exchange_c'];?>"));
+	}
+</script><?php } ?><script>
+    var jinput = $("#e_rmb"); var jsubmit = $('#submit'); var jgolds=$("#e_golds"); jshow_rmb = $("#show_rmb");
+    jsubmit.on('click', function() {
+        if(jinput.val()==""||jinput.val()=="0") return false;
+        $.confirm('<?php echo lang("sure_to_exchange");?>',function(){
+            jsubmit.button('loading');var postdata = "e_rmb="+jinput.val()+"&op=n";
+            $.xpost(jsubmit.attr('data-active'), postdata, function(code, message) {
+                if(code == 0) {$.alert(message);jsubmit.button('reset');
+                } else if(code < 0) {$.alert(message);jsubmit.button('reset');
+                } else {alert(message);jsubmit.button('reset');}});
+            return false;
+        });
+    });
+    jinput.bind('input propertychange',function(){
+        ONInput(jinput);
+    });
+	function ONInput(input){
+        input.val(input.val().replace(/[^0-9]/g, ''));
+        jgolds.text(input.val()==''?'0':input.val());jshow_rmb.text(input.val()==''?'0':input.val()/100.0*parseFloat("<?php echo $set['exchange_n'];?>"));
+	}
+</script>
+<!--{hook my_trade_script_after.htm}-->

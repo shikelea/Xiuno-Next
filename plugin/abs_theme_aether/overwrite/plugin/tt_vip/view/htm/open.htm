@@ -1,0 +1,113 @@
+<?php 
+$set = setting_get('tt_vip');
+if($IS_HTMX):
+include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts_plugin/tt_vip/open_s3.htm');
+else: ?>
+<?php if(!$ajax) include _include(APP_PATH.'view/htm/header.inc.htm');?>
+<form action="<?= url('my-tt_vip_open');?>" method="post" id="form">
+    <section class="pricing-plans">
+        <div class="btn-group d-flex row" role="group">
+            <input type="radio" class="btn-check" name="buy_type" id="buy_month" value="month" checked />
+            <label class="col-12 col-md-6 col-lg-3 btn btn-outline-primary text-wrap" for="buy_month">
+                <span class="d-block fs-4">月付购买VIP</span> 您将获得31天VIP时间
+                <?php if($set['month_grow']>0):?>,同时赠送成长值
+                <?= $set['month_grow'];?> 点!
+                <?php endif; ?>
+            </label>
+            <input type="radio" class="btn-check" name="buy_type" id="buy_season" value="season" />
+            <label class="col-12 col-md-6 col-lg-3 btn btn-outline-primary text-wrap" for="buy_season">
+                <span class="d-block fs-4">季付购买VIP</span> 您将获得93天VIP时间
+                <?php if($set['season_grow']>0){?>,同时赠送成长值
+                <?= $set['season_grow'];?> 点!
+                <?php }?>
+            </label>
+            <input type="radio" class="btn-check" name="buy_type" id="buy_half_year" value="half_year" />
+            <label class="col-12 col-md-6 col-lg-3 btn btn-outline-primary text-wrap" for="buy_half_year">
+                <span class="d-block fs-4">半年付购买VIP</span> 您将获得186天VIP时间
+                <?php if($set['half_year_grow']>0){?>,同时赠送成长值
+                <?= $set['half_year_grow'];?> 点!
+                <?php }?>
+            </label>
+            <input type="radio" class="btn-check" name="buy_type" id="buy_year" value="year" />
+            <label class="col-12 col-md-6 col-lg-3 btn btn-outline-primary text-wrap" for="buy_year">
+                <span class="d-block fs-4">年付购买VIP</span> 您将获得372天VIP时间
+                <?php if($set['year_grow']>0){?>,开通还可赠送成长值
+                <?= $set['year_grow'];?> 点!
+                <?php }?>
+            </label>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="input-group my-3">
+                    <div class="input-group-prepend"><span class="input-group-text">购买份数</span></div>
+                    <input type="number" class="form-control" maxlength="3" value="1" id="jnum" name="buy_num" />
+                    <button type="button" class="btn btn-primary" id="jbutton">立即购买</button>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend"><span class="input-group-text">需要支付</span></div><input type="text" class="form-control bg-transparent" id="jpay" readonly />
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend"><span class="input-group-text">送成长值</span></div><input type="text" class="form-control bg-transparent" id="jgrow" readonly />
+                </div>
+            </div>
+        </div>
+    </section>
+</form>
+<?php if(!$ajax) include _include(APP_PATH.'view/htm/footer.inc.htm');?>
+<script ajax-eval="true">
+    var jinput = $("#jnum"); var jform = $("#form"); var jbutton = $("#jbutton"); var jgrow = $("#jgrow"); var pay_T = 'month'; var jpay = $("#jpay");
+    var credit_name = "<?= lang('credits'.$set['fee_type']);?>"; var month_num = "<?= $set['month_fee'];?>"; var season_num = "<?= $set['season_fee'];?>"; var half_year_num = "<?= $set['half_year_fee'];?>"; var year_num = "<?= $set['year_fee'];?>"; var credit_type = "<?= $set['fee_type'];?>";
+    var month_grow = "<?= $set['month_grow'];?>"; var season_grow = "<?= $set['season_grow'];?>"; var half_year_grow = "<?= $set['half_year_grow'];?>"; var year_grow = "<?= $set['year_grow'];?>";
+    jinput.keyup(function () {
+        $(this).val($(this).val().replace(/[^0-9]/g, '')); count_cost();
+    }).bind("paste", function () {
+        $(this).val($(this).val().replace(/[^0-9]/g, '')); count_cost();
+    }).css("ime-mode", "disabled").blur(function () {
+        $(this).val($(this).val().replace(/[^0-9]/g, '')); count_cost();
+    });
+    jbutton.on('click', function () {
+        if (jinput.val() == '0') return;
+        if (confirm('您确定要充值VIP吗?')) {
+            jbutton.button('loading');
+            var postdata = jform.serialize(); jform.reset();
+            $.xpost(jform.attr('action'), postdata, function (code, message) {
+                if (code == 0) location.reload();
+                else $.toast({
+                    title: '提示',
+                    content: message,
+                    type: 'error',
+                    pause_on_hover: true,
+                    delay: 10000,
+                });
+                jbutton.button('reset');
+            });
+        }
+    });
+    $("#buy_month").on('click', function () { set_payT('month'); });
+    $("#buy_season").on('click', function () { set_payT('season'); });
+    $("#buy_half_year").on('click', function () { set_payT('half_year'); });
+    $("#buy_year").on('click', function () { set_payT('year'); });
+    count_cost();
+    function count_cost() {
+        var num = jinput.val();
+        var jpay_num = credit_name + ' '; var jgrow_num = 0;
+        switch (pay_T) {
+            case 'month': jpay_num += parseInt(month_num) * parseInt(num) * (credit_type == '3' ? 0.01 : 1); jgrow_num = parseInt(month_grow) * parseInt(num); break;
+            case 'season': jpay_num += parseInt(season_num) * parseInt(num) * (credit_type == '3' ? 0.01 : 1); jgrow_num = parseInt(season_grow) * parseInt(num); break;
+            case 'half_year': jpay_num += parseInt(half_year_num) * parseInt(num) * (credit_type == '3' ? 0.01 : 1); jgrow_num = parseInt(half_year_grow) * parseInt(num); break;
+            case 'year': jpay_num += parseInt(year_num) * parseInt(num) * (credit_type == '3' ? 0.01 : 1); jgrow_num = parseInt(year_grow) * parseInt(num); break;
+            default: jpay_num += parseInt(month_num) * parseInt(num) * (credit_type == '3' ? 0.01 : 1); jgrow_num = parseInt(month_grow) * parseInt(num); break;
+        }
+        jpay.val(jpay_num);
+        jgrow.val(jgrow_num);
+    }
+    function set_payT(T) {
+        pay_T = T;
+        count_cost();
+    }
+</script>
+<?php endif; ?>

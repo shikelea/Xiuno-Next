@@ -1,0 +1,24 @@
+<template include="./plugin/abs_theme_aether/overwrite/view/htm/user_thread.template.htm">
+	<slot name="user_body">
+		<ul class="list-group list-group-flush threadlist">
+			<?php include _include(APP_PATH.'view/htm/thread_list.inc.htm'); ?>
+		</ul>
+
+		<?php if($pagination) { ?>
+		<nav>
+			<ul class="pagination justify-content-center flex-wrap" hx-boost="true" hx-target=".threadlist">
+				<input type="hidden" name="IS_IN_PAGINATION" value="1" class="pagination_extra_param">
+				<input type="hidden" name="IS_IN_THREADLIST" value="1" class="pagination_extra_param">
+				<?= $pagination; ?>
+			</ul>
+		</nav>
+		<?php } ?>
+
+
+		<script>
+			AetherExec(function () {
+				setActive("user-thread", "*", ".user_nav");
+			});
+		</script>
+	</slot>
+</template>

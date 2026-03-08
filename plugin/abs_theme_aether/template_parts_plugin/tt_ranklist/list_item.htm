@@ -1,0 +1,105 @@
+<?php foreach ($data as $k => $v):
+	user_format($v);
+	$rank = (($page - 1) * $pagesize) + (intval($k) + 1);
+	$CURRENT_ACTIVE__VALUE = 0;
+	switch ($RANKLIST_SORT_KEY) {
+		case 'threads':
+			$CURRENT_ACTIVE__VALUE = $v['threads'];
+			break;
+		case 'posts':
+			$CURRENT_ACTIVE__VALUE = $v['posts'];
+			break;
+		case 'credits':
+			$CURRENT_ACTIVE__VALUE = $v['credits'];
+			break;
+		case 'golds':
+			$CURRENT_ACTIVE__VALUE = $v['golds'];
+			break;
+		case 'rmbs':
+			$CURRENT_ACTIVE__VALUE = number_format($v['rmbs'] / 100.0, 2);
+			break;
+	}
+
+?>
+	<section class="col">
+		<div class="card mb-2">
+			<details class="ranklist-item">
+				<summary class="card-body d-flex align-items-center">
+
+					<!-- 排名 -->
+					<div class="text-muted text-center me-3" style="width: 2.5rem;">
+						<strong><?= $rank ?></strong>
+					</div>
+					<!-- 头像 + 用户名 -->
+					<div class="d-flex align-items-center text-decoration-none flex-grow-1">
+						<a href="<?= url('user-' . $v['uid']) ?>">
+							<img loading="lazy" decoding="async" src="<?= $v['avatar_url'] ?>" alt="<?= $v['username'] ?>" class="img-fluid avatar me-2 d-inline-block">
+							<span><?= $v['username'] ?></span>
+						</a>
+					</div>
+					<!-- 主指标（根据排序项动态突出） -->
+					<div class="text-right text-end ms-2" style="min-width: 6rem;">
+						<dl class="m-0">
+							<dt>
+								<?= $CURRENT_ACTIVE__LABEL ?>
+							</dt>
+							<dd class="m-0 lead font-monospace">
+								<data>
+									<?= $CURRENT_ACTIVE__VALUE ?>
+								</data>
+							</dd>
+						</dl>
+					</div>
+
+				</summary>
+				<!-- 次要信息折叠面板 -->
+				<aside class="px-3 pt-3 pb-2 border-top">
+					<div class="row">
+						<div class="col-4">
+							<dl class="mx-0 mt-0 mb-1">
+								<dt><?= lang('threads') ?></dt>
+								<dd class="m-0 lead"><?= $v['threads'] ?></dd>
+							</dl>
+						</div>
+						<?php if (isset($user['digests'])): ?>
+							<div class="col-4">
+								<dl class="mx-0 mt-0 mb-1">
+									<dt><?= lang('digests') ?></dt>
+									<dd class="m-0 lead"><?= $v['digests'] ?></dd>
+								</dl>
+							</div>
+						<?php endif; ?>
+						<div class="col-4">
+							<dl class="mx-0 mt-0 mb-1">
+								<dt><?= lang('posts') ?></dt>
+								<dd class="m-0 lead"><?= $v['posts'] ?></dd>
+							</dl>
+						</div>
+						<?php if (isset($user['credits'])): ?>
+							<div class="col-4">
+								<dl class="mx-0 mt-0 mb-1">
+									<dt><?= $credits1_name ?></dt>
+									<dd class="m-0 lead"><?= $v['credits'] ?></dd>
+								</dl>
+							</div>
+							<div class="col-4">
+								<dl class="mx-0 mt-0 mb-1">
+									<dt><?= $credits2_name ?></dt>
+									<dd class="m-0 lead"><?= $v['golds'] ?></dd>
+								</dl>
+							</div>
+							<div class="col-4">
+								<dl class="mx-0 mt-0 mb-1">
+									<dt><?= $credits3_name ?></dt>
+									<dd class="m-0 lead"><?= $v['rmbs'] / 100.0; ?></dd>
+								</dl>
+							</div>
+						<?php endif; ?>
+
+					</div>
+				</aside>
+			</details>
+		</div>
+	</section>
+
+<?php endforeach; ?>

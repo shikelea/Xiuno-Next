@@ -1,0 +1,31 @@
+
+
+    <?php if (!empty($uid)) { ?>
+    <?php if($haya_post_like_check){ ?>
+    <button class="icon-link <?= isset($haya_post_like_config['post_loved_color']) ? 'text-' . $haya_post_like_config['post_loved_color'] : '' ?> js-haya-post-like-post-del" data-pid="<?= $_post['pid'];?>" title="<?= $haya_post_like_is_delete ? lang('haya_post_like_unlike') : lang('haya_post_like_has_like'); ?>"
+            hx-post="<?= url('post-post_like-delete') ?>"
+            hx-vals='{"pid": <?= $_post['pid'] ?>, "from": "<?= $haya_post_like_btn_from ?>"}'
+            hx-target="this"
+            hx-swap="outerHTML"
+            hx-on:before-request="this.disabled=true">
+        <i class="la la-thumbs-up" aria-label="<?= $haya_post_like_is_delete ? lang('haya_post_like_unlike') : lang('haya_post_like_has_like'); ?>"></i>
+        <span class="haya-post-like-post-user-count"><?= intval($_post['likes']); ?></span>
+    </button>
+    <?php } else { ?>
+    <button class="icon-link js-haya-post-like-post-add" data-pid="<?= $_post['pid'];?>" title="<?= lang('haya_post_like_like_post'); ?>"
+            hx-post="<?= url('post-post_like-create') ?>"
+            hx-vals='{"pid": <?= $_post['pid'] ?>, "from": "<?= $haya_post_like_btn_from ?>"}'
+            hx-target="this"
+            hx-swap="outerHTML"
+            hx-on:before-request="this.disabled=true">
+        <i class="la la-thumbs-o-up" aria-label="<?= lang('haya_post_like_like_post'); ?>"></i>
+        <span class="haya-post-like-post-user-count"><?= intval($_post['likes']); ?></span>
+    </button>
+    <?php } ?>
+    <?php } else { ?>
+    <button class="icon-link js-haya-post-like-post-tip" data-pid="<?= $_post['pid'];?>" title="<?= lang('haya_post_like_like_post'); ?>"
+            hx-on:click="AetherPlugin.haya_post_like.handleLikeLogin(<?= $_post['tid'] ?>, this)">
+        <i class="la la-thumbs-o-up" aria-label="<?= lang('haya_post_like_like_post'); ?>"></i>
+        <span class="haya-post-like-post-user-count"><?= intval($_post['likes']); ?></span>
+    </button>
+    <?php } ?>

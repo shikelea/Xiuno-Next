@@ -1,0 +1,79 @@
+<template include="./plugin/tt_credits/view/htm/my_credits.template.htm">
+	<slot name="my_body"><div class="col-md-12 mx-auto">
+<?php $no_cache_user = user_read($uid);
+$progress=100; $max=1; $now=$no_cache_user['credits'];
+if($no_cache_user['gid']>100){
+	foreach($grouplist as $group) {
+		if($group['gid'] < 100) continue;
+		$n = $no_cache_user['credits'] ;
+		if($n > $group['creditsfrom'] && $n <= $group['creditsto']) {
+			$max=$group['creditsto'];
+			if($no_cache_user['groupname']!=$group['name']) {
+				$no_cache_user['groupname']=$group['name'];
+				user_update_group($uid);
+			}
+			break;
+		}
+	}
+	$progress = (int)($now/$max * 100.0);
+}
+?>
+
+			<!--{hook my_credits_before.htm}-->
+
+		<div class="d-flex justify-content-between" style="width: 100%;">
+			<div class="my_common_total_info p-3" style="flex: 1; margin-right: 3%;">
+				<div class="d-flex justify-content-between align-items-center">
+					<div>
+						<div class="text-muted">
+							<?php echo lang('credits2');?>
+						</div>
+						<div class="h4 mb-0">
+							<?php echo $no_cache_user['golds'];?>
+						</div>
+					</div>
+					<div class="h1 text-muted mb-0">
+						<i class="el-icon-coin"></i>
+					</div>
+				</div>
+			</div>
+			<div class="my_common_total_info p-3" style="flex: 1;">
+				<div class="d-flex justify-content-between align-items-center">
+					<div>
+						<div class="text-muted">
+							<?php echo lang('credits3');?>
+						</div>
+						<div class="h4 mb-0">
+							<?php echo $no_cache_user['rmbs']/100.0;?>
+						</div>
+					</div>
+					<div class="h1 text-muted mb-0">
+						<i class="el-icon-money"></i>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="my_common_total_info p-3">
+			<div class="d-flex align-items-center justify-content-between">
+				<div class="text-left">
+				  <p class="fs-lg fw-semibold mb-0 font-weight-bold h5">
+					<?php echo $user['groupname'];?>
+				  </p>
+				  <p class="text-muted mb-0 text-muted small mt-2">
+					<i class="el-icon-magic-stick  mb-0"></i> <?php echo lang('credits1');?>：<?php echo $no_cache_user['credits'];?>
+				  </p>
+				</div>
+				<div class="h3 text-muted">
+				  <?php echo $progress;?>%
+				</div>
+			  </div>
+			  <div class="block-content p-0 progress mt-3" style="height: 3px;">
+				<div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $progress;?>%;" aria-valuenow="<?php echo $progress;?>" aria-valuemin="0" aria-valuemax="100"></div>
+			  </div>
+		</div>
+		<!--{hook my_credits_after.htm}-->
+	</div></slot></template>
+<script>
+    $('a[data-active="my-credits"]').addClass('active');
+</script>
+<!--{hook my_credits_script_after.htm}-->

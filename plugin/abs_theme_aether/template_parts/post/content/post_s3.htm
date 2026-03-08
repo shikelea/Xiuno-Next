@@ -1,0 +1,91 @@
+<div class="container">
+	<!--{hook post_start.htm}-->
+
+	<?php if ($SHEET_MODE === 'FULL_PAGE'): ?>
+	<div hx-get="<?= url( ($fid == 0 ? 'index' : 'forum-' . $fid) ) ?>" hx-target="#S2" hx-trigger="revealed once"
+		hx-swap="innerHTML" hx-on:htmx:after-request="this.remove()" class="reverse-loader"></div>
+	<?php endif; ?>
+
+	<form action="<?= $form_action;?>" method="post" id="form" hx-post="<?= $form_action;?>"
+		hx-target="#invalid-feedback" hx-swap="innerHTML"
+		hx-on::before-request="this.querySelector('#submit').disabled = true"
+		hx-on::after-request="this.querySelector('#submit').disabled = false">
+		<input type="hidden" name="doctype" value="<?= $form_doctype;?>" />
+		<input type="hidden" name="quotepid" value="<?= $quotepid;?>" />
+
+		<?php if($isfirst) { ?>
+		<input type="hidden" name="isfirst" value="1" />
+		<?php } ?>
+		<div id="invalid-feedback" class="text-danger text-center"></div>
+
+		<!--{hook post_fid_before.htm}-->
+		<?php if($isfirst) { ?>
+		<header class="row g-0 mb-2">
+			<div class="col-md-8">
+				<div class="material-input mb-3">
+					<input type="text" class="form-control border-top-0 border-start-0 border-end-0" id="subject"
+						name="subject" placeholder="<?= lang('subject');?>" value="<?= $form_subject;?>">
+					<label for="subject">
+						<?= lang('subject');?>
+					</label>
+				</div>
+			</div>
+			<div class="col-md-4">
+				<div class="material-input mb-3">
+					<select class="form-select border-top-0 border-start-0 border-end-0" id="fid" name="fid">
+						<?php foreach ($forumlist_allowthread as $forum) { ?>
+						<option value="<?= $forum['fid']; ?>">
+							<?= $forum['name']; ?>
+						</option>
+						<?php } ?>
+					</select>
+					<label for="fid">发布到：</label>
+				</div>
+			</div>
+			<div class="col-12">
+				<!--{hook post_fid_select_before.htm}-->
+
+				<!--{hook post_fid_select_after.htm}-->
+
+				<!--{hook post_subject_before.htm}-->
+
+				<!--{hook post_subject_after.htm}-->
+
+				<!--{hook post_subject_after1.htm}-->
+			</div>
+		</header>
+
+
+
+		<?php } ?>
+
+		<div class="form-group">
+			<textarea class="form-control" placeholder="<?= lang('message');?>" name="message" id="message"
+				style="height: 300px;"><?= $form_message;?></textarea>
+		</div>
+
+		<!--{hook post_message_after.htm}-->
+
+		<?php include _include( APP_PATH . 'plugin/abs_theme_aether/template_parts/common/components/attachment_upload.htm'); ?>
+
+
+		<footer class="d-flex justify-content-between">
+			<div>
+				<!--{hook post_bottom_right.htm}-->
+			</div>
+			<div class="text-end">
+				<button type="submit" class="btn btn-primary" id="submit"
+					data-loading-text="<?= lang('submiting');?>..."
+					onclick="if(typeof tinyMCE !== 'undefined'){tinyMCE.editors['message'].save();}">
+					<?= $form_submit_txt;?>
+				</button>
+				<!--{hook post_bottom_left.htm}-->
+			</div>
+		</footer>
+
+		<!--{hook post_submit_after.htm}-->
+
+	</form>
+
+	<!--{hook post_end.htm}-->
+</div>

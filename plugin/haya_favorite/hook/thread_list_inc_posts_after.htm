@@ -1,0 +1,11 @@
+<?php 
+if ( 
+	(isset($haya_favorite_config['thread_show_favorite']) && $haya_favorite_config['thread_show_favorite'] == 1)
+	|| ($route == 'my' || $route == 'user')
+) { 
+?>
+<span class="ml-2" title="<?php echo intval($_thread['favorites']);?> <?php echo lang('haya_favorite_name'); ?>">
+	<i class="icon-star-o" aria-hidden="true"></i> 
+	<?php echo intval($_thread['favorites']);?>
+</span>
+<?php } ?>

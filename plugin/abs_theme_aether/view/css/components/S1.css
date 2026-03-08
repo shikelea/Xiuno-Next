@@ -1,0 +1,97 @@
+/* 手机S1特别设计 */
+/*
+@media screen and (max-width: 640px) {
+    .side-menu-nav .nav-item .nav-link {
+        transform: translateY(-0.5rem);
+    }
+    
+    .side-menu-nav .nav-item .nav-link.active i {
+        color: var(--bs-primary);
+        background: var(--bs-white);
+        box-shadow: 0 0 0 2px inset var(--bs-primary);
+        transform: translateY(-1rem);
+
+    }
+    
+    .side-menu-nav .nav-item .nav-link.active {
+        background-color: transparent;
+        color: inherit;
+    }
+    
+    .side-menu-nav .nav-item .nav-link i {
+        width: 48px;
+        height: 48px;
+        line-height: 48px;
+        transition: all 0.3s ease;
+        border-radius: 50%;
+
+    }
+    
+}
+*/
+.side-menu-nav {
+    --nav-link-icon-gap: 0;
+    --nav-link-hover-bg: transparent;
+
+    --menu-link-color: var(--bs-emphasis-color);
+    --menu-icon-scale: .8;
+    --menu-icon-opacity: 0;
+    --menu-link-bg: transparent;
+    --menu-link-highlight-bg: rgba(30, 145, 255, .1);
+    --menu-link-hover-color: rgb(17.25, 138.7666666667, 255);
+}
+
+.side-menu-nav .nav-link {
+    flex-direction: column;
+    font-size: 0.75rem;
+}
+
+.side-menu-nav .nav-link i {
+    font-size: 1.5rem;
+    position: relative;
+    isolation: isolate;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+}
+
+.side-menu-nav .nav-link span {
+    color: var(--menu-link-color);
+    text-align: center;
+    display: block;
+    font-size: .75rem;
+
+    display: block;
+    line-height: 1;
+    font-weight: 500;
+}
+
+#S1 .side-menu-nav .nav-item .nav-link:hover,
+#S1 .side-menu-nav .nav-item .nav-link:focus {
+    --menu-icon-opacity: 1;
+    --menu-icon-scale: 1
+}
+
+#S1 .side-menu-nav .nav-item .nav-link.active {
+    --menu-icon-opacity: 1;
+    --menu-icon-scale: 1 --menu-link-color: var(--menu-link-hover-color);
+}
+
+#S1 .side-menu-nav .nav-item .nav-link.active span {
+    --menu-link-color: var(--menu-link-hover-color);
+}
+
+.side-menu-nav .nav-link i:after {
+    content: "";
+    position: absolute;
+    inset: -.15rem -.8rem;
+    background-color: var(--menu-link-highlight-bg);
+    z-index: -1;
+    border-radius: 2rem;
+    transform: scale(var(--menu-icon-scale));
+    opacity: var(--menu-icon-opacity);
+    transition: transform .2s, opacity .2s, background-color .2s
+}
+
+#S1 .dropdown-toggle:after {
+    display: none;
+}

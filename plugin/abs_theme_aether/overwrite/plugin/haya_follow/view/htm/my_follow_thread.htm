@@ -1,0 +1,89 @@
+<?php if (!empty($haya_follow_user_post_list)) : ?>
+<ul class="list-group list-group-flush postlist haya-follow-timeline-postlist mb-0">
+	<?php foreach ($haya_follow_user_post_list as $haya_follow_post) : 
+    
+    // 1. 用户名逻辑
+    if (isset($haya_follow_my_follow_user_remarks_list[$haya_follow_post['uid']])) {
+        $haya_follow_post_user = $haya_follow_my_follow_user_remarks_list[$haya_follow_post['uid']];
+        $the_username = !empty($haya_follow_post_user['comment']) 
+            ? $haya_follow_post_user['comment'] . ' <small class="text-muted">(' . $haya_follow_post['username'] . ')</small>'
+            : $haya_follow_post['username'];
+    } else {
+        $the_username = $haya_follow_post['username'];
+    }
+    
+    // 2. 操作标题逻辑
+    if ($haya_follow_post['isfirst'] == 1) {
+        $the_headline = '发表了新主题';
+		$the_headline .= isset($haya_follow_post['thread']['subject'])
+		? '《<a href="' . url('thread-' . $haya_follow_post['tid']) . '" hx-get="' . url('thread-' . $haya_follow_post['tid']) . '" hx-target="#S3" hx-swap="innerHTML" hx-on:click="Aether.openInS3(\'thread\')" hx-push-url="true" >' . $haya_follow_post['thread']['subject'] . '</a>》'
+		: '<span class="text-danger">**主题已删除**</span>';
+    } else {
+        $subject = isset($haya_follow_post['thread']['subject']) 
+            ? $haya_follow_post['thread']['subject']
+            : '<span class="text-danger">**主题已删除**</span>';
+        $the_headline = '对主题《<a href="' . url('thread-' . $haya_follow_post['tid']) . '" hx-get="' . url('thread-' . $haya_follow_post['tid']) . '" hx-target="#S3" hx-swap="innerHTML" hx-on:click="Aether.openInS3(\'thread\')" hx-push-url="true" >' . $subject . '</a>》进行了回复';
+    }
+    
+    // 3. 消息内容逻辑
+    if ($haya_follow_post['isfirst'] == 1) {
+		$the_message = '摘要WIP';
+    } else {
+        $the_message = $haya_follow_post['message_fmt'];
+    }
+?>
+
+	<li class="thread list-group-item haya-follow-timeline-item haya-follow-timeline-<?= $haya_follow_post['pid'];?>" data-pid="<?= $haya_follow_post['pid'];?>" >
+
+		<div class="d-flex align-items-start">
+			<a href="<?= url('user-' . $haya_follow_post['uid']);?>" hx-target="#S2" hx-get="<?= url('user-' . $haya_follow_post['uid']);?>" hx-swap="innerHTML"  hx-push-url="true" >
+				<img src="<?= $haya_follow_post['user_avatar_url'];?>" class="avatar me-2" alt="头像">
+			</a>
+			<div class="flex-grow-1">
+				<header class="d-flex align-items-center justify-content-between">
+					<span class="d-flex flex-column flex-grow-1">
+						<a href="<?= url('user-' . $haya_follow_post['uid']);?>" hx-target="#S2" hx-get="<?= url('user-' . $haya_follow_post['uid']);?>" hx-swap="innerHTML"  hx-push-url="true" >
+							<span class="username">
+								<?= $the_username ?>
+							</span>
+						</a>
+						<time class="text-muted small">
+							<?= humandate($haya_follow_post['create_date']); ?>
+						</time>
+					</span>
+				</header>
+
+				<section class="my-2">
+					<p class="mb-1">
+						<?= $the_headline ?>
+					</p>
+					<p class="mb-0">
+						<!--{hook follow_thread_before.htm}-->
+						<?= $the_message ?>
+					</p>
+				</section>
+
+				<footer class="d-flex align-items-center justify-content-around small text-muted mt-2">
+					<span>
+						<i class="las la-eye"></i>
+						<?= $haya_follow_post['views'] ?? 0 ?>
+					</span>
+					<span>
+						<i class="las la-comment"></i>
+						<?= $haya_follow_post['posts'] ?? 0 ?>
+					</span>
+					<span>
+						<i class="las la-thumbs-up"></i>
+						<?= $haya_follow_post['likes'] ?? 0 ?>
+					</span>
+				</footer>
+			</div>
+		</div>
+	</li>
+	<?php endforeach; ?>
+
+
+</ul>
+<?php else: 
+include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/fragments/empty_no_activities.htm');
+endif; ?>

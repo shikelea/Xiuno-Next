@@ -1,0 +1,36 @@
+<?php $haya_favorite_check_favorite = haya_favorite_find_by_uid_and_tid($uid, $tid); ?>
+<?php if (empty($uid)): /* 未登录 */ ?>
+<button class="btn btn-outline-warning btn-icon js-haya-favorite-tip"
+        data-tid="<?=$tid?>"
+        hx-on:click="AetherPlugin.haya_favorite.handleLoginRequired(<?=$tid?>, this)">
+    <i class="la la-star-o"></i>
+    <span class="sr-only haya-favorite-btn"><?=lang('haya_favorite_add')?></span>
+    <span class="badge bg-warning-subtle text-warning position-absolute bottom-0 haya-favorite-user-count" title="<?= lang('haya_favorite_user_count') ?>"><?= intval($thread['favorites']); ?></span>
+</button>
+
+<?php elseif ($haya_favorite_check_favorite): /* 已收藏 */ ?>
+<button class="btn btn-outline-warning bg-warning-subtle btn-icon js-haya-favorite-del"
+        data-tid="<?=$tid?>"
+        hx-post="<?=url('my-favorite-delete')?>"
+        hx-vals='{"tid":<?=$tid?>, "from": "thread_S3_Footer"}'
+        hx-target="this"
+        hx-swap="outerHTML"
+        hx-on:before-request="this.disabled=true">
+    <i class="la la-star"></i>
+    <span class="sr-only haya-favorite-btn"><?=lang('haya_favorite_delete')?></span>
+    <span class="badge bg-warning-subtle text-warning position-absolute bottom-0 haya-favorite-user-count" title="<?= lang('haya_favorite_user_count') ?>"><?= intval($thread['favorites']); ?></span>
+</button>
+
+<?php else: /* 未收藏 */ ?>
+<button class="btn btn-outline-warning btn-icon js-haya-favorite-add"
+        data-tid="<?=$tid?>"
+        hx-post="<?=url('my-favorite-create')?>"
+        hx-vals='{"tid":<?=$tid?>, "from": "thread_S3_Footer"}'
+        hx-target="this"
+        hx-swap="outerHTML"
+        hx-on:before-request="this.disabled=true">
+    <i class="la la-star-o"></i>
+    <span class="sr-only haya-favorite-btn"><?=lang('haya_favorite_add')?></span>
+    <span class="badge bg-warning-subtle text-warning position-absolute bottom-0 haya-favorite-user-count" title="<?= lang('haya_favorite_user_count') ?>"><?= intval($thread['favorites']); ?></span>
+</button>
+<?php endif; ?>

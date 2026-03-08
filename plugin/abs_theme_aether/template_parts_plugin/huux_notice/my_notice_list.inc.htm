@@ -1,0 +1,70 @@
+<?php if($noticelist) : foreach($noticelist as &$_notice) : 
+$_notice_from_name = '';
+$_notice_from_avatar_url = '';
+$_notice_from_href = '#';
+$notice_item_class_add = '';
+if($_notice['type'] == 1 || $_notice['type'] == 3 || $_notice['type'] == 99){
+	$_notice_from_name = $_notice['name'];
+	$_notice_from_avatar_url = $_notice['from_user_avatar_url'];
+} else {
+	$_notice_from_name = $_notice['from_username'];
+	$_notice_from_avatar_url = $_notice['from_user_avatar_url'];
+	$_notice_from_href = url('user-'.$_notice['fromuid']);
+}
+if($_notice['isread'] == 1) {
+	$notice_item_class_add = 'isread mark-as-read';
+} 
+?>
+<li class="notice list-group-item list-group-item-action dropdown-notifications-item <?= $notice_item_class_add ?>" data-nid="
+<?= $_notice['nid']?>">
+	<div class="d-flex">
+		<div class="flex-shrink-0 me-3">
+			<div class="avatar">
+				<a href="<?= $_notice_from_href ?>">
+					<img loading="lazy" decoding="async" src="<?= $_notice_from_avatar_url; ?>" alt="<?= $_notice_from_name; ?>" class="w-px-40 h-auto rounded-circle">
+				</a>
+			</div>
+		</div>
+		<div class="flex-grow-1">
+			<h6 class="mb-1">
+				<?= $_notice_from_name; ?>
+				<span class="dropdown-notifications-read"><span class="badge badge-dot"></span></span>
+			</h6>
+			<div class="message">
+				<?= $_notice['message'];?>
+			</div>
+			<time datetime="<?= $_notice['create_date'];?>" class="small text-muted">
+				<?= $_notice['create_date_fmt'];?>
+			</time>
+		</div>
+		<div class="flex-shrink-0 dropdown-notifications-actions">
+			<!--{hook my_notice_readbtn_before.htm}-->
+			<?php if($_notice['isread'] == 1) : ?>
+			<button type="button" data-bs-toggle="tooltip" title="<?= lang('notice_my_update_readed') ?>" class="btn btn-small bg-label-secondary ml-2">
+				<i class="la la-check"></i>
+			</button>
+			<?php else: ?>
+			<button type="button" data-bs-toggle="tooltip" title="<?= lang('notice_my_marked_read') ?>" class="readbtn btn btn-small btn-primary ml-2" data-nid="<?= $_notice['nid'] ?>'">
+				<i class="las la-eye"></i>
+				
+			</button>
+			<?php endif; ?>
+			<button type="button" data-bs-toggle="tooltip" title="<?= lang('delete');?>" class="deletebtn btn btn-small btn-outline-danger ml-2" data-nid="<?= $_notice['nid']?>">
+				<i class="la la-remove"></i>
+
+			</button>
+		</div>
+	</div>
+</li>
+<?php endforeach; else : ?>
+<li class="list-group-item">
+	<div class="empty p-3 text-center">
+		<span class="empty-icon badge rounded-pill bg-label-secondary fs-xlarge mb-4">
+			<i class="las la-comment-dots fs-1"></i>
+		</span>
+		<p>
+			<?= lang('none');?>
+		</p>
+	</div>
+</li>
+<?php endif; ?>

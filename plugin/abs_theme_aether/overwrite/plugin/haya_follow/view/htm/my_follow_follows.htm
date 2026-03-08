@@ -1,0 +1,93 @@
+<template include="./plugin/abs_theme_aether/overwrite/plugin/haya_follow/view/htm/my_follow.template.htm">
+	<slot name="my_body">
+		<?php if (!empty($haya_follow_follows)) : ?>
+		<div class="row g-0 mb-0">
+			<?php foreach ($haya_follow_follows as $haya_follow_user) : ?>
+			<?php include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts_plugin/haya_follow/useritem_my_following.htm'); ?>
+
+			<?php endforeach; ?>
+		</div>
+		<?php else: include _include(APP_PATH . 'plugin/abs_theme_aether/template_parts/common/fragments/empty_no_following.htm'); 
+		 endif; ?>
+
+		<?php if (!empty($haya_follow_post_pagination)) { ?>
+		<nav>
+			<ul class="pagination justify-content-center"><?= $haya_follow_post_pagination; ?></ul>
+		</nav>
+		<?php } ?>
+
+		<script>
+			/*
+		$(function() {
+		
+			$(document).on("click", ".js-haya-follow-user-setting", function() {
+				var settings = $(".haya-follow-user-settings");
+				if (settings.hasClass("d-none")) {
+					settings.removeClass("d-none");
+				} else {
+					settings.addClass("d-none");
+				}
+			});
+			
+			$(document).on("click", ".js-haya-follow-remarks", function() {
+				var old_remarks = $(this).attr("data-remarks");
+				var uid = $(this).attr("data-uid");
+				var remarks_tpl = '<div class="form-group haya-follow-remarks-update">';
+					remarks_tpl += '<div class="text-grey">填写你需要更改的备注：</div>';
+					remarks_tpl += '<div><input class="haya-follow-remarks form-control" name="haya-follow-remarks" value="'+old_remarks+'" /></div>';
+					remarks_tpl += '</div>';
+				$.confirm('更改备注', function() {
+					var remarks = $(".haya-follow-remarks-update").find(".haya-follow-remarks").val();
+					var url = '<?= url("follow-remarks");?>';
+					
+					$.xpost(url, {'uid': uid, 'remarks': remarks}, function(code, msg){
+						if (code == 1) {
+							$.alert(msg);				
+							location.reload();
+						} else {
+							$.alert(msg);
+						}
+					});
+					
+				}, {'body': remarks_tpl});		
+			});
+			
+			$(document).on("click", ".js-haya-follow-dynamic", function() {
+				var dynamic = $(this).attr("data-dynamic");
+				var uid = $(this).attr("data-uid");
+				
+				if (dynamic == 1) {
+					dynamic = 0;
+				} else {
+					dynamic = 1;
+				}
+				
+				var thiz = $(this);
+				var url = '<?= url("follow-dynamic");?>';
+				$.xpost(url, {'uid': uid, 'dynamic': dynamic}, function(code, msg){
+					if (code == 1) {
+						if (dynamic == 1) {
+							thiz.find(".icon")
+								.removeClass("icon-remove")
+								.addClass("icon-check");
+							thiz.attr("data-dynamic", 1);
+						} else {
+							thiz.find(".icon")
+								.removeClass("icon-check")
+								.addClass("icon-remove");
+							thiz.attr("data-dynamic", 0);
+						}
+					} else {
+						$.alert(msg);
+					}
+				});
+			});
+			
+		});
+		*/
+			AetherExec(function () {
+				setActive("my-follow-follows", "*", ".my_nav");
+			});
+		</script>
+	</slot>
+</template>

@@ -1,0 +1,16 @@
+<template include="./plugin/abs_theme_aether/template_parts_plugin/haya_follow/user_follow_timeline.template.htm">
+
+    <slot name="user_body">
+
+        <div class="card">
+            <?php include _include(APP_PATH.'plugin/haya_follow/view/htm/my_follow_thread.htm'); ?>
+
+            <?php if (!empty($haya_follow_dynamic_pagination)) { ?>
+            <nav>
+                <ul class="pagination justify-content-center"><?= $haya_follow_dynamic_pagination; ?></ul>
+            </nav>
+            <?php } ?>
+        </div>
+    </slot>
+
+</template>

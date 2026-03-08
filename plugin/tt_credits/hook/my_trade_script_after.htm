@@ -1,0 +1,20 @@
+<script>
+    function trans_ONInput(input){
+        input.val(input.val().replace(/[^0-9]/g, ''));
+    }
+    $('#trans_num').bind('input propertychange',function(){
+        trans_ONInput($('#trans_num'));
+    });
+    var jtrans_form=$("#form_trans");var jtrans_btn=$("#trans_use");
+    jtrans_btn.on('click',function(){
+        $.confirm('<?php echo lang("sure_to_transfer");?>',function(){
+            var postdata = jtrans_form.serialize();postdata+='&op=t';
+            jtrans_btn.button('loading');
+            $.xpost(jtrans_form.attr('action'),postdata,function(code,message){
+                $.alert(message);
+                if(code==0) setTimeout(function(){location.reload();},1000);
+                else jtrans_btn.button('reset');
+            });
+        });
+    });
+</script>

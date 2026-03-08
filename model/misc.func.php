@@ -42,6 +42,21 @@ function url($url, $extra = array()) {
 		$r .= $sep.$args;
 	}
 	
+	// 主题兼容层：全局 URL 参数注册（主题通过 url_extra_register() 注入）
+	global $g_url_extra_params;
+	if(!empty($g_url_extra_params) && is_array($g_url_extra_params)) {
+		foreach($g_url_extra_params as $cb) {
+			if(is_callable($cb)) {
+				$extra_params = call_user_func($cb, $url, $r);
+				if(!empty($extra_params) && is_array($extra_params)) {
+					$args = http_build_query($extra_params);
+					$sep = strpos($r, '?') === FALSE ? '?' : '&';
+					$r .= $sep.$args;
+				}
+			}
+		}
+	}
+	
 	// hook model_url_end.php
 	
 	return $r;
@@ -91,6 +106,22 @@ function message($code, $message, $extra = array()) {
 	// 防止 message 本身出现错误死循环
 	static $called = FALSE;
 	$called ? exit(xn_json_encode($arr)) : $called = TRUE;
+	
+	// HTMX 兼容层：原生支持 HTMX 请求的消息响应
+	$is_htmx = isset($_SERVER['HTTP_HX_REQUEST']) && $_SERVER['HTTP_HX_REQUEST'] === 'true';
+	if($is_htmx && !$ajax && !theme_has('htmx_message')) {
+		$msg_str = is_array($message) ? print_r($message, true) : (string)$message;
+		$int_code = intval($code);
+		$type = ($int_code === 0) ? 'success' : (($int_code === -1) ? 'danger' : (($int_code >= 1) ? 'warning' : 'info'));
+		// hook model_message_htmx_before.php
+		$trigger_data = array('showMessage' => array('code' => $int_code, 'type' => $type, 'message' => $msg_str));
+		$hx_trigger_name = 'HX-Trigger';
+		// hook model_message_htmx_trigger.php
+		header($hx_trigger_name . ': ' . json_encode($trigger_data, JSON_UNESCAPED_UNICODE));
+		echo $msg_str;
+		// hook model_message_htmx_after.php
+		exit;
+	}
 	if($ajax) {
 		echo xn_json_encode($arr);
 	} else {
@@ -302,6 +333,74 @@ function csrf_check() {
 	$token = isset($_REQUEST['_token']) ? $_REQUEST['_token'] : (isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : '');
 	if (empty($token) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
 		message(-1, 'CSRF token 校验失败，请刷新页面后重试。');
+	}
+}
+
+// 主题兼容层：URL 参数注册器
+// 主题可调用 url_extra_register(callback) 注册回调，url() 生成时自动调用
+// callback 签名: function($url_input, $url_output) => array 或 null
+function url_extra_register($callback) {
+	global $g_url_extra_params;
+	if(!isset($g_url_extra_params)) $g_url_extra_params = array();
+	$g_url_extra_params[] = $callback;
+}
+
+// 主题兼容层：主题注册 API
+// 主题可调用 theme_register() 声明自己的能力，核心据此做兼容
+function theme_register($name, $capabilities = array()) {
+	global $g_theme_info;
+	if(!isset($g_theme_info)) $g_theme_info = array();
+	$g_theme_info[$name] = array(
+		'name' => $name,
+		'capabilities' => $capabilities,
+	);
+}
+
+// 主题兼容层：查询当前主题能力
+function theme_has($capability) {
+	global $g_theme_info;
+	if(empty($g_theme_info)) return false;
+	foreach($g_theme_info as $info) {
+		if(in_array($capability, $info['capabilities'])) return true;
+	}
+	return false;
+}
+
+// 主题兼容层：资源注册 API
+// 主题可注册 CSS/JS 资源，由核心统一在 header/footer 输出
+function theme_enqueue_style($handle, $src, $priority = 10) {
+	global $g_theme_styles;
+	if(!isset($g_theme_styles)) $g_theme_styles = array();
+	$g_theme_styles[$handle] = array('src' => $src, 'priority' => $priority);
+}
+
+function theme_enqueue_script($handle, $src, $priority = 10, $attrs = array()) {
+	global $g_theme_scripts;
+	if(!isset($g_theme_scripts)) $g_theme_scripts = array();
+	$g_theme_scripts[$handle] = array('src' => $src, 'priority' => $priority, 'attrs' => $attrs);
+}
+
+// 主题兼容层：输出已注册的样式
+function theme_render_styles() {
+	global $g_theme_styles, $conf;
+	if(empty($g_theme_styles)) return;
+	$sv = isset($conf['static_version']) ? $conf['static_version'] : '';
+	uasort($g_theme_styles, function($a, $b) { return $a['priority'] - $b['priority']; });
+	foreach($g_theme_styles as $handle => $style) {
+		echo '<link rel="stylesheet" href="' . htmlspecialchars($style['src']) . $sv . '" id="style-' . htmlspecialchars($handle) . '">' . "\n";
+	}
+}
+
+// 主题兼容层：输出已注册的脚本
+function theme_render_scripts() {
+	global $g_theme_scripts, $conf;
+	if(empty($g_theme_scripts)) return;
+	$sv = isset($conf['static_version']) ? $conf['static_version'] : '';
+	uasort($g_theme_scripts, function($a, $b) { return $a['priority'] - $b['priority']; });
+	foreach($g_theme_scripts as $handle => $script) {
+		$extra = '';
+		foreach($script['attrs'] as $k => $v) { $extra .= ' ' . htmlspecialchars($k) . '="' . htmlspecialchars($v) . '"'; }
+		echo '<script src="' . htmlspecialchars($script['src']) . $sv . '"' . $extra . ' id="script-' . htmlspecialchars($handle) . '"></script>' . "\n";
 	}
 }
 

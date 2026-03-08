@@ -1,0 +1,51 @@
+<?php if($medal['isbuy']==1): ?>
+
+<form action="<?= url('my-medal');?>" method="post" id="form" hx-post="<?= url('my-medal');?>" hx-trigger="submit">
+	<input type="hidden" name="mid" value="<?= $medal['mid']; ?>">
+	<input type="hidden" name="do" value="buy">
+	<div class="info-section mb-4">
+		<div class="text-muted">您正在购买勋章</div>
+		<div class="fw-medium"><?= $medal['name']; ?></div>
+	</div>
+	<div class="form-fields">
+		<div class="row">
+			<div class="col-6">
+				<p class="mb-1">消耗积分：</p>
+				<p class="lead mb-3 text-warning"><?= credits_get_text($medal['money_type'],$medal['money']);?></p>
+			</div>
+			<?php if(isset($medal['time'])): ?>
+			<div class="col-6">
+				<p class="mb-1">生效期：</p>
+				<p class="lead mb-3"><?= $medal['time']==0 ? '永久' : $medal['time']. '天' ?></p>
+			</div>
+			<?php endif; ?>
+		</div>
+	</div>
+	<footer class="d-flex gap-2 justify-content-end">
+		<button type="button" class="btn btn-outline-secondary btn-block" data-target="htmx-modal" hx-on:click="toggleModal(event)"><?= lang('cancel');?></button>
+		<button type="submit" class="btn btn-primary btn-block" data-loading-text="<?= lang('submiting');?>...">确认购买</button>
+	</footer>
+</form>
+
+<?php else: ?>
+
+<form action="<?= url('my-medal_apply');?>" method="post" id="form" hx-post="<?= url('my-medal_apply');?>" hx-trigger="submit">
+	<input type="hidden" name="mid" value="<?= $medal['mid']; ?>">
+	<input type="hidden" name="do" value="apply">
+	<div class="info-section mb-4">
+		<div class="text-muted">您正在申请勋章</div>
+		<div class="fw-medium"><?= $medal['name']; ?></div>
+	</div>
+	<div class="form-fields">
+		<div class="form-group">
+			<label for="reason">申请理由</label>
+			<textarea class="form-control" rows="3" name="reason" id="reason"></textarea>
+		</div>
+	</div>
+	<footer class="d-flex gap-2 justify-content-end">
+		<button type="button" class="btn btn-outline-secondary btn-block" data-target="htmx-modal" hx-on:click="toggleModal(event)"><?= lang('cancel');?></button>
+		<button type="submit" class="btn btn-primary btn-block" data-loading-text="<?= lang('submiting');?>...">立即申请</button>
+	</footer>
+</form>
+
+<?php endif; ?>
