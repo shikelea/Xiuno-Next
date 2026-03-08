@@ -247,6 +247,138 @@
     };
 })();
 
+// BS4 Button JS API 兼容：代理 jQuery .button() 方法（loading / reset / toggle / disabled / enable）
+// BS5 移除了 jQuery .button() 插件，但几乎所有旧插件都依赖它（370+ 处调用）
+(function() {
+    'use strict';
+    if (typeof jQuery === 'undefined') return;
+    var origButton = jQuery.fn.button;
+    jQuery.fn.button = function(action) {
+        return this.each(function() {
+            var $el = jQuery(this);
+            if (action === 'loading') {
+                // 保存原始文本和状态
+                if (!$el.data('bs4c-original-text')) {
+                    $el.data('bs4c-original-text', $el.html());
+                }
+                var loadingText = $el.attr('data-loading-text') || $el.data('loading-text') || '...';
+                $el.html(loadingText).prop('disabled', true).addClass('disabled');
+            } else if (action === 'reset') {
+                var origText = $el.data('bs4c-original-text');
+                if (origText) $el.html(origText);
+                $el.prop('disabled', false).removeClass('disabled');
+            } else if (action === 'toggle') {
+                $el.toggleClass('active');
+                var isActive = $el.hasClass('active');
+                $el.attr('aria-pressed', isActive);
+            } else if (action === 'disabled' || action === 'disable') {
+                $el.prop('disabled', true).addClass('disabled');
+            } else if (action === 'enable') {
+                $el.prop('disabled', false).removeClass('disabled');
+            } else if (typeof action === 'string') {
+                // .button('自定义文本') — 部分插件用 .button(message) 设置按钮文字
+                if (!$el.data('bs4c-original-text')) {
+                    $el.data('bs4c-original-text', $el.html());
+                }
+                $el.html(action);
+            }
+        });
+    };
+})();
+
+// xiuno.js 核心方法兼容：当主题替换了 xiuno.js 时，确保这些方法存在
+(function() {
+    'use strict';
+    if (typeof jQuery === 'undefined') return;
+
+    // $.fn.location — 延迟跳转（支持 jQuery 动画队列链式调用）
+    if (!jQuery.fn.location) {
+        jQuery.fn.location = function(href) {
+            this.queue(function(next) {
+                if (!href) {
+                    window.location.reload();
+                } else {
+                    window.location = href;
+                }
+                next();
+            });
+            return this;
+        };
+    }
+
+    // $.fn.reset — 重置表单状态（恢复按钮 + 清除验证提示）
+    if (!jQuery.fn.reset) {
+        jQuery.fn.reset = function() {
+            var jform = jQuery(this);
+            jform.find('input[type="submit"], button[type="submit"]').button('reset');
+            try { jform.find('input').tooltip('dispose'); } catch(e) {}
+            return this;
+        };
+    }
+
+    // $.fn.checked — select/radio/checkbox 值设置与获取
+    if (!jQuery.fn.checked) {
+        jQuery.fn.checked = function(v) {
+            if (v) {
+                v = v instanceof Array ? v.map(function(vv){return vv+''}) : v+'';
+                var filter = function(){return !(v instanceof Array)?(this.value==v):(jQuery.inArray(this.value,v)!=-1)};
+                this.each(function(){
+                    var tag = this.tagName.toLowerCase();
+                    if (tag==='select') {
+                        jQuery(this).find('option').filter(filter).prop('selected',true);
+                    } else if (this.type==='checkbox'||this.type==='radio') {
+                        jQuery(this).filter(filter).prop('checked',true);
+                    }
+                });
+                return this;
+            } else {
+                if (!this.length) return [];
+                var el = this[0];
+                var tagtype = el.tagName.toLowerCase()==='select'?'select':(el.type||'').toLowerCase();
+                if (tagtype==='select') {
+                    var opt = jQuery(el).find('option:selected');
+                    return opt.length ? opt.attr('value') : '';
+                } else if (tagtype==='checkbox') {
+                    var r=[];
+                    for(var i=0;i<this.length;i++) if(this[i].checked) r.push(this[i].value);
+                    return r;
+                } else if (tagtype==='radio') {
+                    for(var i=0;i<this.length;i++) if(this[i].checked) return this[i].value;
+                    return '';
+                }
+                return '';
+            }
+        };
+    }
+
+    // $.fn.alert — 在控件上方显示错误提示（BS5 Tooltip 方式）
+    if (!jQuery.fn.alert || jQuery.fn.alert === jQuery.fn.alert._bs5native) {
+        jQuery.fn.alert = function(message) {
+            var jthis = jQuery(this);
+            jthis.addClass('is-invalid');
+            jthis.attr('title', message);
+            try {
+                var tooltip = bootstrap.Tooltip.getInstance(jthis[0]);
+                if (tooltip) {
+                    tooltip.setContent({'.tooltip-inner': message});
+                    tooltip.show();
+                } else {
+                    new bootstrap.Tooltip(jthis[0], {title: message, trigger: 'manual', placement: 'top'}).show();
+                }
+            } catch(e) {
+                try { jthis.tooltip({title: message, trigger: 'manual', placement: 'top'}).tooltip('show'); } catch(e2) {}
+            }
+            jthis.one('focus input', function() {
+                jthis.removeClass('is-invalid');
+                try { var t = bootstrap.Tooltip.getInstance(jthis[0]); if(t) t.dispose(); } catch(e) {
+                    try { jthis.tooltip('dispose'); } catch(e2) {}
+                }
+            });
+            return this;
+        };
+    }
+})();
+
 // BS4 Tooltip JS API 兼容：代理 jQuery .tooltip() 方法到 BS5 Tooltip 实例
 (function() {
     'use strict';
