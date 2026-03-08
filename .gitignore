@@ -10,4 +10,5 @@ upload/*
 !upload/.gitkeep
 conf/conf.php
 REVIEW.md
-plugin/
+plugin/*
+!plugin/.gitkeep
