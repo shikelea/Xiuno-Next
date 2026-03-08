@@ -211,6 +211,8 @@ return array(
 	'update_download_url_empty'=>'Download URL is empty',
 	'update_download_failed'=>'Failed to download update package, please check network',
 	'update_extract_failed'=>'Failed to extract update package',
+	'update_not_zip'=>'Downloaded file is not a valid ZIP, proxy may have returned an error page',
+	'update_no_ziparchive'=>'Server is missing PHP ZipArchive extension, cannot extract update',
 	'update_success'=>'Updated to v{version} successfully! Please clear browser cache.',
 	
 	// Proxy

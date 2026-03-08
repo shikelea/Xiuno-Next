@@ -213,6 +213,8 @@ return array(
 	'update_download_url_empty'=>'下载地址为空',
 	'update_download_failed'=>'下载更新包失败，请检查网络连接',
 	'update_extract_failed'=>'解压更新包失败',
+	'update_not_zip'=>'下载的文件不是有效的 ZIP 包，可能是代理返回了错误页面',
+	'update_no_ziparchive'=>'服务器缺少 PHP ZipArchive 扩展，无法解压更新包',
 	'update_success'=>'更新到 v{version} 成功！请清理浏览器缓存。',
 	
 	// 代理加速
