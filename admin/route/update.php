@@ -123,18 +123,32 @@ if ($action == 'check') {
 
 	// 下载 zip
 	$zipfile = $conf['tmp_path'] . 'update_' . $latest_version . '.zip';
-	$zipdata = update_github_download($actual_url);
-	if ($zipdata === FALSE || empty($zipdata)) {
+	$zipdata = update_github_download_binary($actual_url);
+	if ($zipdata === FALSE || strlen($zipdata) < 100) {
 		// 代理不可用：自动回退直连重试
 		if (!empty($proxy)) {
-			$zipdata = update_github_download($download_url);
+			$zipdata = update_github_download_binary($download_url);
 			$proxy_fallback_used = TRUE;
 		}
-		if ($zipdata === FALSE || empty($zipdata)) {
+		if ($zipdata === FALSE || strlen($zipdata) < 100) {
 			message(-1, lang('update_download_failed'));
 		}
 	}
+
+	// 校验 ZIP 文件魔数头（PK\x03\x04）
+	if (substr($zipdata, 0, 2) !== 'PK') {
+		// 下载到的不是 ZIP，可能是代理返回的 HTML/JSON 错误页
+		$hint = substr($zipdata, 0, 200);
+		message(-1, lang('update_not_zip') . ' (' . htmlspecialchars($hint) . ')');
+	}
+
 	file_put_contents($zipfile, $zipdata);
+
+	// 检查 ZipArchive 扩展
+	if (!class_exists('ZipArchive')) {
+		@unlink($zipfile);
+		message(-1, lang('update_no_ziparchive'));
+	}
 
 	// 解压到临时目录
 	include XIUNOPHP_PATH . 'xn_zip.func.php';
@@ -143,11 +157,21 @@ if ($action == 'check') {
 		rmdir_recusive($extract_dir, 1);
 	}
 	xn_mkdir($extract_dir);
-	xn_unzip($zipfile, $extract_dir);
+
+	$zip = new ZipArchive;
+	$open_result = $zip->open($zipfile);
+	if ($open_result !== TRUE) {
+		@unlink($zipfile);
+		message(-1, lang('update_extract_failed') . ' (ZipArchive error: ' . $open_result . ')');
+	}
+	$zip->extractTo($extract_dir);
+	$zip->close();
 
 	// GitHub zip 解压后有一层包裹目录，找到它
 	$source_dir = update_find_source_dir($extract_dir);
 	if ($source_dir === FALSE) {
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
 		message(-1, lang('update_extract_failed'));
 	}
 
@@ -272,6 +296,48 @@ function update_http_get($url, $timeout = 10) {
  */
 function update_github_download($url) {
 	return update_http_get($url, 60);
+}
+
+/**
+ * 下载二进制文件（不发送 JSON Accept 头，避免代理返回非 ZIP 内容）
+ */
+function update_github_download_binary($url, $timeout = 60) {
+	if (function_exists('curl_init')) {
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+		curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
+		curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+		curl_setopt($ch, CURLOPT_USERAGENT, 'Xiuno-Next-Updater');
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+			'Accept: application/octet-stream',
+		));
+		$response = curl_exec($ch);
+		$httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+		if ($httpcode >= 200 && $httpcode < 400 && $response !== FALSE) {
+			return $response;
+		}
+		return FALSE;
+	}
+	$opts = array(
+		'http' => array(
+			'method' => 'GET',
+			'timeout' => $timeout,
+			'header' => "User-Agent: Xiuno-Next-Updater\r\nAccept: application/octet-stream\r\n",
+			'follow_location' => 1,
+			'max_redirects' => 10,
+		),
+		'ssl' => array(
+			'verify_peer' => false,
+		),
+	);
+	$ctx = stream_context_create($opts);
+	$s = @file_get_contents($url, false, $ctx);
+	return $s !== FALSE ? $s : FALSE;
 }
 
 /**
