@@ -1,8 +1,0 @@
-<?php if(!empty($thread['taglist'])) {
-              echo '<div class="mt-3">';
-               foreach($thread['taglist'] as $tag) { ?>
-              <a href="<?= url("forum-$thread[fid]-1", array('tagids'=>$tag['tagid']));?>" class="icon-link text-<?= empty($tag['style']) ? 'secondary' : $tag['style'];?> bg-<?= empty($tag['style']) ? 'secondary' : $tag['style'];?>-subtle"><i class="la  la-tag"></i> <?= $tag['name'];?></a>
-              <?php  }
-            echo '</div>';
-            } ?>
-            

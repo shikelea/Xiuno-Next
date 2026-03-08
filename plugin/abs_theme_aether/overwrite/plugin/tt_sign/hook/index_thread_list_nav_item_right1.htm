@@ -1,5 +1,0 @@
-<?php if($uid){$today0 = strtotime(date('Y-m-d',time()))-1;$num=0; ?>
-<li id="sign_mobile" class="flex-shrink-0">
-	<button role="button" class="btn btn-primary h-100" hx-post="<?= url('my-sign');?>" hx-target="this" hx-swap="innerHTML" hx-trigger="click"><i class="la la-calendar-check"></i> <?= db_find_one('sign',array('uid'=>$uid,'time'=>array('>'=>$today0)))?'已签':'签到';?></button>
-</li>
-<?php } ?>

@@ -1,9 +1,0 @@
-<?php 
-$load_select_btn=false;
-if(isset($thread) && $thread['offerNum']>0 && $thread['offerStatus']==0){ 
-    $load_select_btn=true; 
-}
-
-if($uid && isset($thread) &&  isset($load_select_btn) AND ($uid==$thread['uid'] || $user['gid']==1) ){?>
-<a hx-post="<?= url("post-offer_select-$_post[pid]") ?>" hx-trigger="click" hx-target="this" hx-swap="delete" data-confirm-text="您是否要采纳为悬赏答案？采纳后将无法撤销！" class="text-success mr-3 post_select_offer"><i class="icon-check" title="<?= lang('offer');?>"></i> <span>采纳</span></a>
-<?php }?>
