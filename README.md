@@ -73,7 +73,7 @@
 - [x] **v4.4.2 (Hardening)**: BS4→BS5 兼容垫片、Token 加固、参数注入修复、后台安全面板、安装/API/退出修复。
 - [x] **v4.4.3 (Performance & Compat)**: 插件页性能优化、CSRF 主题兼容、管理操作修复、后台一键在线更新（含 GitHub 加速代理）、BS4→BS5 全面兼容层。
 - [x] **v4.4.4 (Stability)**: 在线更新 ZIP 校验加固、版本号管理修复。
-- [x] **v4.4.5 (Compat Layer)**: 三层兼容层体系：PHP 8+ 运行时兼容、CSS/JS 资源降级、核心主题 API（`message()` HTMX 原生支持、`url()` 扩展机制、主题注册/资源/能力 API）。详见 [docs/compat-layer.md](docs/compat-layer.md)。
+- [x] **v4.4.5 (Compat Layer)**: 四层兼容层体系：通用注入器（`ob_start` 自动向所有主题注入 CSRF token + bs4-compat）、PHP 8+ 运行时兼容、BS4→BS5 CSS/JS 全面兼容（`input-group-prepend/append`、`custom-file`、`modal/tooltip/popover` API 代理、CSRF 全局保护）、核心主题 API。详见 [docs/compat-layer.md](docs/compat-layer.md)。
 - [ ] **v4.5.0 (Modernization)**: 轻量现代化：HTMX 渐进增强、API 扩展、CLI 工具完善。
 - [ ] **v5.0.0 (Next)**: 全新的插件市场和主题引擎。
 
