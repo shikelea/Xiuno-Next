@@ -516,6 +516,54 @@ img.avatar-1, img.avatar-2, img.avatar-3, img.avatar-4, img.avatar-5 {
     padding-left: 5px;
 }
 
+/* ===== BS4→BS5 间距工具类兼容（left/right → start/end）===== */
+/* BS5 将 ml/mr/pl/pr 重命名为 ms/me/ps/pe 以支持 RTL */
+/* margin-left → margin-start */
+.ml-0 { margin-left: 0 !important; }
+.ml-1 { margin-left: 0.25rem !important; }
+.ml-2 { margin-left: 0.5rem !important; }
+.ml-3 { margin-left: 1rem !important; }
+.ml-4 { margin-left: 1.5rem !important; }
+.ml-5 { margin-left: 3rem !important; }
+.ml-auto { margin-left: auto !important; }
+
+/* margin-right → margin-end */
+.mr-0 { margin-right: 0 !important; }
+.mr-1 { margin-right: 0.25rem !important; }
+.mr-2 { margin-right: 0.5rem !important; }
+.mr-3 { margin-right: 1rem !important; }
+.mr-4 { margin-right: 1.5rem !important; }
+.mr-5 { margin-right: 3rem !important; }
+.mr-auto { margin-right: auto !important; }
+
+/* padding-left → padding-start */
+.pl-0 { padding-left: 0 !important; }
+.pl-1 { padding-left: 0.25rem !important; }
+.pl-2 { padding-left: 0.5rem !important; }
+.pl-3 { padding-left: 1rem !important; }
+.pl-4 { padding-left: 1.5rem !important; }
+.pl-5 { padding-left: 3rem !important; }
+
+/* padding-right → padding-end */
+.pr-0 { padding-right: 0 !important; }
+.pr-1 { padding-right: 0.25rem !important; }
+.pr-2 { padding-right: 0.5rem !important; }
+.pr-3 { padding-right: 1rem !important; }
+.pr-4 { padding-right: 1.5rem !important; }
+.pr-5 { padding-right: 3rem !important; }
+
+/* border-right → border-end */
+.border-right { border-right: 1px solid #dee2e6 !important; }
+.border-right-0 { border-right: 0 !important; }
+
+/* rounded-right → rounded-end (未在 compat 中但预留) */
+.rounded-right { border-top-right-radius: 0.25rem !important; border-bottom-right-radius: 0.25rem !important; }
+.rounded-left { border-top-left-radius: 0.25rem !important; border-bottom-left-radius: 0.25rem !important; }
+
+/* no-gutters → g-0 */
+.no-gutters { --bs-gutter-x: 0; --bs-gutter-y: 0; }
+.no-gutters > .col, .no-gutters > [class*="col-"] { padding-right: 0; padding-left: 0; }
+
 /* ===== 旧版 icon 前缀兼容 ===== */
 
 /* icon-calendar-check-o (Font Awesome 4 旧名) — 部分签到插件使用 */
