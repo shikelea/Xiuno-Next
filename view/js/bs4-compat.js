@@ -63,16 +63,39 @@
     }
 })();
 
-// CSRF 自动设置：从 meta tag 读取，确保主题覆盖 footer 时 CSRF 不丢失
+// CSRF 自动设置：确保 csrf_token 变量存在 + jQuery AJAX 全局拦截器
 (function() {
     'use strict';
     function setupCsrf() {
+        // 1. 确保 csrf_token 变量存在（优先用已有变量，否则从 meta 读取）
         if (typeof window.csrf_token === 'undefined' || !window.csrf_token) {
             var meta = document.querySelector('meta[name="csrf-token"]');
-            if (meta && typeof jQuery !== 'undefined') {
-                window.csrf_token = meta.getAttribute('content');
-                jQuery.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN', window.csrf_token);}});
-            }
+            if (meta) window.csrf_token = meta.getAttribute('content');
+        }
+        if (!window.csrf_token) return;
+
+        // 2. 设置 jQuery AJAX 全局拦截器（如果 jQuery 已加载）
+        if (typeof jQuery !== 'undefined' && !window._csrf_ajax_setup_done) {
+            jQuery.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN', window.csrf_token);}});
+            window._csrf_ajax_setup_done = true;
+        }
+
+        // 3. 设置 fetch 拦截器（部分现代主题使用 fetch 而非 jQuery）
+        if (!window._csrf_fetch_setup_done && typeof window.fetch === 'function') {
+            var origFetch = window.fetch;
+            window.fetch = function(input, init) {
+                init = init || {};
+                if (init.method && init.method.toUpperCase() === 'POST') {
+                    init.headers = init.headers || {};
+                    if (typeof init.headers.set === 'function') {
+                        init.headers.set('X-CSRF-TOKEN', window.csrf_token);
+                    } else {
+                        init.headers['X-CSRF-TOKEN'] = window.csrf_token;
+                    }
+                }
+                return origFetch.call(this, input, init);
+            };
+            window._csrf_fetch_setup_done = true;
         }
     }
     if (document.readyState === 'loading') {
@@ -80,8 +103,8 @@
     } else {
         setupCsrf();
     }
-    // 延迟再检查一次，确保在所有脚本加载后生效
-    setTimeout(setupCsrf, 100);
+    // 延迟再检查一次，确保在 jQuery 等脚本加载后生效
+    setTimeout(setupCsrf, 500);
 })();
 
 // CSRF 表单兼容：自动为所有 form[method=post] 注入 _token hidden 字段
@@ -94,8 +117,10 @@
             if (meta) token = meta.getAttribute('content');
         }
         if (!token) return;
-        var forms = document.querySelectorAll('form[method="post"], form[method="POST"]');
+        var forms = document.querySelectorAll('form');
         for (var i = 0; i < forms.length; i++) {
+            // 匹配所有 POST 表单（大小写不敏感）
+            if (forms[i].method && forms[i].method.toUpperCase() !== 'POST') continue;
             if (forms[i].querySelector('input[name="_token"]')) continue;
             var input = document.createElement('input');
             input.type = 'hidden';
