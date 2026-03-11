@@ -27,10 +27,18 @@
         'data-container': 'data-bs-container'
     };
 
-    function convertAttributes() {
+    function convertAttributes(root) {
+        root = root || document;
+        if (!root || typeof root.querySelectorAll !== 'function') return;
         for (var bs4Attr in attrMap) {
             var bs5Attr = attrMap[bs4Attr];
-            var elements = document.querySelectorAll('[' + bs4Attr + ']');
+
+            // querySelectorAll() doesn't include the root element itself.
+            if (root.nodeType === 1 && root.hasAttribute && root.hasAttribute(bs4Attr) && !root.hasAttribute(bs5Attr)) {
+                root.setAttribute(bs5Attr, root.getAttribute(bs4Attr));
+            }
+
+            var elements = root.querySelectorAll('[' + bs4Attr + ']');
             for (var i = 0; i < elements.length; i++) {
                 var el = elements[i];
                 if (!el.hasAttribute(bs5Attr)) {
@@ -42,22 +50,22 @@
 
     // 页面加载时执行一次
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', convertAttributes);
+        document.addEventListener('DOMContentLoaded', function(){ convertAttributes(document); });
     } else {
-        convertAttributes();
+        convertAttributes(document);
     }
 
     // 监听 DOM 变化（插件动态插入的元素）
     if (typeof MutationObserver !== 'undefined') {
         var observer = new MutationObserver(function(mutations) {
-            var needsConvert = false;
             for (var i = 0; i < mutations.length; i++) {
-                if (mutations[i].addedNodes.length > 0) {
-                    needsConvert = true;
-                    break;
+                var nodes = mutations[i].addedNodes;
+                for (var j = 0; j < nodes.length; j++) {
+                    var n = nodes[j];
+                    if (n.nodeType !== 1 && n.nodeType !== 11) continue; // Element / DocumentFragment
+                    convertAttributes(n);
                 }
             }
-            if (needsConvert) convertAttributes();
         });
         observer.observe(document.documentElement, { childList: true, subtree: true });
     }
@@ -137,15 +145,19 @@
     // 监听动态插入的表单
     if (typeof MutationObserver !== 'undefined') {
         var observer = new MutationObserver(function(mutations) {
-            var hasNewNodes = false;
             for (var i = 0; i < mutations.length; i++) {
-                if (mutations[i].addedNodes.length > 0) { hasNewNodes = true; break; }
+                if (mutations[i].addedNodes.length > 0) { injectCsrfToForms(); break; }
             }
-            if (hasNewNodes) injectCsrfToForms();
         });
-        document.addEventListener('DOMContentLoaded', function() {
+        function startObserve() {
+            if (!document.body) return;
             observer.observe(document.body, { childList: true, subtree: true });
-        });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startObserve);
+        } else {
+            startObserve();
+        }
     }
 })();
 
@@ -196,9 +208,15 @@
                 }
             }
         });
-        document.addEventListener('DOMContentLoaded', function() {
+        function startObserve() {
+            if (!document.body) return;
             observer.observe(document.body, { childList: true, subtree: true });
-        });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startObserve);
+        } else {
+            startObserve();
+        }
     }
 })();
 
