@@ -79,18 +79,21 @@ ob_start(function($html) {
 	if (stripos($html, '</head>') === false) return $html;
 
 	$conf = $_SERVER['conf'];
+	// view_url 只允许相对路径或以 / 开头的路径，防止注入外部域名
 	$view_url = isset($conf['view_url']) ? $conf['view_url'] : 'view/';
-	$sv = isset($conf['static_version']) ? $conf['static_version'] : '';
+	if (preg_match('#^https?://#i', $view_url)) $view_url = 'view/';
+	$view_url = htmlspecialchars($view_url, ENT_QUOTES, 'UTF-8');
+	$sv = isset($conf['static_version']) ? htmlspecialchars($conf['static_version'], ENT_QUOTES, 'UTF-8') : '';
 
 	$head_inject = '';
 	$body_inject = '';
 
-	// 1) CSRF <meta> tag (for JS)
+	// 1) CSRF <meta> tag — bs4-compat.js 会从此读取 token，无需额外内嵌脚本
 	if (stripos($html, 'name="csrf-token"') === false && function_exists('csrf_token')) {
-		$head_inject .= '<meta name="csrf-token" content="' . csrf_token() . '">' . "\n";
+		$head_inject .= '<meta name="csrf-token" content="' . htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') . '">' . "\n";
 	}
 
-	// 2) bs4-compat.css (BS4 -> BS5 CSS compat)
+	// 2) bs4-compat.css
 	if (stripos($html, 'bs4-compat.css') === false) {
 		$head_inject .= '<link rel="stylesheet" href="' . $view_url . 'css/bs4-compat.css' . $sv . '">' . "\n";
 	}
@@ -99,20 +102,7 @@ ob_start(function($html) {
 		$html = preg_replace('~</head>~i', $head_inject . '</head>', $html, 1);
 	}
 
-	// 3) CSRF global var + jQuery ajaxSetup (avoid missing DOMContentLoaded when injected late)
-	if (stripos($html, 'var csrf_token') === false && function_exists('csrf_token')) {
-		$token = csrf_token();
-		$body_inject .= '<script>'
-			. 'window.csrf_token=window.csrf_token||"' . addslashes($token) . '";'
-			. '(function(){function setup(){'
-			. 'if(typeof jQuery!=="undefined"&&!window._csrf_ajax_setup_done){jQuery.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader("X-CSRF-TOKEN",window.csrf_token);}});window._csrf_ajax_setup_done=true;}'
-			. '}'
-			. 'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",setup);}else{setup();}setTimeout(setup,500);'
-			. '})();'
-			. '</script>' . "\n";
-	}
-
-	// 4) bs4-compat.js (BS4 -> BS5 JS compat + CSRF form injection + fallback)
+	// 3) bs4-compat.js — 包含完整 CSRF 初始化 + 兼容层，无需额外内嵌脚本
 	if (stripos($html, 'bs4-compat.js') === false) {
 		$body_inject .= '<script src="' . $view_url . 'js/bs4-compat.js' . $sv . '"></script>' . "\n";
 	}
