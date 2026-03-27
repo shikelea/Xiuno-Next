@@ -653,3 +653,111 @@
         }
     }, false); // 冒泡阶段，不干扰其他处理器
 })();
+
+// btn-group-toggle (BS4 data-toggle="buttons")：BS5 移除，JS 层恢复 active 切换行为
+(function() {
+    'use strict';
+    function initBtnGroupToggle(root) {
+        root = root || document;
+        if (!root || typeof root.querySelectorAll !== 'function') return;
+        var groups = root.querySelectorAll('[data-toggle="buttons"],[data-bs-toggle="buttons"]');
+        for (var i = 0; i < groups.length; i++) {
+            if (groups[i].dataset.bs4cToggleInit) continue;
+            groups[i].dataset.bs4cToggleInit = '1';
+            (function(group) {
+                group.addEventListener('click', function(e) {
+                    var btn = e.target;
+                    while (btn && btn !== group) {
+                        if (btn.classList && btn.classList.contains('btn')) break;
+                        btn = btn.parentNode;
+                    }
+                    if (!btn || btn === group) return;
+                    var isRadio = btn.querySelector('input[type="radio"]');
+                    var isCheckbox = btn.querySelector('input[type="checkbox"]');
+                    if (isRadio) {
+                        // radio: 同组只能一个 active
+                        var btns = group.querySelectorAll('.btn');
+                        for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
+                        btn.classList.add('active');
+                        isRadio.checked = true;
+                    } else if (isCheckbox) {
+                        btn.classList.toggle('active');
+                        isCheckbox.checked = btn.classList.contains('active');
+                    }
+                });
+                // 初始化已选中状态
+                var inputs = group.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked');
+                for (var k = 0; k < inputs.length; k++) {
+                    var parentBtn = inputs[k].closest ? inputs[k].closest('.btn') : inputs[k].parentNode;
+                    if (parentBtn) parentBtn.classList.add('active');
+                }
+            })(groups[i]);
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { initBtnGroupToggle(document); });
+    } else {
+        initBtnGroupToggle(document);
+    }
+    if (typeof MutationObserver !== 'undefined') {
+        var observer = new MutationObserver(function(mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var nodes = mutations[i].addedNodes;
+                for (var j = 0; j < nodes.length; j++) {
+                    if (nodes[j].nodeType === 1) initBtnGroupToggle(nodes[j]);
+                }
+            }
+        });
+        function startObs() {
+            if (document.body) observer.observe(document.body, { childList: true, subtree: true });
+        }
+        document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', startObs) : startObs();
+    }
+})();
+
+// BS4 Tab href 兼容：将 data-toggle="tab" + href="#panel" 转为 BS5 data-bs-target
+// BS5 的 Tab 不再支持 href 作为目标选择器
+(function() {
+    'use strict';
+    function fixTabHref(root) {
+        root = root || document;
+        if (!root || typeof root.querySelectorAll !== 'function') return;
+        var tabs = root.querySelectorAll('[data-toggle="tab"],[data-bs-toggle="tab"]');
+        for (var i = 0; i < tabs.length; i++) {
+            var tab = tabs[i];
+            if (tab.dataset.bs4cTabFixed) continue;
+            tab.dataset.bs4cTabFixed = '1';
+            // 如果没有 data-bs-target，从 href 补充
+            if (!tab.hasAttribute('data-bs-target') && tab.getAttribute('href') && tab.getAttribute('href').charAt(0) === '#') {
+                tab.setAttribute('data-bs-target', tab.getAttribute('href'));
+            }
+            // 确保有 data-bs-toggle
+            if (!tab.hasAttribute('data-bs-toggle')) {
+                tab.setAttribute('data-bs-toggle', 'tab');
+            }
+            // 初始化 BS5 Tab 实例
+            if (typeof bootstrap !== 'undefined' && bootstrap.Tab && !bootstrap.Tab.getInstance(tab)) {
+                new bootstrap.Tab(tab);
+            }
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { fixTabHref(document); });
+    } else {
+        fixTabHref(document);
+    }
+    if (typeof MutationObserver !== 'undefined') {
+        var observer = new MutationObserver(function(mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var nodes = mutations[i].addedNodes;
+                for (var j = 0; j < nodes.length; j++) {
+                    if (nodes[j].nodeType === 1) fixTabHref(nodes[j]);
+                }
+            }
+        });
+        function startObs() {
+            if (document.body) observer.observe(document.body, { childList: true, subtree: true });
+        }
+        document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', startObs) : startObs();
+    }
+})();
