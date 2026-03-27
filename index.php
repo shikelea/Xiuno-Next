@@ -34,10 +34,12 @@ register_shutdown_function(function () {
 		$app_plugin_path = str_replace('\\', '/', APP_PATH . 'plugin/');
 		$app_tmp_path = str_replace('\\', '/', APP_PATH . 'tmp/');
 		if (strpos($error_file, $app_plugin_path) === 0 || strpos($error_file, $app_tmp_path) === 0) {
-			$safe_file = APP_PATH . 'tmp/safe_mode.php';
+			// 写入无内容的标记文件（非 PHP 可执行文件），错误详情写到日志
+			$safe_file = APP_PATH . 'tmp/safe_mode';
 			if (!is_file($safe_file)) {
-				$msg = "<?php\n// 自动进入安全模式\n// 错误信息: {$error['message']}\n// 文件: {$error['file']}\n// 行数: {$error['line']}\n";
-				@file_put_contents($safe_file, $msg);
+				@file_put_contents($safe_file, '');
+				$log_msg = date('Y-m-d H:i:s') . " FATAL: {$error['message']} in {$error['file']} on line {$error['line']}\n";
+				@file_put_contents(APP_PATH . 'log/safe_mode.log', $log_msg, FILE_APPEND);
 			}
 		}
 	}

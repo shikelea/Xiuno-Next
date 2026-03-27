@@ -21,7 +21,6 @@
         'data-backdrop':  'data-bs-backdrop',
         'data-keyboard':  'data-bs-keyboard',
         'data-focus':     'data-bs-focus',
-        'data-content':   'data-bs-content',
         'data-placement': 'data-bs-placement',
         'data-trigger':   'data-bs-trigger',
         'data-container': 'data-bs-container'
@@ -44,6 +43,13 @@
                 if (!el.hasAttribute(bs5Attr)) {
                     el.setAttribute(bs5Attr, el.getAttribute(bs4Attr));
                 }
+            }
+        }
+        // data-content 仅对 popover 元素转换（避免污染其他用途的 data-content）
+        var popovers = root.querySelectorAll ? root.querySelectorAll('[data-toggle="popover"][data-content], [data-bs-toggle="popover"][data-content]') : [];
+        for (var pi = 0; pi < popovers.length; pi++) {
+            if (!popovers[pi].hasAttribute('data-bs-content')) {
+                popovers[pi].setAttribute('data-bs-content', popovers[pi].getAttribute('data-content'));
             }
         }
     }
@@ -456,4 +462,118 @@
         if (origPopover) return origPopover.apply(this, arguments);
         return this;
     };
+})();
+
+// dropdown-menu-right → dropdown-menu-end：JS 层通过 data-bs-popper 对齐修复
+// BS5 Popper 会覆盖纯 CSS 的 right:0 方案，需在 JS 层设置
+(function() {
+    'use strict';
+    function fixDropdownAlign(root) {
+        root = root || document;
+        if (!root || typeof root.querySelectorAll !== 'function') return;
+        var menus = root.querySelectorAll('.dropdown-menu-right, .dropdown-menu-left');
+        for (var i = 0; i < menus.length; i++) {
+            var menu = menus[i];
+            if (menu.classList.contains('dropdown-menu-right') && !menu.classList.contains('dropdown-menu-end')) {
+                menu.classList.add('dropdown-menu-end');
+            }
+            if (menu.classList.contains('dropdown-menu-left') && !menu.classList.contains('dropdown-menu-start')) {
+                menu.classList.add('dropdown-menu-start');
+            }
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { fixDropdownAlign(document); });
+    } else {
+        fixDropdownAlign(document);
+    }
+    if (typeof MutationObserver !== 'undefined') {
+        var observer = new MutationObserver(function(mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var nodes = mutations[i].addedNodes;
+                for (var j = 0; j < nodes.length; j++) {
+                    if (nodes[j].nodeType === 1) fixDropdownAlign(nodes[j]);
+                }
+            }
+        });
+        function startObs() {
+            if (document.body) observer.observe(document.body, { childList: true, subtree: true });
+        }
+        document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', startObs) : startObs();
+    }
+})();
+
+// custom-file-input：选择文件后自动更新 label 文字（BS4 行为）
+(function() {
+    'use strict';
+    function bindCustomFile(root) {
+        root = root || document;
+        if (!root || typeof root.querySelectorAll !== 'function') return;
+        var inputs = root.querySelectorAll('.custom-file-input');
+        for (var i = 0; i < inputs.length; i++) {
+            if (inputs[i]._bs4cBound) continue;
+            inputs[i]._bs4cBound = true;
+            inputs[i].addEventListener('change', function() {
+                var label = this.parentNode && this.parentNode.querySelector('.custom-file-label');
+                if (!label) return;
+                var files = this.files;
+                if (files && files.length > 1) {
+                    label.textContent = files.length + ' files selected';
+                } else if (files && files.length === 1) {
+                    label.textContent = files[0].name;
+                }
+            });
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { bindCustomFile(document); });
+    } else {
+        bindCustomFile(document);
+    }
+    if (typeof MutationObserver !== 'undefined') {
+        var observer = new MutationObserver(function(mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var nodes = mutations[i].addedNodes;
+                for (var j = 0; j < nodes.length; j++) {
+                    if (nodes[j].nodeType === 1) bindCustomFile(nodes[j]);
+                }
+            }
+        });
+        function startObs() {
+            if (document.body) observer.observe(document.body, { childList: true, subtree: true });
+        }
+        document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', startObs) : startObs();
+    }
+})();
+
+// BS4 .close 按钮：补全 click dismiss 事件（alert/modal 关闭）
+// BS5 仅识别 data-bs-dismiss，纯 .close 类无效
+(function() {
+    'use strict';
+    document.addEventListener('click', function(e) {
+        var btn = e.target;
+        // 向上查找最近的 .close 元素
+        while (btn && btn !== document) {
+            if (btn.classList && btn.classList.contains('close') && !btn.getAttribute('data-bs-dismiss')) {
+                // 找最近的可关闭父容器
+                var parent = btn.parentNode;
+                while (parent && parent !== document) {
+                    if (parent.classList && (parent.classList.contains('alert') || parent.classList.contains('modal') || parent.classList.contains('toast'))) {
+                        if (parent.classList.contains('modal')) {
+                            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                var inst = bootstrap.Modal.getInstance(parent);
+                                if (inst) inst.hide();
+                            }
+                        } else {
+                            parent.style.display = 'none';
+                        }
+                        break;
+                    }
+                    parent = parent.parentNode;
+                }
+                break;
+            }
+            btn = btn.parentNode;
+        }
+    }, true);
 })();

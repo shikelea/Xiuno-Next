@@ -192,7 +192,8 @@ function sess_start() {
 	ini_set('session.use_only_cookies', 'On');
 	ini_set('session.cookie_domain', '');
 	ini_set('session.cookie_path', '');	// 为空则表示当前目录和子目录
-	ini_set('session.cookie_secure', 'Off'); // 打开后，只有通过 https 才有效。
+	$is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+	ini_set('session.cookie_secure', $is_https ? 'On' : 'Off'); // HTTPS 下自动启用 Secure 标志
 	ini_set('session.cookie_lifetime', 86400);
 	ini_set('session.cookie_httponly', 'On'); // 打开后 js 获取不到 HTTP 设置的 cookie, 有效防止 XSS，这个对于安全很重要，除非有 BUG，否则不要关闭。
 	
