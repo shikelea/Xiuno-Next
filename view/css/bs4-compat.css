@@ -154,13 +154,26 @@
 
 /* ===== Badge ===== */
 
-/* badge-* → bg-* */
+/* badge-* → bg-*
+ * 补全 display/font-size，确保旧插件单独使用 .badge-* 而无 .badge 时也能正常显示 */
+.badge-primary, .badge-secondary, .badge-success, .badge-danger,
+.badge-warning, .badge-info, .badge-light, .badge-dark {
+    display: inline-block;
+    padding: .35em .65em;
+    font-size: .75em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: .375rem;
+}
 .badge-primary   { color: #fff; background-color: #0d6efd; }
 .badge-secondary { color: #fff; background-color: #6c757d; }
 .badge-success   { color: #fff; background-color: #198754; }
 .badge-danger    { color: #fff; background-color: #dc3545; }
 .badge-warning   { color: #212529; background-color: #ffc107; }
-.badge-info      { color: #fff; background-color: #0dcaf0; }
+.badge-info      { color: #212529; background-color: #0dcaf0; }
 .badge-light     { color: #212529; background-color: #f8f9fa; }
 .badge-dark      { color: #fff; background-color: #212529; }
 
@@ -548,11 +561,48 @@ img.avatar-1, img.avatar-2, img.avatar-3, img.avatar-4, img.avatar-5 {
 .rounded-right { border-top-right-radius: 0.25rem !important; border-bottom-right-radius: 0.25rem !important; }
 .rounded-left { border-top-left-radius: 0.25rem !important; border-bottom-left-radius: 0.25rem !important; }
 
-/* no-gutters → g-0 */
-.no-gutters { --bs-gutter-x: 0; --bs-gutter-y: 0; }
-.no-gutters > .col, .no-gutters > [class*="col-"] { padding-right: 0; padding-left: 0; }
-
 /* ===== 旧版 icon 前缀兼容 ===== */
 
 /* icon-calendar-check-o (Font Awesome 4 旧名) — 部分签到插件使用 */
 .icon-calendar-check-o:before { content: "\f274"; }
+
+/* ===== input-group border-radius 修复 (BS4→BS5) ===== */
+
+/*
+ * BS4 中 input-group-prepend/append 包裹层负责管理圆角。
+ * BS5 移除包裹层后，直接子元素的圆角由 :first-child/:last-child 处理。
+ * 此处修复旧插件包裹结构下圆角丢失的问题。
+ */
+.input-group > .input-group-prepend > .btn,
+.input-group > .input-group-prepend > .input-group-text {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.input-group > .input-group-append > .btn,
+.input-group > .input-group-append > .input-group-text {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+/* 最左侧元素保留左圆角 */
+.input-group > .input-group-prepend:first-child > .btn,
+.input-group > .input-group-prepend:first-child > .input-group-text {
+    border-top-left-radius: 0.375rem;
+    border-bottom-left-radius: 0.375rem;
+}
+/* 最右侧元素保留右圆角 */
+.input-group > .input-group-append:last-child > .btn,
+.input-group > .input-group-append:last-child > .input-group-text {
+    border-top-right-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+}
+/* 中间的 form-control 圆角由相邻选择器处理 */
+.input-group > .input-group-prepend ~ .form-control,
+.input-group > .input-group-prepend ~ .form-select {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.input-group > .form-control:not(:last-child),
+.input-group > .form-select:not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
