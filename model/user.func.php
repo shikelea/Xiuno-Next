@@ -322,12 +322,14 @@ function user_token_get_do() {
 	$arr = explode("\t", $s);
 	if(count($arr) != 3) return FALSE;
 	list($_ip, $_time, $_uid) = $arr;
-	//if($ip != $_ip) return FALSE;
-	//if($time - $_time > 86400) return FALSE;
-	
+	// Token 有效期 30 天
+	if($time - intval($_time) > 86400 * 30) return FALSE;
+	$_uid = intval($_uid);
+	if($_uid <= 0) return FALSE;
+
 	// hook model_user_token_get_do_end.php
-	
-	return $_uid;	
+
+	return $_uid;
 }
 
 // 设置 token，防止 sid 过期后被删除
