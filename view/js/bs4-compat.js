@@ -117,8 +117,28 @@
     } else {
         setupCsrf();
     }
-    // 延迟再检查一次，确保在 jQuery 等脚本加载后生效
-    setTimeout(setupCsrf, 500);
+    // 监听后续脚本加载（jQuery 可能在 bs4-compat.js 之后加载）
+    // 用 MutationObserver 监听 <script> 插入，比 setTimeout 更可靠
+    if (typeof MutationObserver !== 'undefined') {
+        var csrfScriptObserver = new MutationObserver(function(mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var nodes = mutations[i].addedNodes;
+                for (var j = 0; j < nodes.length; j++) {
+                    if (nodes[j].tagName === 'SCRIPT') {
+                        nodes[j].addEventListener('load', setupCsrf);
+                    }
+                }
+            }
+            // 每次 DOM 变化也尝试一次（jQuery 可能已就绪）
+            if (typeof jQuery !== 'undefined' && !window._csrf_ajax_setup_done) setupCsrf();
+        });
+        csrfScriptObserver.observe(document.documentElement, { childList: true, subtree: true });
+        // 页面完全加载后停止监听
+        window.addEventListener('load', function() {
+            csrfScriptObserver.disconnect();
+            setupCsrf();
+        });
+    }
 })();
 
 // CSRF 表单兼容：自动为所有 form[method=post] 注入 _token hidden 字段
@@ -148,16 +168,40 @@
     } else {
         injectCsrfToForms();
     }
-    // 监听动态插入的表单
+    // 监听动态插入的表单（只处理新增节点，避免全量扫描）
     if (typeof MutationObserver !== 'undefined') {
-        var observer = new MutationObserver(function(mutations) {
+        var csrfFormObserver = new MutationObserver(function(mutations) {
+            var token = window.csrf_token;
+            if (!token) {
+                var meta = document.querySelector('meta[name="csrf-token"]');
+                if (meta) token = meta.getAttribute('content');
+            }
+            if (!token) return;
             for (var i = 0; i < mutations.length; i++) {
-                if (mutations[i].addedNodes.length > 0) { injectCsrfToForms(); break; }
+                var nodes = mutations[i].addedNodes;
+                for (var j = 0; j < nodes.length; j++) {
+                    var n = nodes[j];
+                    if (n.nodeType !== 1) continue;
+                    // 新增节点本身是 form
+                    var forms = [];
+                    if (n.tagName === 'FORM') forms.push(n);
+                    // 新增节点内部含 form
+                    var inner = n.querySelectorAll ? n.querySelectorAll('form') : [];
+                    for (var k = 0; k < inner.length; k++) forms.push(inner[k]);
+                    for (var fi = 0; fi < forms.length; fi++) {
+                        var f = forms[fi];
+                        if (f.method && f.method.toUpperCase() !== 'POST') continue;
+                        if (f.querySelector('input[name="_token"]')) continue;
+                        var inp = document.createElement('input');
+                        inp.type = 'hidden'; inp.name = '_token'; inp.value = token;
+                        f.appendChild(inp);
+                    }
+                }
             }
         });
         function startObserve() {
             if (!document.body) return;
-            observer.observe(document.body, { childList: true, subtree: true });
+            csrfFormObserver.observe(document.body, { childList: true, subtree: true });
         }
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', startObserve);
@@ -257,11 +301,18 @@
         // 如果 BS5 bootstrap.Modal 可用，使用它
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
             return this.each(function() {
-                var instance = bootstrap.Modal.getInstance(this) || new bootstrap.Modal(this);
+                var opts = (typeof action === 'object' && action !== null) ? action : {};
+                var instance = bootstrap.Modal.getInstance(this) || new bootstrap.Modal(this, opts);
                 if (action === 'show') instance.show();
                 else if (action === 'hide') instance.hide();
-                else if (action === 'toggle') instance.toggle();
-                else if (action === 'dispose' || action === 'handleUpdate') instance.dispose();
+                else if (action === 'toggle') {
+                    // BS5 Modal 无原生 toggle，手动判断状态
+                    var el = this;
+                    if (el.classList.contains('show')) instance.hide();
+                    else instance.show();
+                }
+                else if (action === 'dispose') instance.dispose();
+                else if (action === 'handleUpdate') instance.handleUpdate && instance.handleUpdate();
                 else if (typeof action === 'object' || typeof action === 'undefined') instance.show();
             });
         }
@@ -376,7 +427,8 @@
     }
 
     // $.fn.alert — 在控件上方显示错误提示（BS5 Tooltip 方式）
-    if (!jQuery.fn.alert || jQuery.fn.alert === jQuery.fn.alert._bs5native) {
+    // 仅当 alert 未被定义或是 BS5 原生的 dismiss-only 版本时才覆盖
+    if (!jQuery.fn.alert || !jQuery.fn.alert._xnPatched) {
         jQuery.fn.alert = function(message) {
             var jthis = jQuery(this);
             jthis.addClass('is-invalid');
@@ -400,6 +452,7 @@
             });
             return this;
         };
+        jQuery.fn.alert._xnPatched = true;
     }
 })();
 
