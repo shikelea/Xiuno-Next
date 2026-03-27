@@ -26,27 +26,35 @@
         'data-container': 'data-bs-container'
     };
 
+    // 合并所有 BS4 属性为单次 querySelectorAll，减少 DOM 查询次数
+    var attrSelector = Object.keys(attrMap).map(function(a) { return '[' + a + ']'; }).join(',');
+
     function convertAttributes(root) {
         root = root || document;
         if (!root || typeof root.querySelectorAll !== 'function') return;
-        for (var bs4Attr in attrMap) {
-            var bs5Attr = attrMap[bs4Attr];
 
-            // querySelectorAll() doesn't include the root element itself.
-            if (root.nodeType === 1 && root.hasAttribute && root.hasAttribute(bs4Attr) && !root.hasAttribute(bs5Attr)) {
-                root.setAttribute(bs5Attr, root.getAttribute(bs4Attr));
-            }
-
-            var elements = root.querySelectorAll('[' + bs4Attr + ']');
-            for (var i = 0; i < elements.length; i++) {
-                var el = elements[i];
-                if (!el.hasAttribute(bs5Attr)) {
-                    el.setAttribute(bs5Attr, el.getAttribute(bs4Attr));
+        // 处理 root 元素本身（querySelectorAll 不含自身）
+        if (root.nodeType === 1 && root.hasAttribute) {
+            for (var a in attrMap) {
+                if (root.hasAttribute(a) && !root.hasAttribute(attrMap[a])) {
+                    root.setAttribute(attrMap[a], root.getAttribute(a));
                 }
             }
         }
+
+        // 一次查询所有含 BS4 属性的元素
+        var elements = root.querySelectorAll(attrSelector);
+        for (var i = 0; i < elements.length; i++) {
+            var el = elements[i];
+            for (var bs4Attr in attrMap) {
+                if (el.hasAttribute(bs4Attr) && !el.hasAttribute(attrMap[bs4Attr])) {
+                    el.setAttribute(attrMap[bs4Attr], el.getAttribute(bs4Attr));
+                }
+            }
+        }
+
         // data-content 仅对 popover 元素转换（避免污染其他用途的 data-content）
-        var popovers = root.querySelectorAll ? root.querySelectorAll('[data-toggle="popover"][data-content], [data-bs-toggle="popover"][data-content]') : [];
+        var popovers = root.querySelectorAll('[data-toggle="popover"][data-content],[data-bs-toggle="popover"][data-content]');
         for (var pi = 0; pi < popovers.length; pi++) {
             if (!popovers[pi].hasAttribute('data-bs-content')) {
                 popovers[pi].setAttribute('data-bs-content', popovers[pi].getAttribute('data-content'));
@@ -98,13 +106,27 @@
         if (!window._csrf_fetch_setup_done && typeof window.fetch === 'function') {
             var origFetch = window.fetch;
             window.fetch = function(input, init) {
-                init = init || {};
-                if (init.method && init.method.toUpperCase() === 'POST') {
-                    init.headers = init.headers || {};
-                    if (typeof init.headers.set === 'function') {
-                        init.headers.set('X-CSRF-TOKEN', window.csrf_token);
+                // 兼容 Request 对象：method 可能在 input 上
+                var method = '';
+                if (init && init.method) {
+                    method = init.method.toUpperCase();
+                } else if (input && typeof input === 'object' && input.method) {
+                    method = input.method.toUpperCase();
+                }
+                if (method === 'POST') {
+                    // Request 对象不可直接修改 headers，需克隆
+                    if (input && typeof input === 'object' && typeof input.clone === 'function' && !init) {
+                        var newHeaders = new Headers(input.headers);
+                        newHeaders.set('X-CSRF-TOKEN', window.csrf_token);
+                        input = new Request(input, { headers: newHeaders });
                     } else {
-                        init.headers['X-CSRF-TOKEN'] = window.csrf_token;
+                        init = init || {};
+                        init.headers = init.headers || {};
+                        if (typeof init.headers.set === 'function') {
+                            init.headers.set('X-CSRF-TOKEN', window.csrf_token);
+                        } else {
+                            init.headers['X-CSRF-TOKEN'] = window.csrf_token;
+                        }
                     }
                 }
                 return origFetch.call(this, input, init);
@@ -564,8 +586,8 @@
         if (!root || typeof root.querySelectorAll !== 'function') return;
         var inputs = root.querySelectorAll('.custom-file-input');
         for (var i = 0; i < inputs.length; i++) {
-            if (inputs[i]._bs4cBound) continue;
-            inputs[i]._bs4cBound = true;
+            if (inputs[i].dataset.bs4cBound) continue;
+            inputs[i].dataset.bs4cBound = '1';
             inputs[i].addEventListener('change', function() {
                 var label = this.parentNode && this.parentNode.querySelector('.custom-file-label');
                 if (!label) return;
@@ -601,6 +623,7 @@
 
 // BS4 .close 按钮：补全 click dismiss 事件（alert/modal 关闭）
 // BS5 仅识别 data-bs-dismiss，纯 .close 类无效
+// 使用冒泡阶段（false），避免干扰目标元素自身的捕获阶段处理器
 (function() {
     'use strict';
     document.addEventListener('click', function(e) {
@@ -628,5 +651,5 @@
             }
             btn = btn.parentNode;
         }
-    }, true);
+    }, false); // 冒泡阶段，不干扰其他处理器
 })();
