@@ -166,6 +166,10 @@ bin\benchmark.bat
 
 更多详情请参考 [route/api/](route/api/) 目录下的源码。
 
+## 开发手册
+
+社区扩展版开发手册已收录在 [开发手册/](开发手册/) 目录。该资料主要基于原版 Xiuno BBS 4.0.x，使用时请先阅读 [Xiuno Next 开发手册校注](开发手册/README.md)，其中标注了 PHP 8、Docker、bcrypt、CSRF、API、CLI 和兼容层等 Xiuno Next 差异。
+
 ## 🤝 参与贡献
 
 Xiuno Next 是一个社区驱动的项目，我们需要你的帮助！无论是提交 Bug、修复代码还是完善文档，都非常欢迎。

@@ -64,7 +64,7 @@
   - 为帖子页添加 Open Graph / Twitter Card meta 标签（标题、描述、首图）。
 - [x] **建立性能基线**（在任何进一步改动之前，先记录当前状态）：
   - 编写标准化压测脚本（基于 `ab` 或 `wrk`），覆盖首页、帖子列表、帖子详情等核心场景（已提供 `bin/benchmark.bat` 和 `docs/performance_baseline.md`）。
-  - ⚠️ 压测脚本框架已就位，实际基准数据待部署后采集填入。
+  - 已于 2026-03-06 采集首轮基线数据：核心页面 QPS 均超过 220，TTFB 控制在 220ms 以内。后续重构需以 `docs/performance_baseline.md` 为退化防线。
 
 **代码审查修复（v4.3.1）：**
 - [x] **移除 BS4 残留文件**：删除 `view/js/bootstrap.bundle.js`（Bootstrap 4.0.0），避免与 BS5 产生混淆。
@@ -145,6 +145,28 @@
   - 一键测试全部代理连通性和延迟（毫秒级），状态即时显示。
   - 代理设置持久化到 `conf.php`，检查更新和下载更新时自动使用。
 
+**稳定性与版本治理（v4.4.4）：**
+- [x] **在线更新 ZIP 校验加固**：
+  - 下载后校验 ZIP 魔数，避免代理错误页或 GitHub API 错误响应被当作更新包覆盖。
+  - 解压前检查 ZIP 内路径，阻止绝对路径、盘符路径和 `../` 路径穿越。
+  - 覆盖核心文件前自动备份原文件到 `tmp/update_backup_*`；备份失败时立即停止覆盖。
+  - 后台更新页提供最近备份的一键回滚入口，并记录 ZIP SHA-256 到 `log/update.log`。
+  - 使用 `github.com/archive/refs/tags/` 直链替代 API `zipball_url`，减少速率限制与代理兼容问题。
+- [x] **版本号管理修复**：
+  - 运行时版本、默认配置、升级工具、README 与兼容层文档统一对齐。
+  - 新增 `bin/check_version.php`，发布前检查 `index.php`、`conf.default.php`、`UpgradeCommand` 与文档中的版本一致性。
+
+**四层兼容层体系（v4.4.5）：**
+- [x] **通用注入器**：
+  - `index.php` 通过 `ob_start` 自动向所有 HTML 响应注入 CSRF meta、`bs4-compat.css` 和 `bs4-compat.js`，主题覆盖 `header/footer` 时仍能保留核心兼容能力。
+- [x] **PHP 8+ 运行时兼容**：
+  - `xiunophp/php8_compat.php` 提供 TypeError 降级日志、`safe_header()` 与常用 polyfill，降低旧插件在 PHP 8+ 下白屏概率。
+- [x] **BS4→BS5 CSS/JS 全面兼容**：
+  - 补齐 `input-group-prepend/append`、`custom-file`、间距工具类、Tab、`btn-group-toggle`、Modal/Tooltip/Popover/Button jQuery API 代理。
+  - 自动处理动态 DOM、CSRF 表单注入、fetch/jQuery POST 请求 token 附带。
+- [x] **核心主题 API**：
+  - 提供 `theme_register()`、`theme_has()`、`theme_enqueue_style()`、`theme_enqueue_script()` 与 HTMX 消息响应基础能力。
+
 ### 阶段五：轻量现代化 (Lightweight Modernization Phase)
 **目标**：在**零臃肿**的前提下引入现代实践，为开发者提供更好的工具。
 
@@ -177,10 +199,15 @@
   > ~~3. **XSS 过滤脆弱**~~ ✅ 已修复模板输出转义，`jump()` 内部转义。
   > ~~4. **Token 生成机制较弱**~~ ✅ 已从 `md5()` 升级为 `hash('sha256')`。
   > ~~5. **全局参数注入风险**~~ ✅ 已修复 `$_REQUEST` 合并顺序，POST 最高优先级。
-- [ ] **CLI 脚手架**：
-  - 开发 `xiuno-cli` 工具，支持 `php xiuno make:plugin` 快速创建插件结构。
-- [ ] **自动化测试 (CI/CD)**：
-  - 引入 GitHub Actions，对核心功能进行自动化测试，确保 PR 质量。
+- [x] **CLI 脚手架（基础完成）**：
+  - 已提供 `php bin/xiuno make:plugin`、`migrate`、`upgrade` 三个基础命令。
+  - 待完善：无 Composer 依赖时的友好引导、更多插件管理命令、CI 中的命令级 smoke test。
+- [ ] **发布/版本治理自动化**：
+  - 将 `php bin/check_version.php` 加入发布前检查，防止 `index.php`、`conf.default.php`、升级工具和文档版本漂移。
+  - 发布前固定检查：核心 `php -l`、版本一致性、在线更新路径、升级目标版本、性能基线退化风险。
+- [x] **自动化测试 (CI/CD) 最小闭环**：
+  - 已引入 GitHub Actions，覆盖版本一致性检查与核心 PHP 语法检查。
+  - 待完善：安装流程、迁移/升级命令、核心 API 与在线更新流程的 smoke test。
 
 ### 阶段六：生态重建 (Ecosystem Phase)
 **目标**：终结碎片化，成为社区公认的权威版本。
@@ -200,6 +227,9 @@
 - [ ] **文档中心重构**：
   - 使用轻量方案搭建文档站点（优先考虑纯 PHP/Markdown 方案，避免引入 Node.js 依赖）。
   - 自动扫描代码生成 Hook 点列表，解决开发者查阅难的问题。
+  - 将 `开发手册/` 中的社区扩展手册纳入文档中心，但先作为原版 Xiuno BBS 4.0.x 历史资料处理。
+  - 维护 Xiuno Next 校注层，明确 PHP 8.0+、Docker、bcrypt、CSRF、API、CLI、在线更新和兼容层与原版手册的差异。
+  - 后续从当前源码重新生成依赖链、Hook 点和主题 API 文档，避免手写依赖图继续漂移。
 
 ### 阶段七：持续性能优化 (Continuous Performance Phase)
 **目标**：基于阶段三建立的性能基线，持续优化并防止退化。
@@ -213,13 +243,15 @@
 
 ## 4. 立即执行项 (Action Items)
 
-> 按优先级排序，与阶段三（进行中）对齐：
+> 按当前风险排序，与阶段五（轻量现代化）和发布稳定性对齐：
 
-1.  **插件安全模式**：实现安全模式启动机制 + 错误隔离（白屏是最致命的问题，管理员连后台都进不去）。
-2.  **BS4 兼容层**：编写 `data-toggle` → `data-bs-toggle` 自动转换垫片（阻塞插件生态的头号问题）。
-3.  **建立性能基线**：对当前版本进行首次基准测试，记录数据作为优化参照。
-4.  **HTML 最佳实践**：为模板添加 `loading="lazy"`、`aria` 属性（快速见效，几小时内完成）。
-5.  **密码安全迁移**：设计 `password_hash` 渐进式迁移方案（阶段四首要任务）。
+1. **发布一致性守卫**：运行 `php bin/check_version.php`，并将其纳入 CI，避免版本号和文档再次漂移。
+2. **在线更新安全加固**：保持 TLS 证书校验开启，已补充 ZIP 路径安全检查、覆盖前备份和最近备份回滚；下一步补发布包 hash/signature 校验。
+3. **自动化测试最小闭环**：先建立核心 `php -l`、版本一致性、安装/迁移/升级命令 smoke test，再逐步覆盖 API。
+4. **依赖与 PHP 版本矩阵**：以 PHP 8.0+ 为最低运行线，Docker 默认 PHP 8.2，CI 覆盖 8.0/8.2/8.3/8.4/8.5，并在 CI 中执行 Composer validate/install；依赖升级优先保证旧插件兼容，不盲目追新主版本。后续需要决定是否提交 `composer.lock` 来固定应用依赖。
+5. **开发手册校注**：保留社区手册原文，新增 Xiuno Next 差异说明，并逐步重生成新版数据库、Hook、依赖链和升级文档。
+6. **数据库层长期治理**：短期继续收敛直接 SQL 拼接点，长期把高风险写路径迁移到预处理语句。
+7. **插件兼容性清单**：把本地插件扫描结果分成 Hook 片段误报、PHP 8 真错误、BS4→BS5 样式/JS 兼容问题三类，形成可公开维护的兼容矩阵。
 
 ## 5. 决策原则 (Decision Principles)
 

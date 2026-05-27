@@ -12,8 +12,8 @@ function get_env(&$env, &$write) {
 	$env['php_version']['name'] = lang('php_version');
 	$env['php_version']['must'] = TRUE;
 	$env['php_version']['current'] = PHP_VERSION;
-	$env['php_version']['need'] = '5.0';
-	$env['php_version']['status'] = version_compare(PHP_VERSION , '5') > 0;
+	$env['php_version']['need'] = '8.0';
+	$env['php_version']['status'] = version_compare(PHP_VERSION , '8.0.0') >= 0;
 
 	// 目录可写（使用绝对路径，避免 CWD 不一致导致检测失败）
 	$writedir = array(

@@ -214,6 +214,13 @@ return array(
 	'update_not_zip'=>'Downloaded file is not a valid ZIP, proxy may have returned an error page',
 	'update_no_ziparchive'=>'Server is missing PHP ZipArchive extension, cannot extract update',
 	'update_success'=>'Updated to v{version} successfully! Please clear browser cache.',
+	'update_backup_failed'=>'Backup failed before update; file overwrite has been stopped',
+	'update_rollback_title'=>'Update Rollback',
+	'update_rollback_desc'=>'Latest backup: {time}, {count} files. Rollback will overwrite current core files with this backup.',
+	'update_rollback_do'=>'Rollback to this backup',
+	'update_rollback_no_backup'=>'No update backup is available',
+	'update_rollback_failed'=>'Rollback failed',
+	'update_rollback_success'=>'Rollback complete, restored {count} files. Please refresh and verify the site.',
 	
 	// Proxy
 	'update_proxy_title'=>'GitHub Proxy',

@@ -1,0 +1,133 @@
+URL: **forum-{fid}** 使用了这些函数：
+
+- `forum_read()`
+	- 来自 *model/forum.func.php*
+		- 其内用到：
+			- `forum__read()`
+				- 来自 *model/forum.func.php*
+				- 其内用到：
+					- `db_find_one()`
+						- 来自 *xiunophp/db.func.php*
+			- `forum_format()`
+				- 来自 *model/forum.func.php*
+				- 其内用到：
+					- `forum_access_find_by_fid()`
+						- 来自 *model/forum_access.func.php*
+					- `user_find_by_uids()`
+						- 来自 *model/user.func.php*
+					- `user_safe_info()`
+						- 来自 *model/user.func.php*
+- `thread_top_find()`
+	- 来自 *model/thread_top.func.php*
+	- 其内用到：
+		- `db_find()`
+			- 来自 *xiunophp/db.func.php*
+		- `arrlist_values()`
+			- 来自 *xiunophp/array.func.php*
+		- `thread_find_by_tids()`
+			- 来自 *model/thread.func.php*
+			- 其内用到：
+				- `db_find`
+					- 来自 *xiunophp/db.func.php*
+				- `thread_format`
+					- 来自 *model/thread.func.php*
+					- 其内用到：
+						- `humandate()`
+							- 来自 *xiunophp/misc.func.php*
+						- `user_read_cache()`
+							- 来自 *model/user.func.php*
+							- 其内用到：
+								- `cache_get()`
+									- 来自 *xiunophp/cache.func.php*
+								- `cache_set()`
+									- 来自 *xiunophp/cache.func.php*
+								- `user_guest()`
+									- 来自 *model/user.func.php*
+								- `user_read()`
+									- 来自 *model/user.func.php*
+									- 其内用到：
+										- `user__read()`
+											- 来自 *model/user.func.php*
+											- 其内用到：
+												- `db_find_one()`
+													- 来自 *xiunophp/db.func.php*
+										- `user_format()`
+											- 来自 *model/user.func.php*
+- `pagination()`
+	- 来自 *xiunophp/misc.func.php*
+- `thread_find_by_fid()`
+	- 来自 *model/thread.func.php*
+	- 其内用到：
+		- `thread__find_by_fid()`
+			- 来自 *model/thread.func.php*
+			- 其内用到：
+				- `thread_find()`
+					- 来自 *model/thread.func.php*
+					- 其内用到：
+						- `thread__find()`
+							- 来自 *model/thread.func.php*
+							- 其内用到：
+								- `db_find()`
+									- 来自 *xiunophp/db.func.php*
+								- `arrlist_values()`
+									- 来自 *xiunophp/array.func.php*
+						- `thread_format`
+							- 来自 *model/thread.func.php*
+							- 其内用到：
+								- `humandate()`
+									- 来自 *xiunophp/misc.func.php*
+								- `user_read_cache()`
+									- 来自 *model/user.func.php*
+									- 其内用到：
+										- `cache_get()`
+											- 来自 *xiunophp/cache.func.php*
+										- `cache_set()`
+											- 来自 *xiunophp/cache.func.php*
+										- `user_guest()`
+											- 来自 *model/user.func.php*
+										- `user_read()`
+											- 来自 *model/user.func.php*
+											- 其内用到：
+												- `user__read()`
+													- 来自 *model/user.func.php*
+													- 其内用到：
+														- `db_find_one()`
+															- 来自 *xiunophp/db.func.php*
+												- `user_format()`
+													- 来自 *model/user.func.php*
+		- `thread_top_find()`
+			- 来自 *model/thread_top.func.php*
+			- 其内用到：
+				- `db_find()`
+					- 来自 *xiunophp/db.func.php*
+				- `arrlist_values()`
+					- 来自 *xiunophp/array.func.php*
+				- `thread_find_by_tids()`
+					- 来自 *model/thread.func.php*
+					- 其内用到：
+						- `db_find`
+							- 来自 *xiunophp/db.func.php*
+						- `thread_format`
+							- 来自 *model/thread.func.php*
+							- 其内用到：
+								- `humandate()`
+									- 来自 *xiunophp/misc.func.php*
+								- `user_read_cache()`
+									- 来自 *model/user.func.php*
+									- 其内用到：
+										- `cache_get()`
+											- 来自 *xiunophp/cache.func.php*
+										- `cache_set()`
+											- 来自 *xiunophp/cache.func.php*
+										- `user_guest()`
+											- 来自 *model/user.func.php*
+										- `user_read()`
+											- 来自 *model/user.func.php*
+											- 其内用到：
+												- `user__read()`
+													- 来自 *model/user.func.php*
+													- 其内用到：
+														- `db_find_one()`
+															- 来自 *xiunophp/db.func.php*
+												- `user_format()`
+													- 来自 *model/user.func.php*

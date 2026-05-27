@@ -1,0 +1,99 @@
+URL: **attach-create** 使用了这些函数：
+
+- `user_read()`
+  - 来自 *model/user.func.php*
+  - 其内用到：
+    - `user__read()`
+      - 来自 *model/user.func.php*
+      - 其内用到：
+        - `db_find_one()`
+          - 来自 *xiunophp/db.func.php*
+    - `user_format()`
+      - 来自 *model/user.func.php*
+- `user_login_check()`
+  - 来自 *model/user.func.php*
+  - 其内用到：
+    - `http_location()`
+      - 来自 *xiunophp/misc.func.php*
+- `file_ext()`
+  - 来自 *xiunophp/misc.func.php*
+- `xn_rand()`
+  - 来自 *xiunophp/misc.func.php*
+- `attach_type()`
+  - 来自 *model/attach.func.php*
+- `sess_restart()`
+  - 来自 *model/session.func.php*
+  - 其内用到：
+    - `sess_read()`
+      - 来自 *model/session.func.php*
+    - `session_decode()`
+      - 来自 *xiunophp/cache.func.php*
+
+URL: **attach-delete-{aid}** 使用了这些函数：
+
+- `user_read()`
+  - 来自 *model/user.func.php*
+  - 其内用到：
+    - `user__read()`
+      - 来自 *model/user.func.php*
+      - 其内用到：
+        - `db_find_one()`
+          - 来自 *xiunophp/db.func.php*
+    - `user_format()`
+      - 来自 *model/user.func.php*
+- `user_login_check()`
+  - 来自 *model/user.func.php*
+  - 其内用到：
+    - `http_location()`
+      - 来自 *xiunophp/misc.func.php*
+- `attach_read()`
+  - 来自 *model/attach.func.php*
+  - 其内用到：
+    - `attach__read()`
+      - 来自 *model/attach.func.php*
+      - 其内用到：
+        - `db_find_one()`
+          - 来自 *xiunophp/db.func.php*
+    - `attach_format()`
+      - 来自 *model/attach.func.php*
+- `thread_read()`
+  - 来自 *model/thread.func.php*
+  - 其内用到：
+    - `thread__read()`
+      - 来自 *model/thread.func.php*
+      - 其内用到：
+        - `db_find_one()`
+          - 来自 *xiunophp/db.func.php*
+    - `thread_format()`
+      - 来自 *model/thread.func.php*
+- `forum_access_mod()`
+  - 来自 *model/forum\_access.func.php*
+- `attach_delete()`
+  - 来自 *model/attach.func.php*
+
+URL: **attach-download-{aid}** 使用了这些函数：
+
+- `attach_read()`
+- `thread_read()`
+  - 来自 *model/thread.func.php*
+  - 其内用到：
+    - `thread__read()`
+      - 来自 *model/thread.func.php*
+      - 其内用到：
+        - `db_find_one()`
+          - 来自 *xiunophp/db.func.php*
+    - `thread_format()`
+      - 来自 *model/thread.func.php*
+- `forum_access_user()`
+  - 来自 *model/forum\_access.func.php*
+- `attach_update()`
+  - 来自 *model/attach.func.php*
+  - 其内用到：
+    - `attach__update()`
+      - 来自 *model/attach.func.php*
+      - 其内用到：
+        - `db_update()`
+          - 来自 *xiunophp/db.func.php*
+- `http_location()`
+  - 来自 *xiunophp/misc.func.php*
+
