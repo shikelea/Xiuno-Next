@@ -32,6 +32,12 @@ jobs:
       - name: Check release version consistency
         run: php bin/check_version.php
 
+      - name: Check generated Hook docs
+        shell: bash
+        run: |
+          php bin/generate_hook_docs.php
+          git diff --exit-code -- docs/hooks.md
+
       - name: Lint core PHP files
         shell: bash
         run: |

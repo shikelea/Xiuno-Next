@@ -93,6 +93,9 @@ php bin/xiuno list
 # 创建新插件
 php bin/xiuno make:plugin <plugin_name>
 
+# 生成 Hook 点索引
+php bin/generate_hook_docs.php
+
 # 执行数据库迁移
 php bin/xiuno migrate
 
@@ -165,6 +168,10 @@ bin\benchmark.bat
     *   `POST /api/post/create`: 发布回复 (参数: `tid`, `message`, `doctype`)
 
 更多详情请参考 [route/api/](route/api/) 目录下的源码。
+
+## 插件开发状态
+
+当前已经可以开发传统兼容插件，使用 `php bin/xiuno make:plugin <plugin_name>` 生成基础结构。Xiuno Next 原生插件规范仍处于预览前准备阶段，计划在 v4.5.x 固定 `plugin.json` 草案、Hook 索引和 CLI smoke test，在 v5.0 形成稳定插件市场闭环。详情见 [docs/plugin-development.md](docs/plugin-development.md) 和 [docs/hooks.md](docs/hooks.md)。
 
 ## 开发手册
 

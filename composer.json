@@ -31,6 +31,7 @@
     "scripts": {
         "fix": "php-cs-fixer fix",
         "check": "php-cs-fixer fix --dry-run --diff",
+        "docs:hooks": "php bin/generate_hook_docs.php",
         "check:version": "php bin/check_version.php"
     },
     "config": {
