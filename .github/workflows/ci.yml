@@ -38,6 +38,18 @@ jobs:
           php bin/generate_hook_docs.php
           git diff --exit-code -- docs/hooks.md
 
+      - name: Smoke test plugin scaffold
+        shell: bash
+        run: |
+          rm -rf plugin/smoke_plugin
+          php bin/xiuno make:plugin smoke_plugin
+          test -f plugin/smoke_plugin/conf.json
+          test -f plugin/smoke_plugin/hook/index_inc_start.php
+          test -f plugin/smoke_plugin/install.php
+          test -f plugin/smoke_plugin/unstall.php
+          test -f plugin/smoke_plugin/upgrade.php
+          rm -rf plugin/smoke_plugin
+
       - name: Lint core PHP files
         shell: bash
         run: |
