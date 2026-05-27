@@ -12,7 +12,7 @@ class UpgradeCommand extends Command
     protected static $defaultName = 'upgrade';
     protected static $defaultDescription = '从旧版 Xiuno BBS 升级到 Xiuno Next';
 
-    private const TARGET_VERSION = '4.4.1';
+    private const TARGET_VERSION = '4.4.5';
 
     // 旧版可能缺失的配置项及其默认值
     private const CONFIG_DEFAULTS = [

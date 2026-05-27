@@ -121,8 +121,9 @@ return array (
 	
 	// 禁止插件
 	'disabled_plugin' => 0, 
+	'csrf_on' => 1,
 	  
-	'version' => '4.4.4',
+	'version' => '4.4.5',
 	'static_version' => '?1.0',
 	'installed' => 0,
 );

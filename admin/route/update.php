@@ -38,6 +38,7 @@ if ($action == 'check') {
 	$error = '';
 	$changelog = '';
 	$download_url = '';
+	$rollback_backup = update_latest_backup();
 
 	if ($latest === FALSE) {
 		$error = lang('update_check_failed');
@@ -166,6 +167,13 @@ if ($action == 'check') {
 		@unlink($zipfile);
 		message(-1, lang('update_extract_failed') . ' (ZipArchive error: ' . $open_result . ')');
 	}
+	$zip_error = '';
+	if (!update_zip_validate($zip, $zip_error)) {
+		$zip->close();
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		message(-1, lang('update_not_zip') . ' (' . htmlspecialchars($zip_error) . ')');
+	}
 	$zip->extractTo($extract_dir);
 	$zip->close();
 
@@ -182,7 +190,26 @@ if ($action == 'check') {
 
 	// 复制文件到项目根目录
 	$app_root = APP_PATH;
+	$backup_dir = $conf['tmp_path'] . 'update_backup_' . date('Ymd_His') . '/';
+	xn_mkdir($backup_dir);
+	$backup_error = '';
+	$backup_result = update_backup_existing_files($source_dir, $app_root, $protected, $backup_dir, $backup_error);
+	if ($backup_result === FALSE) {
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		message(-1, lang('update_backup_failed') . ' (' . htmlspecialchars($backup_error) . ')');
+	}
+	// 备份 conf.php 后再写版本号，确保回滚时版本状态也能恢复。
+	$conf_backup_error = '';
+	if (is_file(APP_PATH . 'conf/conf.php') && !update_backup_file(APP_PATH . 'conf/conf.php', $backup_dir . 'conf/conf.php', $conf_backup_error)) {
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		message(-1, lang('update_backup_failed') . ' (' . htmlspecialchars($conf_backup_error) . ')');
+	}
 	$result = update_copy_files($source_dir, $app_root, $protected);
+	$result['backed_up'] = $backup_result['backed_up'] + (is_file($backup_dir . 'conf/conf.php') ? 1 : 0);
+	$zip_sha256 = hash_file('sha256', $zipfile);
+	@file_put_contents(APP_PATH . 'log/update.log', date('Y-m-d H:i:s') . " updated to v{$latest_version}, copied={$result['copied']}, backed_up={$result['backed_up']}, zip_sha256={$zip_sha256}, backup={$backup_dir}\n", FILE_APPEND);
 
 	// 更新 conf.php 中的版本号
 	update_conf_version($latest_version);
@@ -200,7 +227,34 @@ if ($action == 'check') {
 
 	$msg = lang('update_success', array('version' => $latest_version));
 	if (!empty($proxy_fallback_used)) $msg .= ' ' . lang('update_proxy_fallback_used');
+	if (!empty($result['backed_up'])) $msg .= ' Backup: ' . str_replace(APP_PATH, '', $backup_dir);
 	message(0, $msg);
+
+// ==================== 回滚到最近备份 ====================
+} elseif ($action == 'rollback') {
+
+	$method != 'POST' AND message(-1, 'Method Not Allowed');
+
+	$backup = trim(param('backup', '', 'POST'));
+	$backup_dir = update_resolve_backup($backup);
+	if ($backup_dir === FALSE) {
+		message(-1, lang('update_rollback_no_backup'));
+	}
+
+	$restore_error = '';
+	$result = update_restore_backup($backup_dir, APP_PATH, $restore_error);
+	if ($result === FALSE) {
+		message(-1, lang('update_rollback_failed') . ' (' . htmlspecialchars($restore_error) . ')');
+	}
+
+	// 清理缓存
+	$cachefiles = glob($conf['tmp_path'] . '*.php');
+	if ($cachefiles) {
+		foreach ($cachefiles as $f) @unlink($f);
+	}
+
+	@file_put_contents(APP_PATH . 'log/update.log', date('Y-m-d H:i:s') . " rollback from {$backup_dir}, restored={$result['restored']}\n", FILE_APPEND);
+	message(0, lang('update_rollback_success', array('count' => $result['restored'])));
 
 }
 
@@ -262,7 +316,7 @@ function update_http_get($url, $timeout = 10) {
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
 		curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Xiuno-Next-Updater');
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
@@ -285,7 +339,7 @@ function update_http_get($url, $timeout = 10) {
 			'header' => "User-Agent: Xiuno-Next-Updater\r\nAccept: application/vnd.github.v3+json\r\n",
 		),
 		'ssl' => array(
-			'verify_peer' => false,
+			'verify_peer' => true,
 		),
 	);
 	$ctx = stream_context_create($opts);
@@ -312,8 +366,8 @@ function update_github_download_binary($url, $timeout = 120, &$error = '') {
 		curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
 		curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Xiuno-Next-Updater');
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 			'Accept: */*',
@@ -341,7 +395,7 @@ function update_github_download_binary($url, $timeout = 120, &$error = '') {
 			'max_redirects' => 10,
 		),
 		'ssl' => array(
-			'verify_peer' => false,
+			'verify_peer' => true,
 		),
 	);
 	$ctx = stream_context_create($opts);
@@ -367,15 +421,35 @@ function update_find_source_dir($extract_dir) {
 }
 
 /**
+ * 校验 ZIP 内路径，防止 Zip Slip 覆盖应用目录外的文件。
+ */
+function update_zip_validate($zip, &$error = '') {
+	$num = $zip->numFiles;
+	for ($i = 0; $i < $num; $i++) {
+		$name = $zip->getNameIndex($i);
+		$name = str_replace('\\', '/', $name);
+		if ($name === '' || strpos($name, "\0") !== FALSE) {
+			$error = 'Invalid empty or binary path in zip';
+			return FALSE;
+		}
+		if ($name[0] === '/' || preg_match('#^[A-Za-z]:#', $name) || preg_match('#(^|/)\.\.(/|$)#', $name)) {
+			$error = 'Unsafe path in zip: ' . $name;
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+/**
  * 递归复制文件，跳过受保护的目录
  */
 function update_copy_files($src, $dst, $protected = array(), $relative = '') {
-	$count = 0;
+	$result = array('copied' => 0, 'backed_up' => 0);
 	$src = rtrim(str_replace('\\', '/', $src), '/') . '/';
 	$dst = rtrim(str_replace('\\', '/', $dst), '/') . '/';
 
 	$items = glob($src . '*');
-	if (empty($items)) return $count;
+	if (empty($items)) return $result;
 
 	foreach ($items as $item) {
 		$item = str_replace('\\', '/', $item);
@@ -391,14 +465,137 @@ function update_copy_files($src, $dst, $protected = array(), $relative = '') {
 			if (!is_dir($dst . $name)) {
 				xn_mkdir($dst . $name);
 			}
-			$count += update_copy_files($item . '/', $dst . $name . '/', $protected, $rel);
+			$child = update_copy_files($item . '/', $dst . $name . '/', $protected, $rel);
+			$result['copied'] += $child['copied'];
+			$result['backed_up'] += $child['backed_up'];
 		} else {
 			if (@copy($item, $dst . $name)) {
-				$count++;
+				$result['copied']++;
 			}
 		}
 	}
-	return $count;
+	return $result;
+}
+
+function update_backup_existing_files($src, $dst, $protected, $backup_dir, &$error = '', $relative = '') {
+	$result = array('backed_up' => 0);
+	$src = rtrim(str_replace('\\', '/', $src), '/') . '/';
+	$dst = rtrim(str_replace('\\', '/', $dst), '/') . '/';
+	$backup_dir = rtrim(str_replace('\\', '/', $backup_dir), '/') . '/';
+
+	$items = glob($src . '*');
+	if (empty($items)) return $result;
+
+	foreach ($items as $item) {
+		$item = str_replace('\\', '/', $item);
+		$name = basename($item);
+		$rel = $relative ? $relative . '/' . $name : $name;
+
+		if (empty($relative) && in_array($name, $protected)) {
+			continue;
+		}
+
+		if (is_dir($item)) {
+			$child = update_backup_existing_files($item . '/', $dst . $name . '/', $protected, $backup_dir, $error, $rel);
+			if ($child === FALSE) return FALSE;
+			$result['backed_up'] += $child['backed_up'];
+		} elseif (is_file($dst . $name)) {
+			if (!update_backup_file($dst . $name, $backup_dir . $rel, $error)) {
+				return FALSE;
+			}
+			$result['backed_up']++;
+		}
+	}
+	return $result;
+}
+
+function update_backup_file($src, $backup_file, &$error = '') {
+	update_mkdir_recursive(dirname($backup_file));
+	if (!is_dir(dirname($backup_file))) {
+		$error = 'Cannot create backup directory: ' . dirname($backup_file);
+		return FALSE;
+	}
+	if (!@copy($src, $backup_file)) {
+		$error = 'Cannot backup file: ' . $src;
+		return FALSE;
+	}
+	return TRUE;
+}
+
+function update_latest_backup() {
+	$conf = _SERVER('conf');
+	$dirs = glob($conf['tmp_path'] . 'update_backup_*', GLOB_ONLYDIR);
+	if (empty($dirs)) return array();
+	usort($dirs, function($a, $b) { return filemtime($b) - filemtime($a); });
+	$dir = rtrim(str_replace('\\', '/', $dirs[0]), '/') . '/';
+	return array(
+		'name' => basename($dir),
+		'path' => str_replace(APP_PATH, '', $dir),
+		'time' => date('Y-m-d H:i:s', filemtime($dir)),
+		'files' => update_count_files($dir),
+	);
+}
+
+function update_resolve_backup($backup) {
+	$conf = _SERVER('conf');
+	$backup = basename($backup);
+	if (!preg_match('/^update_backup_\d{8}_\d{6}$/', $backup)) return FALSE;
+	$dir = rtrim(str_replace('\\', '/', $conf['tmp_path']), '/') . '/' . $backup . '/';
+	return is_dir($dir) ? $dir : FALSE;
+}
+
+function update_restore_backup($backup_dir, $dst_root, &$error = '', $relative = '') {
+	$result = array('restored' => 0);
+	$backup_dir = rtrim(str_replace('\\', '/', $backup_dir), '/') . '/';
+	$dst_root = rtrim(str_replace('\\', '/', $dst_root), '/') . '/';
+	$current = $backup_dir . ($relative ? $relative . '/' : '');
+	$items = glob($current . '*');
+	if (empty($items)) return $result;
+
+	foreach ($items as $item) {
+		$item = str_replace('\\', '/', $item);
+		$name = basename($item);
+		$rel = $relative ? $relative . '/' . $name : $name;
+		if (preg_match('#(^|/)\.\.(/|$)#', $rel)) {
+			$error = 'Unsafe backup path: ' . $rel;
+			return FALSE;
+		}
+		$target = $dst_root . $rel;
+		if (is_dir($item)) {
+			update_mkdir_recursive($target);
+			$child = update_restore_backup($backup_dir, $dst_root, $error, $rel);
+			if ($child === FALSE) return FALSE;
+			$result['restored'] += $child['restored'];
+		} else {
+			update_mkdir_recursive(dirname($target));
+			if (!@copy($item, $target)) {
+				$error = 'Cannot restore file: ' . $rel;
+				return FALSE;
+			}
+			$result['restored']++;
+		}
+	}
+	return $result;
+}
+
+function update_count_files($dir) {
+	$n = 0;
+	$dir = rtrim(str_replace('\\', '/', $dir), '/') . '/';
+	$items = glob($dir . '*');
+	if (empty($items)) return 0;
+	foreach ($items as $item) {
+		if (is_dir($item)) {
+			$n += update_count_files($item);
+		} else {
+			$n++;
+		}
+	}
+	return $n;
+}
+
+function update_mkdir_recursive($dir) {
+	if (is_dir($dir)) return TRUE;
+	return mkdir($dir, 0777, TRUE);
 }
 
 /**

@@ -84,6 +84,21 @@
 			</div>
 		</div>
 
+		<?php if(!empty($rollback_backup)) { ?>
+		<div class="card mb-3">
+			<div class="card-body">
+				<h5 class="card-title"><?php echo lang('update_rollback_title');?></h5>
+				<p class="text-muted small mb-3">
+					<?php echo lang('update_rollback_desc', array('time' => $rollback_backup['time'], 'count' => $rollback_backup['files']));?>
+				</p>
+				<div class="d-flex gap-2 align-items-center">
+					<code><?php echo htmlspecialchars($rollback_backup['path']);?></code>
+					<button type="button" class="btn btn-outline-danger btn-sm" onclick='do_rollback(<?php echo xn_json_encode($rollback_backup['name']);?>)'><?php echo lang('update_rollback_do');?></button>
+				</div>
+			</div>
+		</div>
+		<?php } ?>
+
 		<div class="card">
 			<div class="card-body">
 				<h5 class="card-title"><?php echo lang('update_notice_title');?></h5>
@@ -195,6 +210,25 @@ function do_update() {
 			update_progress(0, message);
 			$('#update_progress').removeClass('progress-bar-animated').addClass('bg-danger').css('width', '100%').text(lang.update_failed || '更新失败');
 			btn.prop('disabled', false).text(lang.update_retry || '重试');
+		}
+	});
+}
+
+function do_rollback(backup) {
+	if(!confirm(lang.update_rollback_confirm || '确定要回滚到最近一次更新前的备份吗？')) return;
+	update_progress(10, lang.update_rollback_running || '正在回滚...');
+	$.xpost('<?php echo url("update-rollback");?>', {backup: backup}, function(code, message) {
+		if(code == 0) {
+			update_progress(100, message);
+			$('#update_progress').removeClass('progress-bar-animated').addClass('bg-success');
+			setTimeout(function() {
+				if(confirm(lang.update_reload || '操作成功，是否刷新页面？')) {
+					location.reload();
+				}
+			}, 1000);
+		} else {
+			update_progress(0, message);
+			$('#update_progress').removeClass('progress-bar-animated').addClass('bg-danger').css('width', '100%').text(lang.update_failed || '操作失败');
 		}
 	});
 }

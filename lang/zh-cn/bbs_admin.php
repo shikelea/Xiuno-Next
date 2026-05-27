@@ -216,6 +216,13 @@ return array(
 	'update_not_zip'=>'下载的文件不是有效的 ZIP 包，可能是代理返回了错误页面',
 	'update_no_ziparchive'=>'服务器缺少 PHP ZipArchive 扩展，无法解压更新包',
 	'update_success'=>'更新到 v{version} 成功！请清理浏览器缓存。',
+	'update_backup_failed'=>'更新前备份失败，已停止覆盖文件',
+	'update_rollback_title'=>'更新回滚',
+	'update_rollback_desc'=>'最近备份：{time}，共 {count} 个文件。回滚会用备份文件覆盖当前核心文件。',
+	'update_rollback_do'=>'回滚到此备份',
+	'update_rollback_no_backup'=>'没有找到可用的更新备份',
+	'update_rollback_failed'=>'回滚失败',
+	'update_rollback_success'=>'回滚完成，已恢复 {count} 个文件。请刷新页面并检查站点状态。',
 	
 	// 代理加速
 	'update_proxy_title'=>'GitHub 加速代理',
