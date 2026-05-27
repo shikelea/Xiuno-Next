@@ -12,3 +12,4 @@ conf/conf.php
 REVIEW.md
 plugin/*
 !plugin/.gitkeep
+开发手册/
