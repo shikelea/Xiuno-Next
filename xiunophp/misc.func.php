@@ -96,8 +96,10 @@ function param_word($key, $len = 32) {
 function param_base64($key, $len = 0) {
 	$s = param($key, '', FALSE);
 	if(empty($s)) return '';
-	$s = substr($s, strpos($s, ',') + 1);
-	$s = base64_decode($s);
+	$pos = strpos($s, ',');
+	$pos !== FALSE AND $s = substr($s, $pos + 1);
+	$s = base64_decode($s, TRUE);
+	if($s === FALSE) return '';
 	$len AND $s = substr($s, 0, $len);
 	return $s;
 }
@@ -751,13 +753,16 @@ function http_get($url, $cookie = '', $timeout = 30, $times = 3) {
 //			'CN_match'      => 'secure.example.com'
 //		)
 //	);
+	if(!xn_http_url_allowed($url)) return FALSE;
+	$cookie = xn_http_header_value($cookie);
 	if(substr($url, 0, 8) == 'https://') {
 		return https_get($url, $cookie, $timeout, $times);
 	}
 	$arr = array(
 		'http' => array(
 			'method'=> 'GET',
-			'timeout' => $timeout
+			'timeout' => $timeout,
+			'follow_location' => 0,
 		)
 	);
 	$stream = stream_context_create($arr);
@@ -769,12 +774,14 @@ function http_get($url, $cookie = '', $timeout = 30, $times = 3) {
 }
 
 function http_post($url, $post = '', $cookie='', $timeout = 30, $times = 3) {
+	if(!xn_http_url_allowed($url)) return FALSE;
 	if(substr($url, 0, 8) == 'https://') {
 		return https_post($url, $post, $cookie, $timeout, $times);
 	}
 	is_array($post) AND $post = http_build_query($post);
 	is_array($cookie) AND $cookie = http_build_query($cookie);
-	$stream = stream_context_create(array('http' => array('header' => "Content-type: application/x-www-form-urlencoded\r\nx-requested-with: XMLHttpRequest\r\nCookie: $cookie\r\n", 'method' => 'POST', 'content' => $post, 'timeout' => $timeout)));
+	$cookie = xn_http_header_value($cookie);
+	$stream = stream_context_create(array('http' => array('header' => "Content-type: application/x-www-form-urlencoded\r\nx-requested-with: XMLHttpRequest\r\nCookie: $cookie\r\n", 'method' => 'POST', 'content' => $post, 'timeout' => $timeout, 'follow_location' => 0)));
 	while($times-- > 0) {
 		$s = file_get_contents($url, NULL, $stream, 0, 4096000);
 		if($s !== FALSE) return $s;
@@ -783,6 +790,7 @@ function http_post($url, $post = '', $cookie='', $timeout = 30, $times = 3) {
 }
 
 function https_get($url, $cookie = '', $timeout = 30, $times = 1) {
+	if(!xn_http_url_allowed($url)) return FALSE;
 	if(substr($url, 0, 7) == 'http://') {
 		return http_get($url, $cookie, $timeout, $times);
 	}
@@ -790,16 +798,30 @@ function https_get($url, $cookie = '', $timeout = 30, $times = 1) {
 }
 
 function https_post($url, $post = '', $cookie = '', $timeout = 30, $times = 1, $method = 'POST') {
+	if(!xn_http_url_allowed($url)) return FALSE;
 	if(substr($url, 0, 7) == 'http://') {
 		return http_post($url, $post, $cookie, $timeout, $times);
 	}
 	is_array($post) AND $post = http_build_query($post);
 	is_array($cookie) AND $cookie = http_build_query($cookie);
+	$cookie = xn_http_header_value($cookie);
 	$w = stream_get_wrappers();
 	$allow_url_fopen = strtolower(ini_get('allow_url_fopen'));
 	$allow_url_fopen = (empty($allow_url_fopen) || $allow_url_fopen == 'off') ? 0 : 1;
 	if(extension_loaded('openssl') && in_array('https', $w) && $allow_url_fopen) {
-		$stream = stream_context_create(array('http' => array('header' => "Content-type: application/x-www-form-urlencoded\r\nx-requested-with: XMLHttpRequest\r\nCookie: $cookie\r\n", 'method' => $method, 'content' => $post, 'timeout' => $timeout)));
+		$stream = stream_context_create(array(
+			'http' => array(
+				'header' => "Content-type: application/x-www-form-urlencoded\r\nx-requested-with: XMLHttpRequest\r\nCookie: $cookie\r\n",
+				'method' => $method,
+				'content' => $post,
+				'timeout' => $timeout,
+				'follow_location' => 0,
+			),
+			'ssl' => array(
+				'verify_peer' => TRUE,
+				'verify_peer_name' => TRUE,
+			),
+		));
 		$s = file_get_contents($url, NULL, $stream, 0, 4096000);
 		return $s;
 	} elseif (!function_exists('curl_init')) {
@@ -810,9 +832,10 @@ function https_post($url, $post = '', $cookie = '', $timeout = 30, $times = 1, $
 	curl_setopt($ch, CURLOPT_HEADER, 2); // 1/2
 	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/x-www-form-urlencoded', 'x-requested-with: XMLHttpRequest'));
 	curl_setopt($ch, CURLOPT_URL, $url);
-	curl_setopt($ch, CURLOPT_USERAGENT, _SERVER('HTTP_USER_AGENT'));
-	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0); // 对认证证书来源的检查
+	curl_setopt($ch, CURLOPT_USERAGENT, xn_http_header_value(_SERVER('HTTP_USER_AGENT')));
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, TRUE); // 对认证证书来源的检查
 	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2); // 从证书中检查SSL加密算法是否存在，默认可以省略
+	xn_http_curl_protocols($ch);
 	if($method == 'POST') {
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
@@ -834,18 +857,45 @@ function https_post($url, $post = '', $cookie = '', $timeout = 30, $times = 1, $
 		return '';
 	}
 
-	list($header, $data) = explode("\r\n\r\n", $data);
+	$parts = explode("\r\n\r\n", $data, 2);
+	$header = isset($parts[0]) ? $parts[0] : '';
+	$data = isset($parts[1]) ? $parts[1] : '';
 	$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 	if($http_code == 301 || $http_code == 302) {
 		$matches = array();
 		preg_match('/Location:(.*?)\n/', $header, $matches);
 		$url = trim(array_pop($matches));
-		curl_setopt($ch, CURLOPT_URL, $url);
-		curl_setopt($ch, CURLOPT_HEADER, false);
-		$data = curl_exec($ch);
+		if(xn_http_url_allowed($url)) {
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_HEADER, false);
+			$data = curl_exec($ch);
+		}
 	}
 	curl_close($ch);
 	return $data;
+}
+
+function xn_http_url_allowed($url) {
+	if(preg_match('/[\x00-\x1F\x7F]/', (string)$url)) return FALSE;
+	$scheme = strtolower((string)parse_url($url, PHP_URL_SCHEME));
+	return in_array($scheme, array('http', 'https'), TRUE);
+}
+
+function xn_http_header_value($value) {
+	return str_replace(array("\r", "\n"), '', (string)$value);
+}
+
+function xn_http_curl_protocols($ch) {
+	if(defined('CURLOPT_PROTOCOLS_STR')) {
+		curl_setopt($ch, CURLOPT_PROTOCOLS_STR, 'http,https');
+	} elseif(defined('CURLOPT_PROTOCOLS') && defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+		curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+	}
+	if(defined('CURLOPT_REDIR_PROTOCOLS_STR')) {
+		curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS_STR, 'http,https');
+	} elseif(defined('CURLOPT_REDIR_PROTOCOLS') && defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+		curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+	}
 }
 
 // 多线程抓取数据，需要CURL支持，一般在命令行下执行，此函数收集于互联网，由 xiuno 整理，经过测试，会导致 CPU 100%。
@@ -861,11 +911,18 @@ function http_multi_get($urls) {
 
 	$multi_handle = curl_multi_init();
 	foreach ($urls as $i => $url) {
+		if(!xn_http_url_allowed($url)) {
+			$data[$i] = FALSE;
+			continue;
+		}
 		$conn[$i] = curl_init($url);
 		curl_setopt($conn[$i], CURLOPT_RETURNTRANSFER, 1);
 		$timeout = 3;
 		curl_setopt($conn[$i], CURLOPT_CONNECTTIMEOUT, $timeout); // 超时 seconds
+		curl_setopt($conn[$i], CURLOPT_SSL_VERIFYPEER, TRUE);
+		curl_setopt($conn[$i], CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($conn[$i], CURLOPT_FOLLOWLOCATION, 1);
+		xn_http_curl_protocols($conn[$i]);
 		//curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
 		curl_multi_add_handle($multi_handle, $conn[$i]);
 	}
@@ -881,6 +938,7 @@ function http_multi_get($urls) {
 		}
 	}
 	foreach($urls as $i => $url) {
+		if(empty($conn[$i])) continue;
 		$data[$i] = curl_multi_getcontent($conn[$i]);
 		curl_multi_remove_handle($multi_handle, $conn[$i]);
 		curl_close($conn[$i]);
@@ -1332,7 +1390,8 @@ function base64_decode_file_data($data) {
 	if(substr($data, 0, 5) == 'data:') {
 		$data = substr($data, strpos($data, ',') + 1);	// 去掉 data:image/png;base64,
 	}
-	$data = base64_decode($data);
+	$data = base64_decode($data, TRUE);
+	if($data === FALSE) return '';
 	return $data;
 }
 
@@ -1353,6 +1412,7 @@ function http_403() {
 }
 
 function http_location($url) {
+	$url = str_replace(array("\r", "\n"), '', (string)$url);
 	header('Location:'.$url);
 	exit;
 }

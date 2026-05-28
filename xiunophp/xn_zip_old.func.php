@@ -2,6 +2,16 @@
 
 // 对于没有安装扩展的使用该类。
 
+if(!function_exists('xn_zip_safe_name')) {
+	function xn_zip_safe_name($name) {
+		$name = str_replace('\\', '/', (string)$name);
+		if($name === '' || strpos($name, "\0") !== FALSE) return FALSE;
+		if($name[0] === '/' || preg_match('#^[A-Za-z]:#', $name)) return FALSE;
+		if(preg_match('#(^|/)\.\.(/|$)#', $name)) return FALSE;
+		return TRUE;
+	}
+}
+
 /*
    该类库收集于互联网，版权未知，由 axiuno@gmail.com 修正了部分64位下的 bug, 如果谁知道请麻烦告知作者。
 */
@@ -118,16 +128,6 @@ class php_zip {
 		// fixed by axiuno@gmail.com 干掉 eval()
 		$hexdtime = pack("C*", hexdec('0x'.$dtime[6].$dtime[7]), hexdec('0x'.$dtime[4].$dtime[5]), hexdec('0x'.$dtime[2].$dtime[3]), hexdec('0x'.$dtime[0].$dtime[1]));
 
-		/*
-		$hexdtime = '\x' . $dtime[6] . $dtime[7]
-				  . '\x' . $dtime[4] . $dtime[5]
-				  . '\x' . $dtime[2] . $dtime[3]
-				  . '\x' . $dtime[0] . $dtime[1];
-				  
-				  echo '$hexdtime = "' . $hexdtime . '";';exit;
-		eval('$hexdtime = "' . $hexdtime . '";');
-		*/
-		
 		$fr	   = "\x50\x4b\x03\x04";
 		$fr	  .= "\x14\x00";
 		$fr	  .= "\x00\x00";
@@ -306,6 +306,8 @@ class php_zip {
 		// fixed by axiuno, mac os zip compress
 		$header2 = $this->readfileheader($zip);
 		$header = array_merge($header2, $header);
+		$header['filename'] = str_replace('\\', '/', $header['filename']);
+		if(!xn_zip_safe_name($header['filename'])) return(-1);
 		
 		if(substr($to, -1) != "/"){ $to .= "/"; }
 		if(!@is_dir($to)){ @mkdir($to, 0777); }
@@ -534,7 +536,7 @@ function xn_unzip_old($zipfile, $destpath) {
 	$archive->unzip($zipfile, $tmppath);
 	foreach($archive->files as $file) {
 		// 判断目录是否存在,
-		if(strpos($file, '..')) continue; // 安全过滤
+		if(!xn_zip_safe_name($file)) continue; // 安全过滤
 		xn_mkdir_by_filename($destpath.$file);
 		copy($tmppath.$file, $destpath.$file);
 		unlink($tmppath.$file);

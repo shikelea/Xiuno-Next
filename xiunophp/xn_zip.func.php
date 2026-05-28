@@ -1,5 +1,25 @@
 <?php 
 
+if(!function_exists('xn_zip_safe_name')) {
+	function xn_zip_safe_name($name) {
+		$name = str_replace('\\', '/', (string)$name);
+		if($name === '' || strpos($name, "\0") !== FALSE) return FALSE;
+		if($name[0] === '/' || preg_match('#^[A-Za-z]:#', $name)) return FALSE;
+		if(preg_match('#(^|/)\.\.(/|$)#', $name)) return FALSE;
+		return TRUE;
+	}
+}
+
+if(!function_exists('xn_zip_validate')) {
+	function xn_zip_validate($zip) {
+		for($i = 0; $i < $zip->numFiles; $i++) {
+			$name = $zip->getNameIndex($i);
+			if(!xn_zip_safe_name($name)) return FALSE;
+		}
+		return TRUE;
+	}
+}
+
 function xn_zip($zipfile, $extdir) { 
 	if(class_exists('ZipArchive')) {
 		$pathinfo = pathinfo($extdir); 
@@ -24,7 +44,9 @@ function xn_unzip($zipfile, $extdir) {
 	if(class_exists('ZipArchive')) {
 		$z = new ZipArchive;
 		if($z->open($zipfile) === TRUE) {
-			$z->extractTo($extdir);
+			if(xn_zip_validate($z)) {
+				$z->extractTo($extdir);
+			}
 			$z->close();
 		}
 	} else {
