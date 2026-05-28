@@ -41,6 +41,12 @@ jobs:
           php bin/generate_hook_docs.php
           git diff --exit-code -- docs/hooks.md
 
+      - name: Check generated XiunoPHP bundle
+        shell: bash
+        run: |
+          (cd tool && php merge.php)
+          git diff --exit-code -- xiunophp/xiunophp.min.php
+
       - name: Smoke test CLI commands
         shell: bash
         run: |
