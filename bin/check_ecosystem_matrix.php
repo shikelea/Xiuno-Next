@@ -43,6 +43,30 @@ $fixture = [
             'findings' => [],
             'php_lint_errors' => [],
         ],
+        [
+            'name' => 'missing_hook_plugin',
+            'display_name' => 'Missing Hook Plugin',
+            'version' => '1.0',
+            'bbs_version' => '4.0.4',
+            'theme_like' => false,
+            'risk_score' => 1,
+            'findings' => [
+                ['group' => 'hook', 'label' => 'missing core hook', 'file' => 'hook/old_hook.htm'],
+            ],
+            'php_lint_errors' => [],
+        ],
+        [
+            'name' => 'bad_metadata_plugin',
+            'display_name' => null,
+            'version' => null,
+            'bbs_version' => null,
+            'theme_like' => false,
+            'risk_score' => 1,
+            'findings' => [
+                ['group' => 'metadata', 'label' => 'invalid conf.json', 'file' => 'conf.json'],
+            ],
+            'php_lint_errors' => [],
+        ],
     ],
 ];
 
@@ -69,7 +93,7 @@ if ($code !== 0) {
 
 $matrix = json_decode((string)file_get_contents($output), true);
 $errors = [];
-if (($matrix['summary']['sample_count'] ?? 0) !== 3) {
+if (($matrix['summary']['sample_count'] ?? 0) !== 5) {
     $errors[] = 'matrix sample count mismatch';
 }
 if (($matrix['summary']['status_counts']['blocked_by_php_lint'] ?? 0) !== 1) {
@@ -80,6 +104,12 @@ if (($matrix['summary']['status_counts']['needs_theme_boundary_review'] ?? 0) !=
 }
 if (($matrix['summary']['status_counts']['likely_compatible'] ?? 0) !== 1) {
     $errors[] = 'likely_compatible status count mismatch';
+}
+if (($matrix['summary']['status_counts']['needs_hook_boundary_review'] ?? 0) !== 1) {
+    $errors[] = 'needs_hook_boundary_review status count mismatch';
+}
+if (($matrix['summary']['status_counts']['needs_metadata_repair'] ?? 0) !== 1) {
+    $errors[] = 'needs_metadata_repair status count mismatch';
 }
 if (!is_file($markdown)) {
     $errors[] = 'matrix markdown output missing';

@@ -16,10 +16,12 @@ if ($options['markdown'] !== '') {
 }
 
 echo sprintf(
-    "Built ecosystem matrix for %d samples. Blocked: %d, package patch: %d, core/theme review: %d, likely compatible: %d.\nReport: %s\n",
+    "Built ecosystem matrix for %d samples. Blocked: %d, metadata repair: %d, package patch: %d, hook review: %d, core/theme review: %d, likely compatible: %d.\nReport: %s\n",
     $matrix['summary']['sample_count'],
     $matrix['summary']['status_counts']['blocked_by_php_lint'] ?? 0,
+    $matrix['summary']['status_counts']['needs_metadata_repair'] ?? 0,
     $matrix['summary']['status_counts']['needs_package_patch'] ?? 0,
+    $matrix['summary']['status_counts']['needs_hook_boundary_review'] ?? 0,
     ($matrix['summary']['status_counts']['needs_core_compat_validation'] ?? 0) + ($matrix['summary']['status_counts']['needs_theme_boundary_review'] ?? 0),
     $matrix['summary']['status_counts']['likely_compatible'] ?? 0,
     $options['output']
@@ -180,8 +182,14 @@ function sample_status(array $sample, array $groups, int $lintCount): string
     if ($lintCount > 0) {
         return 'blocked_by_php_lint';
     }
+    if (isset($groups['metadata'])) {
+        return 'needs_metadata_repair';
+    }
     if (isset($groups['php8'])) {
         return 'needs_package_patch';
+    }
+    if (isset($groups['hook'])) {
+        return 'needs_hook_boundary_review';
     }
     if (isset($groups['theme'])) {
         return 'needs_theme_boundary_review';
@@ -199,19 +207,24 @@ function status_rank(string $status): int
 {
     $ranks = [
         'blocked_by_php_lint' => 0,
-        'needs_package_patch' => 1,
-        'needs_theme_boundary_review' => 2,
-        'needs_core_compat_validation' => 3,
-        'needs_review' => 4,
-        'likely_compatible' => 5,
+        'needs_metadata_repair' => 1,
+        'needs_package_patch' => 2,
+        'needs_hook_boundary_review' => 3,
+        'needs_theme_boundary_review' => 4,
+        'needs_core_compat_validation' => 5,
+        'needs_review' => 6,
+        'likely_compatible' => 7,
     ];
     return $ranks[$status] ?? 99;
 }
 
 function minimum_version(string $status, array $groups): string
 {
-    if ($status === 'blocked_by_php_lint' || $status === 'needs_package_patch') {
+    if ($status === 'blocked_by_php_lint' || $status === 'needs_package_patch' || $status === 'needs_metadata_repair') {
         return 'TBD after package patch';
+    }
+    if (isset($groups['hook'])) {
+        return 'TBD after hook contract review';
     }
     if (isset($groups['bs4']) || isset($groups['csrf']) || isset($groups['theme'])) {
         return '4.4.5+';
@@ -225,6 +238,9 @@ function workarounds(array $groups, int $lintCount): array
     if ($lintCount > 0 || isset($groups['php8'])) {
         $items[] = 'Patch removed PHP syntax/functions before enabling on PHP 8+.';
     }
+    if (isset($groups['metadata'])) {
+        $items[] = 'Repair conf.json metadata before install, enable, or runtime smoke.';
+    }
     if (isset($groups['bs4'])) {
         $items[] = 'Verify bs4-compat.css/js is injected and prefer BS5 markup for new changes.';
     }
@@ -233,6 +249,9 @@ function workarounds(array $groups, int $lintCount): array
     }
     if (isset($groups['theme'])) {
         $items[] = 'Verify header/footer overrides preserve injected assets, CSRF, and theme API declarations.';
+    }
+    if (isset($groups['hook'])) {
+        $items[] = 'Confirm whether missing legacy hook points should be restored in core or patched in the package.';
     }
     return $items ?: ['No workaround currently required by scanner output.'];
 }
@@ -243,11 +262,17 @@ function fix_owners(array $groups, int $lintCount): array
     if ($lintCount > 0 || isset($groups['php8'])) {
         $owners['third_party_package'] = 'third_party_package';
     }
+    if (isset($groups['metadata'])) {
+        $owners['third_party_package_metadata'] = 'third_party_package_metadata';
+    }
     if (isset($groups['bs4']) || isset($groups['csrf'])) {
         $owners['core_compat_layer'] = 'core_compat_layer';
     }
     if (isset($groups['theme'])) {
         $owners['theme_package_or_core_theme_api'] = 'theme_package_or_core_theme_api';
+    }
+    if (isset($groups['hook'])) {
+        $owners['core_hook_contract_or_package'] = 'core_hook_contract_or_package';
     }
     return array_values($owners ?: ['none']);
 }
@@ -260,8 +285,14 @@ function notes(string $status, array $groups, int $lintCount): string
     if ($lintCount > 0) {
         return 'PHP syntax errors block reliable runtime validation.';
     }
+    if (isset($groups['metadata'])) {
+        return 'Package metadata is not valid JSON, so install/enable flow cannot be trusted.';
+    }
     if (isset($groups['php8'])) {
         return 'Static scan found PHP 8 removed or risky legacy constructs.';
+    }
+    if (isset($groups['hook'])) {
+        return 'Package references hook points that are not present in the current core hook index.';
     }
     return 'Requires runtime smoke against Xiuno Next before public compatibility status.';
 }

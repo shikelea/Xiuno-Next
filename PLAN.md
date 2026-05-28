@@ -241,8 +241,10 @@
   - 以本地 `plugin/` 目录中的社区插件和主题样本作为兼容样本库，但不纳入仓库。
   - 使用 `php bin/scan_ecosystem_samples.php` 生成本地 `tmp/ecosystem_scan.json`，作为内部兼容矩阵输入。
   - 使用 `php bin/build_ecosystem_matrix.php` 将扫描结果归一化为本地 `tmp/ecosystem_matrix.json` / `tmp/ecosystem_matrix.md`，字段覆盖状态、问题类型、最低 Xiuno Next 版本、workaround 和修复归属；生成物不纳入仓库。
-  - 2026-05-28 扫描结果：58 个样本（其中 21 个主题型样本），共 593 条兼容发现、22 个 PHP lint 错误；分类以 BS4→BS5（435）和 PHP 8（105）为主，其次是主题覆盖（33）与 CSRF/POST 行为（20）。
-  - 按三类拆分问题：PHP 8 语法/运行时问题、BS4→BS5 前端兼容问题、Hook/主题覆盖导致的结构性问题。
+  - 使用 `php bin/smoke_ecosystem_sample.php <sample>` 对指定本地样本做可重复 smoke：临时启用样本、编译命中的核心 Hook 文件、lint 生成 PHP，并在结束后恢复样本 `conf.json`。
+  - 2026-05-28 扫描结果：58 个样本（其中 21 个主题型样本），共 983 条兼容发现、22 个 PHP lint 错误；分类以 BS4→BS5（435）和缺失旧 Hook（372）为主，其次是 PHP 8（105）、主题覆盖（33）、CSRF/POST 行为（20）与元数据损坏（18）。
+  - 按五类拆分问题：PHP 8 语法/运行时问题、BS4→BS5 前端兼容问题、缺失旧 Hook 契约问题、主题覆盖导致的结构性问题、`conf.json` 元数据损坏问题。
+  - 2026-05-28 本地 smoke：矩阵中的 6 个 `likely_compatible` 样本均通过编译 smoke；`till_password_strength` 被缺失 Hook 拦截，`ax_comment` 被坏 `conf.json` 拦截，验证矩阵分类有效。
   - 下一步进入阶段六前置：优先选择高使用率、低侵入修复的样本验证兼容层，不为单个插件写特例。
   - 正式输出为插件/主题兼容矩阵；公开清单放到生态重建阶段。
 
@@ -295,7 +297,7 @@
 4. **依赖与 PHP 版本矩阵**：以 PHP 8.0+ 为最低运行线，Docker 默认 PHP 8.2，CI 覆盖 8.0/8.2/8.3/8.4/8.5，并在 CI 中执行 Composer validate/install；Dependabot 仅用于每周检查 Composer 与 GitHub Actions 更新，Composer 主版本升级默认忽略并改由人工评估，依赖升级优先保证旧插件兼容。后续需要决定是否提交 `composer.lock` 来固定应用依赖。
 5. **社区资料边界**：`开发手册/` 保留为本地参考且不进仓库；Xiuno Next 差异说明迁移到 `docs/`，避免在参考资料目录里继续工作。
 6. **前端精简审计**：持续使用 `php bin/scan_frontend_assets.php --samples=plugin` 检查核心资产与本地插件/主题样本引用；当前扫描已无疑似无用资产，后续只在删除或替换资源前运行。
-7. **生态样本兼容矩阵**：已用本地插件/主题样本库形成初步问题分类；下一步把扫描结果沉淀为矩阵字段（状态、问题类型、最低 Xiuno Next 版本、 workaround、修复归属），不急于发布正式开发文档。
+7. **生态样本兼容矩阵**：已用本地插件/主题样本库形成初步问题分类，并沉淀为矩阵字段（状态、问题类型、最低 Xiuno Next 版本、workaround、修复归属）；下一步优先处理 `conf.json` 元数据损坏、缺失旧 Hook 契约和可重复样本 smoke，不急于发布正式开发文档。
 8. **原生插件与主题预览规范**：先维护状态说明和 Hook 索引，再补 `plugin.json` 草案、主题 API 草案、CLI 原生模板和插件/主题 smoke test。
 9. **数据库层长期治理**：短期继续收敛直接 SQL 拼接点，长期把高风险写路径迁移到兼容旧插件的预处理语句层；在迁移完成前，不宣称 SQL 注入问题已被彻底解决。
 
