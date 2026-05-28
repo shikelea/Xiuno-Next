@@ -35,6 +35,7 @@
 								<span class="username">
 									<a href="<?php echo url("user-$thread[uid]");?>" class="text-muted fw-bold"><?php echo $thread['username'];?></a>
 								</span>
+								<!--{hook thread_username_after.htm}-->
 								<span class="date text-grey ms-2"><?php echo $thread['create_date_fmt'];?></span>
 								<span class="text-grey ms-2"><i class="icon-eye"></i> <?php echo $thread['views'];?></span>
 								<!--{hook thread_views_after.htm}-->
@@ -123,6 +124,7 @@
 									<div class="message mt-1">
 										<textarea class="form-control" placeholder="<?php echo lang('message');?>" name="message" id="message"></textarea>
 									</div>
+									<!--{hook thread_quick_reply_message_after.htm}-->
 									<div class="text-muted mt-2 small">
 										<div class="d-flex justify-content-between">
 											<div>
@@ -169,6 +171,7 @@
 				<a href="<?php echo url("user-$thread[uid]");?>" tabindex="-1">
 					<img class="avatar-5" src="<?php echo $thread['user_avatar_url'];?>">
 				</a>
+				<!--{hook thread_user_avatar_after.htm}-->
 				<h5><a href="<?php echo url("user-".$thread['user']['uid']);?>"><?php echo $thread['user']['username'];?></a></h5>
 				<!--{hook thread_user_username_after.htm}-->
 			</div>
