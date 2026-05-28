@@ -35,12 +35,13 @@ Removed in this pass:
 - `view/font/fontawesome-webfont.woff2`: redundant because the shipped FontAwesome stylesheet embeds WOFF2 as a data URI.
 - `view/js/vue.js`: no core reference and no local plugin/theme sample reference in the current sample library.
 - `view/js/popper-utils.js`: no core reference and no local plugin/theme sample reference; `popper.js` remains as the legacy global.
+- `view/js/upload.js`: no core reference and no local plugin/theme sample reference; current uploads use `xn.upload_file()` in `view/js/xiuno.js`.
+- `view/img/filetype.png`: old file-type sprite; current attachment file icons use FontAwesome-compatible `.icon-filetype`.
+- `view/img/water-small-xiuno.png`: alternate watermark image with no core config reference and no local sample reference.
 
 Retained for now:
 
 - `view/js/popper.js`: redundant for Bootstrap 5 bundle internals, but still useful as a compatibility global for older plugins.
-- `view/js/upload.js`, `view/img/filetype.png`: legacy upload/attachment helpers, kept until attachment plugin samples are audited.
-- `view/img/water-small-xiuno.png`: alternate watermark asset, kept until branding assets are normalized.
 
 ## Cleanup Rules
 

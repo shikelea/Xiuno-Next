@@ -259,9 +259,6 @@ function compatibility_reasons(string $asset): array
         'view/js/bs4-compat.js' => ['BS4 plugin/theme compatibility shim.'],
         'view/css/bs4-compat.css' => ['BS4 plugin/theme compatibility shim.'],
         'view/js/popper.js' => ['Legacy Popper global kept for older plugins using tooltip/popover behavior.'],
-        'view/js/upload.js' => ['Legacy upload helper may be loaded by attachment/avatar plugins.'],
-        'view/img/filetype.png' => ['Legacy file-type sprite may be used by attachment plugins.'],
-        'view/img/water-small-xiuno.png' => ['Bundled alternate watermark; keep until branding assets are normalized.'],
     ];
 
     return $reasons[$asset] ?? [];
