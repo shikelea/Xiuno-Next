@@ -2,11 +2,12 @@
 
 > 此文件由 `php bin/generate_hook_docs.php` 生成。修改 Hook 注释后请重新运行脚本。
 
-- Hook 数量：1050
+- Hook 数量：1053
 - 涉及文件：97
 
 | Hook | 文件 | 行号 |
 |---|---|---:|
+| `__my_nav_end.htm` | `view/htm/my.template.htm` | 26 |
 | `admin_body_start.htm` | `admin/view/htm/header.inc.htm` | 72 |
 | `admin_footer_end.htm` | `admin/view/htm/footer.inc.htm` | 68 |
 | `admin_footer_footer_after.htm` | `admin/view/htm/footer.inc.htm` | 37 |
@@ -287,26 +288,26 @@
 | `header_nav_user_start.htm` | `view/htm/header_nav.inc.htm` | 63 |
 | `header_nav_user_username_after.htm` | `view/htm/header_nav.inc.htm` | 74 |
 | `header_start.htm` | `view/htm/header.inc.htm` | 12 |
-| `index_end.htm` | `view/htm/index.htm` | 80 |
+| `index_end.htm` | `view/htm/index.htm` | 81 |
 | `index_end.php` | `route/__index.php` | 11 |
 | `index_end.php` | `route/bbs.inc.php` | 45 |
 | `index_end.php` | `route/index.php` | 45 |
 | `index_inc_end.php` | `index.inc.php` | 120 |
 | `index_inc_route_before.php` | `index.inc.php` | 56 |
 | `index_inc_start.php` | `index.inc.php` | 5 |
-| `index_js.htm` | `view/htm/index.htm` | 88 |
-| `index_main_end.htm` | `view/htm/index.htm` | 37 |
+| `index_js.htm` | `view/htm/index.htm` | 89 |
+| `index_main_end.htm` | `view/htm/index.htm` | 38 |
 | `index_main_start.htm` | `view/htm/index.htm` | 7 |
-| `index_page_after.htm` | `view/htm/index.htm` | 33 |
-| `index_page_before.htm` | `view/htm/index.htm` | 29 |
-| `index_page_end.htm` | `view/htm/index.htm` | 34 |
+| `index_page_after.htm` | `view/htm/index.htm` | 34 |
+| `index_page_before.htm` | `view/htm/index.htm` | 30 |
+| `index_page_end.htm` | `view/htm/index.htm` | 35 |
 | `index_route_case_default.php` | `index.inc.php` | 107 |
 | `index_route_case_end.php` | `index.inc.php` | 105 |
 | `index_route_case_start.php` | `index.inc.php` | 63 |
-| `index_site_brief_after.htm` | `view/htm/index.htm` | 76 |
-| `index_site_brief_before.htm` | `view/htm/index.htm` | 43 |
-| `index_site_brief_end.htm` | `view/htm/index.htm` | 74 |
-| `index_site_brief_start.htm` | `view/htm/index.htm` | 45 |
+| `index_site_brief_after.htm` | `view/htm/index.htm` | 77 |
+| `index_site_brief_before.htm` | `view/htm/index.htm` | 44 |
+| `index_site_brief_end.htm` | `view/htm/index.htm` | 75 |
+| `index_site_brief_start.htm` | `view/htm/index.htm` | 46 |
 | `index_start.htm` | `view/htm/index.htm` | 3 |
 | `index_start.php` | `route/__index.php` | 3 |
 | `index_start.php` | `route/bbs.inc.php` | 9 |
@@ -314,8 +315,9 @@
 | `index_thread_list_before.php` | `route/bbs.inc.php` | 20 |
 | `index_thread_list_before.php` | `route/index.php` | 20 |
 | `index_thread_list_nav_item_after.htm` | `view/htm/index.htm` | 15 |
-| `index_threadlist_after.htm` | `view/htm/index.htm` | 22 |
-| `index_threadlist_before.htm` | `view/htm/index.htm` | 20 |
+| `index_thread_list_nav_item_end.htm` | `view/htm/index.htm` | 16 |
+| `index_threadlist_after.htm` | `view/htm/index.htm` | 23 |
+| `index_threadlist_before.htm` | `view/htm/index.htm` | 21 |
 | `lang_en_us_bbs.php` | `lang/en-us/bbs.php` | 307 |
 | `lang_en_us_bbs.php` | `lang/ru-ru/bbs.php` | 311 |
 | `lang_en_us_bbs_admin.php` | `lang/en-us/bbs_admin.php` | 239 |
@@ -817,9 +819,10 @@
 | `my_end.php` | `route/my.php` | 124 |
 | `my_nav_avatar_after.htm` | `view/htm/my.template.htm` | 22 |
 | `my_nav_avatar_before.htm` | `view/htm/my.template.htm` | 18 |
-| `my_nav_end.htm` | `view/htm/my.template.htm` | 24 |
+| `my_nav_end.htm` | `view/htm/my.template.htm` | 25 |
 | `my_nav_password_after.htm` | `view/htm/my.template.htm` | 16 |
 | `my_nav_password_before.htm` | `view/htm/my.template.htm` | 12 |
+| `my_nav_photo_after.htm` | `view/htm/my.template.htm` | 23 |
 | `my_nav_profile_after.htm` | `view/htm/my.template.htm` | 10 |
 | `my_nav_profile_before.htm` | `view/htm/my.template.htm` | 6 |
 | `my_nav_start.htm` | `view/htm/my.template.htm` | 4 |
