@@ -27,6 +27,7 @@ $files = array(
 	'array.func.php',
 	'config.func.php',
 	'xn_encrypt.func.php',
+	'logger.func.php',
 	'misc.func.php',
 	'php8_compat.php',
 );
