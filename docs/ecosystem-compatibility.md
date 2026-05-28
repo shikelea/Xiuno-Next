@@ -1,36 +1,14 @@
 # Ecosystem Compatibility Matrix
 
-This document defines how Xiuno Next turns local plugin/theme samples into a compatibility matrix. It is not the public compatibility list yet; it is the internal input used before the ecosystem rebuild phase.
+This document records the current local plugin/theme compatibility audit. It is not the public compatibility list yet; it is the internal input used before the ecosystem rebuild phase.
 
 Local sample directories under `plugin/` are reference-only and ignored by git. Do not commit third-party sample code or generated reports.
 
-## Workflow
-
-Run the scanner first:
-
-```powershell
-php bin/scan_ecosystem_samples.php
-```
-
-Then build the matrix:
-
-```powershell
-php bin/build_ecosystem_matrix.php
-```
-
-Generated files:
-
-- `tmp/ecosystem_scan.json`: raw scanner findings.
-- `tmp/ecosystem_matrix.json`: normalized matrix rows.
-- `tmp/ecosystem_matrix.md`: local readable table.
-
-All generated files stay in `tmp/` and are intentionally ignored.
-
-The scanner and matrix builder tolerate malformed legacy UTF-8 by substituting invalid bytes while writing JSON. This keeps local reports machine-readable, but public compatibility lists still need manual package-name verification before publication.
-
-Local or server-side package smoke checks should stay outside the repository unless they become stable CI guards. Temporary sample tooling may enable ignored samples, compile the core files touched by their hooks, lint generated PHP, then restore sample `conf.json`; do not commit those local smoke scripts.
+Local compatibility tooling and generated reports stay outside the repository unless they become stable CI guards. Temporary sample tooling may inspect ignored samples, normalize findings, or run smoke checks; do not commit those local scripts or generated reports.
 
 ## Matrix Fields
+
+The local audit used the following field contract. Future public compatibility lists should keep this shape unless stage-six requirements change.
 
 - `status`: current compatibility classification.
 - `issue_types`: high-level groups such as `php8`, `bs4`, `csrf`, `theme`, `hook`, and `metadata`.
@@ -40,7 +18,7 @@ Local or server-side package smoke checks should stay outside the repository unl
 - `missing_hooks`: absent legacy hook files referenced by the package.
 - `metadata_valid`: whether `conf.json` was valid enough for install/enable flow review.
 
-The matrix summary also includes `issue_type_counts` (affected sample count by issue type) and `missing_hook_counts` (affected sample count by hook name) so the stage-six review can prioritize shared compatibility work before package-by-package patches.
+The local matrix summary also included `issue_type_counts` (affected sample count by issue type) and `missing_hook_counts` (affected sample count by hook name) so the stage-six review can prioritize shared compatibility work before package-by-package patches.
 
 ## Status Values
 
