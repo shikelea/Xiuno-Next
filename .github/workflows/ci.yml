@@ -73,3 +73,39 @@ jobs:
             -path './vendor' -prune -o \
             -name '*.php' -print0)
           exit "$failed"
+
+  mysql-schema:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: xiuno_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo, pdo_mysql
+          coverage: none
+
+      - name: Smoke test install schema
+        env:
+          XIUNO_DB_HOST: 127.0.0.1
+          XIUNO_DB_PORT: 3306
+          XIUNO_DB_NAME: xiuno_test
+          XIUNO_DB_USER: root
+          XIUNO_DB_PASSWORD: root
+        run: php bin/check_install_schema.php
