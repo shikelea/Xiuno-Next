@@ -47,6 +47,7 @@ $patterns = [
     ],
 ];
 
+$coreHooks = collect_core_hooks($root);
 $samples = [];
 foreach (new DirectoryIterator($sampleRoot) as $entry) {
     if ($entry->isDot() || !$entry->isDir()) {
@@ -55,7 +56,7 @@ foreach (new DirectoryIterator($sampleRoot) as $entry) {
 
     $dir = $entry->getPathname();
     $name = $entry->getBasename();
-    $samples[] = scan_sample($dir, $name, $patterns);
+    $samples[] = scan_sample($dir, $name, $patterns, $coreHooks);
 }
 
 usort($samples, function ($a, $b) {
@@ -96,13 +97,20 @@ echo sprintf(
     $out
 );
 
-function scan_sample(string $dir, string $name, array $patterns): array
+function scan_sample(string $dir, string $name, array $patterns, array $coreHooks): array
 {
     $files = [];
     $findings = [];
     $phpLintErrors = [];
     $conf = read_conf_json($dir . '/conf.json');
     $themeLike = stripos($name, 'theme') !== false || stripos((string)($conf['name'] ?? ''), 'theme') !== false || preg_match('/主题/u', (string)($conf['name'] ?? ''));
+    if (!empty($conf['_invalid_conf_json'])) {
+        $findings[] = [
+            'group' => 'metadata',
+            'label' => 'invalid conf.json',
+            'file' => 'conf.json',
+        ];
+    }
 
     $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
     foreach ($iterator as $file) {
@@ -147,6 +155,21 @@ function scan_sample(string $dir, string $name, array $patterns): array
         }
     }
 
+    foreach ($files as $relative) {
+        $normalized = str_replace('\\', '/', $relative);
+        if (!str_starts_with($normalized, 'hook/')) {
+            continue;
+        }
+        $hookName = basename($normalized);
+        if (!isset($coreHooks[$hookName])) {
+            $findings[] = [
+                'group' => 'hook',
+                'label' => 'missing core hook',
+                'file' => $relative,
+            ];
+        }
+    }
+
     $counts = [
         'files' => count($files),
         'php' => count(array_filter($files, fn($f) => str_ends_with(strtolower($f), '.php'))),
@@ -169,14 +192,69 @@ function scan_sample(string $dir, string $name, array $patterns): array
     ];
 }
 
+function collect_core_hooks(string $root): array
+{
+    $paths = [
+        $root . '/model',
+        $root . '/route',
+        $root . '/view/htm',
+        $root . '/admin/route',
+        $root . '/admin/view/htm',
+        $root . '/lang',
+    ];
+    $files = [
+        $root . '/model.inc.php',
+        $root . '/index.inc.php',
+        $root . '/admin/index.inc.php',
+    ];
+
+    foreach ($paths as $path) {
+        if (!is_dir($path)) {
+            continue;
+        }
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                $files[] = $file->getPathname();
+            }
+        }
+    }
+
+    $hooks = [];
+    foreach ($files as $file) {
+        $content = file_get_contents($file);
+        if ($content === false) {
+            continue;
+        }
+        if (preg_match_all('#//\s*hook\s+([A-Za-z0-9_.-]+)#', $content, $matches)) {
+            foreach ($matches[1] as $hook) {
+                $hooks[$hook] = true;
+            }
+        }
+        if (preg_match_all('#<!--\{hook\s+([A-Za-z0-9_.-]+)\}-->#', $content, $matches)) {
+            foreach ($matches[1] as $hook) {
+                $hooks[$hook] = true;
+            }
+        }
+    }
+
+    return $hooks;
+}
+
 function read_conf_json(string $path): array
 {
     if (!is_file($path)) {
         return [];
     }
 
-    $json = json_decode((string)file_get_contents($path), true);
-    return is_array($json) ? $json : [];
+    $json = json_decode((string)file_get_contents($path), true, 512, JSON_INVALID_UTF8_SUBSTITUTE);
+    if (!is_array($json)) {
+        return [
+            '_invalid_conf_json' => true,
+        ];
+    }
+
+    return $json;
 }
 
 function lint_php(string $path): ?string
