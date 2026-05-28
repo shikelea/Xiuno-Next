@@ -58,6 +58,7 @@ include XIUNOPHP_PATH.'db.func.php';
 include XIUNOPHP_PATH.'cache.func.php';
 include XIUNOPHP_PATH.'image.func.php';
 include XIUNOPHP_PATH.'array.func.php';
+include XIUNOPHP_PATH.'config.func.php';
 include XIUNOPHP_PATH.'xn_encrypt.func.php';
 include XIUNOPHP_PATH.'misc.func.php';
 include XIUNOPHP_PATH.'php8_compat.php';
