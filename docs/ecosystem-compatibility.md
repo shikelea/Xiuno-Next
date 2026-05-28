@@ -37,4 +37,6 @@ The 2026-05-28 scan covered 58 local samples, including 21 theme-like samples. I
 
 Local temporary smoke on the six `likely_compatible` samples passed for `a8c5_rank_member`, `cf_nored`, `rob_reply_hide`, `till_users_widget`, `till_widget_monthlyProgress`, and `wr_html2word`. Negative controls also behaved as expected: `till_password_strength` fails on missing hook points, while `ax_comment` fails on invalid `conf.json`.
 
+The first shared hook-boundary fixes restored low-risk legacy anchors that match existing core page semantics: `user_resetpw_password_after.htm` on the reset-password form and `index_page_end.htm` after homepage pagination. Package-private hooks found inside individual samples are not promoted to core unless a stable cross-package contract is identified.
+
 This confirms the stage-six order: build the matrix first, improve shared compatibility layers second, and only then publish formal plugin/theme development manuals.
