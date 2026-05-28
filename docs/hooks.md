@@ -2,7 +2,7 @@
 
 > 此文件由 `php bin/generate_hook_docs.php` 生成。修改 Hook 注释后请重新运行脚本。
 
-- Hook 数量：1047
+- Hook 数量：1050
 - 涉及文件：97
 
 | Hook | 文件 | 行号 |
@@ -270,8 +270,8 @@
 | `header_link_after.htm` | `view/htm/header.inc.htm` | 77 |
 | `header_link_before.htm` | `view/htm/header.inc.htm` | 35 |
 | `header_meta_before.htm` | `view/htm/header.inc.htm` | 19 |
-| `header_nav_admin_page_after.htm` | `view/htm/header_nav.inc.htm` | 81 |
-| `header_nav_end.htm` | `view/htm/header_nav.inc.htm` | 92 |
+| `header_nav_admin_page_after.htm` | `view/htm/header_nav.inc.htm` | 82 |
+| `header_nav_end.htm` | `view/htm/header_nav.inc.htm` | 93 |
 | `header_nav_footer.htm` | `admin/view/htm/header_nav.inc.htm` | 62 |
 | `header_nav_forum_end.htm` | `view/htm/header_nav.inc.htm` | 59 |
 | `header_nav_forum_start.htm` | `view/htm/header_nav.inc.htm` | 43 |
@@ -282,9 +282,10 @@
 | `header_nav_logo_before.htm` | `view/htm/header_nav.inc.htm` | 16 |
 | `header_nav_start.htm` | `admin/view/htm/header_nav.inc.htm` | 3 |
 | `header_nav_start.htm` | `view/htm/header_nav.inc.htm` | 8 |
-| `header_nav_user_end.htm` | `view/htm/header_nav.inc.htm` | 87 |
+| `header_nav_user_end.htm` | `view/htm/header_nav.inc.htm` | 88 |
 | `header_nav_user_icon_after.htm` | `view/htm/header_nav.inc.htm` | 38 |
 | `header_nav_user_start.htm` | `view/htm/header_nav.inc.htm` | 63 |
+| `header_nav_user_username_after.htm` | `view/htm/header_nav.inc.htm` | 74 |
 | `header_start.htm` | `view/htm/header.inc.htm` | 12 |
 | `index_end.htm` | `view/htm/index.htm` | 80 |
 | `index_end.php` | `route/__index.php` | 11 |
@@ -792,25 +793,27 @@
 | `my_avatar_post_end.php` | `route/my.php` | 117 |
 | `my_avatar_post_save_before.php` | `route/my.php` | 112 |
 | `my_avatar_post_start.php` | `route/my.php` | 95 |
+| `my_common_avatar_after.htm` | `view/htm/my.common.template.htm` | 24 |
 | `my_common_avatar_before.htm` | `view/htm/my.common.template.htm` | 22 |
-| `my_common_end.htm` | `view/htm/my.common.template.htm` | 58 |
-| `my_common_js.htm` | `view/htm/my.common.template.htm` | 64 |
-| `my_common_main_card_after.htm` | `view/htm/my.common.template.htm` | 54 |
-| `my_common_main_card_before.htm` | `view/htm/my.common.template.htm` | 41 |
+| `my_common_end.htm` | `view/htm/my.common.template.htm` | 59 |
+| `my_common_groupname_after.htm` | `view/htm/my.htm` | 11 |
+| `my_common_js.htm` | `view/htm/my.common.template.htm` | 65 |
+| `my_common_main_card_after.htm` | `view/htm/my.common.template.htm` | 55 |
+| `my_common_main_card_before.htm` | `view/htm/my.common.template.htm` | 42 |
 | `my_common_mobile_my_after.htm` | `view/htm/my.common.template.htm` | 9 |
 | `my_common_mobile_my_before.htm` | `view/htm/my.common.template.htm` | 7 |
 | `my_common_mobile_my_thread_after.htm` | `view/htm/my.common.template.htm` | 13 |
 | `my_common_mobile_my_thread_before.htm` | `view/htm/my.common.template.htm` | 11 |
-| `my_common_my_after.htm` | `view/htm/my.common.template.htm` | 30 |
-| `my_common_my_before.htm` | `view/htm/my.common.template.htm` | 28 |
-| `my_common_my_body_slot_after.htm` | `view/htm/my.common.template.htm` | 51 |
-| `my_common_my_body_slot_before.htm` | `view/htm/my.common.template.htm` | 49 |
-| `my_common_my_nav_slot_after.htm` | `view/htm/my.common.template.htm` | 46 |
-| `my_common_my_nav_slot_before.htm` | `view/htm/my.common.template.htm` | 44 |
-| `my_common_my_thread_after.htm` | `view/htm/my.common.template.htm` | 34 |
-| `my_common_my_thread_before.htm` | `view/htm/my.common.template.htm` | 32 |
+| `my_common_my_after.htm` | `view/htm/my.common.template.htm` | 31 |
+| `my_common_my_before.htm` | `view/htm/my.common.template.htm` | 29 |
+| `my_common_my_body_slot_after.htm` | `view/htm/my.common.template.htm` | 52 |
+| `my_common_my_body_slot_before.htm` | `view/htm/my.common.template.htm` | 50 |
+| `my_common_my_nav_slot_after.htm` | `view/htm/my.common.template.htm` | 47 |
+| `my_common_my_nav_slot_before.htm` | `view/htm/my.common.template.htm` | 45 |
+| `my_common_my_thread_after.htm` | `view/htm/my.common.template.htm` | 35 |
+| `my_common_my_thread_before.htm` | `view/htm/my.common.template.htm` | 33 |
 | `my_common_start.htm` | `view/htm/my.common.template.htm` | 3 |
-| `my_common_username_after.htm` | `view/htm/my.common.template.htm` | 25 |
+| `my_common_username_after.htm` | `view/htm/my.common.template.htm` | 26 |
 | `my_end.php` | `route/my.php` | 124 |
 | `my_nav_avatar_after.htm` | `view/htm/my.template.htm` | 22 |
 | `my_nav_avatar_before.htm` | `view/htm/my.template.htm` | 18 |
@@ -825,7 +828,7 @@
 | `my_password_get_start.php` | `route/my.php` | 44 |
 | `my_password_post_end.php` | `route/my.php` | 61 |
 | `my_password_post_start.php` | `route/my.php` | 50 |
-| `my_profile_login_date_after.htm` | `view/htm/my.htm` | 14 |
+| `my_profile_login_date_after.htm` | `view/htm/my.htm` | 15 |
 | `my_profile_posts_after.htm` | `view/htm/my.htm` | 7 |
 | `my_profile_thread_list_before.php` | `route/my.php` | 75 |
 | `my_start.php` | `route/my.php` | 7 |
