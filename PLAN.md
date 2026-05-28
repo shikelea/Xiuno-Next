@@ -192,6 +192,7 @@
     - 与 Xiuno 的服务端渲染架构天然契合，不引入前端框架。
   - **CSS/JS 压缩**：编写 PHP 脚本实现静态资源合并压缩，**不引入 Node.js 工具链**。
 - [ ] **API 持续开发**（阶段三完成了基础接口，此处扩展和完善）：
+  - [x] API 路由最小 smoke test：覆盖默认入口、缺失 action 和非法 action，防止路径拼接边界回退。
   - 扩展 API 覆盖面：用户资料修改、版块管理、附件上传、搜索、通知等。
   - API 版本管理：引入 `/api/v1/` 路径前缀，为未来迭代预留空间。
   - 统一鉴权机制：基于阶段四的安全加固，实现 Token 鉴权 + 接口级权限控制。
@@ -212,7 +213,7 @@
   - 将 `php bin/check_version.php` 加入发布前检查，防止 `index.php`、`conf.default.php`、升级工具和文档版本漂移。
   - 发布前固定检查：核心 `php -l`、版本一致性、`xiunophp.min.php` 生成一致性、在线更新路径、升级目标版本、性能基线退化风险。
 - [x] **自动化测试 (CI/CD) 最小闭环**：
-  - 已引入 GitHub Actions，覆盖版本一致性检查、轻量 Helper smoke test、核心 PHP 语法检查、Hook 文档生成检查、`xiunophp.min.php` 生成一致性检查、CLI 命令加载、插件脚手架、迁移/升级命令检查模式和 MySQL 8 安装表结构 smoke test。
+  - 已引入 GitHub Actions，覆盖版本一致性检查、轻量 Helper smoke test、API 路由 smoke test、核心 PHP 语法检查、Hook 文档生成检查、`xiunophp.min.php` 生成一致性检查、CLI 命令加载、插件脚手架、迁移/升级命令检查模式和 MySQL 8 安装表结构 smoke test。
   - `tool/merge.php` 已固定输出 LF 换行，并通过 `.gitattributes` 约束生成脚本、生成包和 workflow，避免 Windows/Ubuntu 换行差异导致 CI 误报。
   - 待完善：核心 API、在线更新流程与真实插件/主题样本的 smoke test。
 - [ ] **真实生态样本兼容审计**（阶段六前置准备）：
@@ -267,7 +268,7 @@
 
 1. **发布一致性守卫**：运行 `php bin/check_version.php`，并将其纳入 CI，覆盖运行时版本、默认配置、静态资源版本、升级目标和 CLI 版本，避免版本号和文档再次漂移。
 2. **在线更新安全加固**：保持 TLS 证书校验开启，已补充 ZIP 路径安全检查、覆盖前备份、最近备份回滚和发布包 SHA-256 元数据校验；下一步补发布包签名，并逐步要求更新/插件包处理路径使用 ZipArchive。
-3. **自动化测试最小闭环**：已建立核心 `php -l`、版本一致性、轻量 Helper smoke test、Hook 文档生成检查、`xiunophp.min.php` 生成一致性检查、CLI 命令加载检查、插件脚手架 smoke test、迁移/升级命令检查模式和 MySQL 8 安装表结构 smoke test；生成包已固定 LF 输出以保证跨平台一致；下一步逐步覆盖核心 API、在线更新流程和真实插件/主题样本。
+3. **自动化测试最小闭环**：已建立核心 `php -l`、版本一致性、轻量 Helper smoke test、API 路由 smoke test、Hook 文档生成检查、`xiunophp.min.php` 生成一致性检查、CLI 命令加载检查、插件脚手架 smoke test、迁移/升级命令检查模式和 MySQL 8 安装表结构 smoke test；生成包已固定 LF 输出以保证跨平台一致；下一步逐步覆盖在线更新流程和真实插件/主题样本。
 4. **依赖与 PHP 版本矩阵**：以 PHP 8.0+ 为最低运行线，Docker 默认 PHP 8.2，CI 覆盖 8.0/8.2/8.3/8.4/8.5，并在 CI 中执行 Composer validate/install；Dependabot 仅用于每周检查 Composer 与 GitHub Actions 更新，Composer 主版本升级默认忽略并改由人工评估，依赖升级优先保证旧插件兼容。后续需要决定是否提交 `composer.lock` 来固定应用依赖。
 5. **社区资料边界**：`开发手册/` 保留为本地参考且不进仓库；Xiuno Next 差异说明迁移到 `docs/`，避免在参考资料目录里继续工作。
 6. **生态样本兼容审计**：使用本地插件/主题样本库做内部扫描，先形成问题分类和兼容矩阵，不急于发布正式开发文档。

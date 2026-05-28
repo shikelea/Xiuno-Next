@@ -35,6 +35,9 @@ jobs:
       - name: Smoke test lightweight helpers
         run: php bin/check_lightweight_helpers.php
 
+      - name: Smoke test API routes
+        run: php bin/check_api_routes.php
+
       - name: Check generated Hook docs
         shell: bash
         run: |
