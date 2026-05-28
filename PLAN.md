@@ -172,8 +172,10 @@
 - [x] **核心主题 API**：
   - 提供 `theme_register()`、`theme_has()`、`theme_enqueue_style()`、`theme_enqueue_script()` 与 HTMX 消息响应基础能力。
 
-### 阶段五：轻量现代化 (Lightweight Modernization Phase)
+### 阶段五：轻量现代化 (Lightweight Modernization Phase) - [主体完成 / 收尾中]
 **目标**：在**零臃肿**的前提下引入现代实践，为开发者提供更好的工具。
+
+**当前状态（2026-05-28）**：阶段五主线已经完成，可以进入收尾冻结。已形成轻量 Helper、前端资源审计、HTMX 只读分页试点、CLI/CI 最小闭环、前端安全守卫和生态样本扫描输入。剩余工作不再阻塞阶段六前置准备，按“阶段五收尾 / 阶段六输入 / 后续性能阶段”分流。
 
 **⚠️ 轻量原则**：每引入一个新依赖，必须回答——"不用它行不行？用原生 PHP 能否实现？"
 
@@ -183,7 +185,7 @@
   - **日志系统**：已提供自研轻量 PSR-3 风格 `XiunoLogger`，保持 `xn_log()` 接口不变。**不用 Monolog**。
   - **HTTP 客户端**：已提供基于 PHP 原生 cURL / stream 的轻量 `XiunoHttp`，支持 JSON/Form 请求；已加固 URL scheme、控制字符、请求头换行、TLS 校验和重定向协议边界。**不用 Guzzle**。
   - **配置管理**：已提供 `XiunoConfig::get('key')` / `conf_get('key')` 轻量读取入口，内部仍读 `$conf` 数组；`Config` 名称空闲时提供兼容别名，后续新代码逐步减少裸全局数组读取。
-- [ ] **前端精简**（减法而非加法）：
+- [x] **前端精简（主体完成，持续审计）**（减法而非加法）：
   - [x] **前端资源审计脚本**：新增 `php bin/scan_frontend_assets.php`，扫描核心前端资产引用关系并输出本地 `tmp/frontend_assets_scan.json`，删除资源前先看报告，避免误伤兼容层。
   - [x] **历史资源清理（第一轮）**：移除 IE 专用 `es6-shim.js` 加载与文件、未加载且注释化的 `bootstrap-umeditor.css`、非运行时 PSD 源图，以及未被 FontAwesome CSS 引用的冗余字体文件。
   - [x] **本地生态样本验证**：`scan_frontend_assets.php` 支持 `--samples=plugin`，当前 58 个本地插件/主题样本未发现 `vue.js`、`popper-utils.js`、`upload.js`、`filetype.png` 和 `water-small-xiuno.png` 引用，已删除这些未加载资产。
@@ -207,9 +209,9 @@
     - 新增 `bin/check_frontend_security.php` 并接入 CI，防止附件上传列表回退到不安全 HTML 拼接。
     - `bootstrap-plugin.js` 的 Ajax modal 动态脚本执行属于历史插件/主题兼容边界，短期保留；后续在生态兼容矩阵稳定后，再设计更窄的受信任片段协议。
     - 旧 jQuery 版本列为版本治理事项：升级前必须先跑真实插件/主题样本矩阵，不能作为单点安全修复直接推进。
-  - **CSS/JS 压缩**：编写 PHP 脚本实现静态资源合并压缩，**不引入 Node.js 工具链**。
-  - **下一步**：观察帖子列表分页试点与 `xiuno:fragment-ready` 生命周期约定；稳定后再评估帖子详情页分页是否能拆出安全的只读 postlist 区域。
-- [ ] **API 持续开发**（阶段三完成了基础接口，此处扩展和完善）：
+  - [ ] **CSS/JS 压缩（阶段五收尾项）**：编写 PHP 脚本实现静态资源合并压缩，**不引入 Node.js 工具链**。
+  - **阶段五收尾**：继续观察帖子列表分页试点与 `xiuno:fragment-ready` 生命周期约定；稳定后再评估帖子详情页分页是否能拆出安全的只读 postlist 区域。
+- [ ] **API 持续开发（后续增强项）**（阶段三完成了基础接口，此处扩展和完善）：
   - [x] API 路由最小 smoke test：覆盖默认入口、缺失 action 和非法 action，防止路径拼接边界回退。
   - 扩展 API 覆盖面：用户资料修改、版块管理、附件上传、搜索、通知等。
   - API 版本管理：引入 `/api/v1/` 路径前缀，为未来迭代预留空间。
@@ -227,20 +229,21 @@
   - 已提供 `php bin/xiuno make:plugin`、`migrate`、`upgrade` 三个基础命令。
   - 已在 CI 中覆盖 CLI 加载、插件脚手架、`migrate --check` 和 `upgrade --check` smoke test。
   - 待完善：无 Composer 依赖时的友好引导、更多插件管理命令。
-- [ ] **发布/版本治理自动化**：
-  - 将 `php bin/check_version.php` 加入发布前检查，防止 `index.php`、`conf.default.php`、升级工具和文档版本漂移。
-  - 发布前固定检查：核心 `php -l`、版本一致性、`xiunophp.min.php` 生成一致性、在线更新路径、升级目标版本、性能基线退化风险。
+- [x] **发布/版本治理自动化（最小闭环完成，继续收尾）**：
+  - 已将 `php bin/check_version.php` 加入 CI 和发布前检查，防止 `index.php`、`conf.default.php`、升级工具和文档版本漂移。
+  - 已固定检查：核心 `php -l`、版本一致性、`xiunophp.min.php` 生成一致性、Hook 文档生成一致性、CLI 命令加载、插件脚手架和 MySQL 8 安装表结构。
+  - 收尾项：在线更新流程 smoke test、发布包签名、性能基线退化风险检查。
 - [x] **自动化测试 (CI/CD) 最小闭环**：
   - 已引入 GitHub Actions，覆盖版本一致性检查、轻量 Helper smoke test、API 路由 smoke test、核心 PHP 语法检查、Hook 文档生成检查、`xiunophp.min.php` 生成一致性检查、CLI 命令加载、插件脚手架、迁移/升级命令检查模式和 MySQL 8 安装表结构 smoke test。
   - `tool/merge.php` 已固定输出 LF 换行，并通过 `.gitattributes` 约束生成脚本、生成包和 workflow，避免 Windows/Ubuntu 换行差异导致 CI 误报。
   - 待完善：核心 API、在线更新流程与真实插件/主题样本的 smoke test。
-- [ ] **真实生态样本兼容审计**（阶段六前置准备）：
+- [x] **真实生态样本兼容审计（阶段六输入已建立）**：
   - 以本地 `plugin/` 目录中的社区插件和主题样本作为兼容样本库，但不纳入仓库。
   - 使用 `php bin/scan_ecosystem_samples.php` 生成本地 `tmp/ecosystem_scan.json`，作为内部兼容矩阵输入。
   - 2026-05-28 扫描结果：58 个样本（其中 21 个主题型样本），共 593 条兼容发现、22 个 PHP lint 错误；分类以 BS4→BS5（435）和 PHP 8（105）为主，其次是主题覆盖（33）与 CSRF/POST 行为（20）。
   - 按三类拆分问题：PHP 8 语法/运行时问题、BS4→BS5 前端兼容问题、Hook/主题覆盖导致的结构性问题。
-  - 优先选择高使用率、低侵入修复的样本验证兼容层，不为单个插件写特例。
-  - 输出结果先沉淀为内部兼容矩阵；正式公开清单放到生态重建阶段。
+  - 下一步进入阶段六前置：优先选择高使用率、低侵入修复的样本验证兼容层，不为单个插件写特例。
+  - 正式输出为插件/主题兼容矩阵；公开清单放到生态重建阶段。
 
 ### 阶段六：生态重建 (Ecosystem Phase)
 **目标**：终结碎片化，成为社区公认的权威版本。
@@ -283,15 +286,15 @@
 
 ## 4. 立即执行项 (Action Items)
 
-> 按当前风险排序，与阶段五（轻量现代化）和发布稳定性对齐：
+> 按当前风险排序，与阶段五收尾、阶段六前置和发布稳定性对齐：
 
-1. **发布一致性守卫**：运行 `php bin/check_version.php`，并将其纳入 CI，覆盖运行时版本、默认配置、静态资源版本、升级目标和 CLI 版本，避免版本号和文档再次漂移。
+1. **阶段五收尾冻结**：保留 CSS/JS 压缩、帖子详情页只读 HTMX 评估、在线更新 smoke test 和发布包签名为收尾项；不再把它们作为阶段五主线阻塞项。
 2. **在线更新安全加固**：保持 TLS 证书校验开启，已补充 ZIP 路径安全检查、覆盖前备份、最近备份回滚和发布包 SHA-256 元数据校验；下一步补发布包签名，并逐步要求更新/插件包处理路径使用 ZipArchive。
-3. **自动化测试最小闭环**：已建立核心 `php -l`、版本一致性、轻量 Helper smoke test、API 路由 smoke test、Hook 文档生成检查、`xiunophp.min.php` 生成一致性检查、CLI 命令加载检查、插件脚手架 smoke test、迁移/升级命令检查模式和 MySQL 8 安装表结构 smoke test；生成包已固定 LF 输出以保证跨平台一致；下一步逐步覆盖在线更新流程和真实插件/主题样本。
+3. **自动化测试最小闭环**：已建立核心 `php -l`、版本一致性、轻量 Helper smoke test、API 路由 smoke test、前端/HTMX 安全守卫、Hook 文档生成检查、`xiunophp.min.php` 生成一致性检查、CLI 命令加载检查、插件脚手架 smoke test、迁移/升级命令检查模式和 MySQL 8 安装表结构 smoke test；生成包已固定 LF 输出以保证跨平台一致；下一步逐步覆盖在线更新流程和真实插件/主题样本。
 4. **依赖与 PHP 版本矩阵**：以 PHP 8.0+ 为最低运行线，Docker 默认 PHP 8.2，CI 覆盖 8.0/8.2/8.3/8.4/8.5，并在 CI 中执行 Composer validate/install；Dependabot 仅用于每周检查 Composer 与 GitHub Actions 更新，Composer 主版本升级默认忽略并改由人工评估，依赖升级优先保证旧插件兼容。后续需要决定是否提交 `composer.lock` 来固定应用依赖。
 5. **社区资料边界**：`开发手册/` 保留为本地参考且不进仓库；Xiuno Next 差异说明迁移到 `docs/`，避免在参考资料目录里继续工作。
-6. **前端精简审计**：持续使用 `php bin/scan_frontend_assets.php --samples=plugin` 检查核心资产与本地插件/主题样本引用；当前扫描已无疑似无用资产，下一步进入 HTMX 小试点前仍需保持该检查。
-7. **生态样本兼容审计**：使用本地插件/主题样本库做内部扫描，先形成问题分类和兼容矩阵，不急于发布正式开发文档。
+6. **前端精简审计**：持续使用 `php bin/scan_frontend_assets.php --samples=plugin` 检查核心资产与本地插件/主题样本引用；当前扫描已无疑似无用资产，后续只在删除或替换资源前运行。
+7. **生态样本兼容矩阵**：已用本地插件/主题样本库形成初步问题分类；下一步把扫描结果沉淀为矩阵字段（状态、问题类型、最低 Xiuno Next 版本、 workaround、修复归属），不急于发布正式开发文档。
 8. **原生插件与主题预览规范**：先维护状态说明和 Hook 索引，再补 `plugin.json` 草案、主题 API 草案、CLI 原生模板和插件/主题 smoke test。
 9. **数据库层长期治理**：短期继续收敛直接 SQL 拼接点，长期把高风险写路径迁移到兼容旧插件的预处理语句层；在迁移完成前，不宣称 SQL 注入问题已被彻底解决。
 
