@@ -11,6 +11,8 @@ Xiuno Next introduces HTMX as a progressive enhancement layer, not as a frontend
 
 `view/js/htmx-xiuno.js` is the local bridge. It attaches CSRF headers to non-GET HTMX requests and listens for the existing `showMessage` event emitted by `message()` through `HX-Trigger`.
 
+`view/htm/htmx_thread_list_pagination_attrs.inc.htm` centralizes the attributes used by read-only thread-list pagination. Reuse that include for the current pilot instead of copying the attribute set into each template.
+
 ## Current Scope
 
 The pilot covers read-only thread-list pagination. Pagination links remain normal anchors, while HTMX-enabled browsers fetch the full page, select `#thread-list-region`, and swap only that region.
@@ -28,5 +30,7 @@ Avoided for now:
 - attachment/avatar upload
 - login/register/password flows
 - moderation actions
+- thread detail pagination, because the page owns quick-reply and media-resize initialization outside the swappable list area
+- notification/message list pagination, because the current core has no dedicated list route/template yet
 
 These paths stay on the existing jQuery/native JS behavior until the GET-only pilot is stable.
