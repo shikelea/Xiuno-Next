@@ -81,7 +81,7 @@ CREATE TABLE bbs_forum (
   seo_keywords char(64) NOT NULL default '',
   PRIMARY KEY (fid)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-INSERT INTO bbs_forum SET fid='1', name='默认版块', brief='默认版块介绍';
+INSERT INTO bbs_forum SET fid='1', name='默认版块', brief='默认版块介绍', announcement='';
 
 DROP TABLE IF EXISTS bbs_forum_access;
 CREATE TABLE bbs_forum_access (
