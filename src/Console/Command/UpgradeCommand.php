@@ -3,6 +3,7 @@
 namespace Xiuno\Console\Command;
 
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -30,10 +31,19 @@ class UpgradeCommand extends Command
     // 已知旧版主流版本号
     private const KNOWN_OLD_VERSIONS = ['4.0.4', '4.0.5', '4.0.7'];
 
+    protected function configure(): void
+    {
+        $this->addOption('check', null, InputOption::VALUE_NONE, '只检查升级工具元数据和迁移文件，不连接数据库或修改配置');
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $appPath = realpath(__DIR__ . '/../../../') . '/';
+
+        if ($input->getOption('check')) {
+            return $this->checkUpgradeMetadata($io, $appPath);
+        }
 
         $confFile = $appPath . 'conf/conf.php';
         if (!is_file($confFile)) {
@@ -100,6 +110,45 @@ class UpgradeCommand extends Command
             '  3. 用户登录时密码会自动从 MD5 升级为 bcrypt，无需手动操作',
         ]);
 
+        return Command::SUCCESS;
+    }
+
+    private function checkUpgradeMetadata(SymfonyStyle $io, string $appPath): int
+    {
+        if (self::TARGET_VERSION === '' || !preg_match('/^\d+\.\d+\.\d+$/', self::TARGET_VERSION)) {
+            $io->error('TARGET_VERSION 格式无效。');
+            return Command::FAILURE;
+        }
+
+        if (empty(self::CONFIG_DEFAULTS)) {
+            $io->error('CONFIG_DEFAULTS 为空，旧版配置补全将失效。');
+            return Command::FAILURE;
+        }
+
+        $migrationsPath = $appPath . 'database/migrations';
+        $files = is_dir($migrationsPath) ? glob($migrationsPath . '/*.php') : [];
+        $files = $files ?: [];
+        sort($files);
+
+        foreach ($files as $file) {
+            try {
+                $migration = require $file;
+                if (!is_object($migration) || !method_exists($migration, 'up')) {
+                    $io->error(basename($file) . ' 必须返回带 up(string $tablepre): void 方法的对象。');
+                    return Command::FAILURE;
+                }
+            } catch (\Throwable $e) {
+                $io->error(basename($file) . ' 加载失败: ' . $e->getMessage());
+                return Command::FAILURE;
+            }
+        }
+
+        $io->success(sprintf(
+            '升级工具检查通过：目标版本 %s，配置补全 %d 项，迁移文件 %d 个。',
+            self::TARGET_VERSION,
+            count(self::CONFIG_DEFAULTS),
+            count($files)
+        ));
         return Command::SUCCESS;
     }
 
