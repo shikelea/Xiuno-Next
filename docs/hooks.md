@@ -2,7 +2,7 @@
 
 > 此文件由 `php bin/generate_hook_docs.php` 生成。修改 Hook 注释后请重新运行脚本。
 
-- Hook 数量：1046
+- Hook 数量：1047
 - 涉及文件：97
 
 | Hook | 文件 | 行号 |
@@ -286,25 +286,26 @@
 | `header_nav_user_icon_after.htm` | `view/htm/header_nav.inc.htm` | 38 |
 | `header_nav_user_start.htm` | `view/htm/header_nav.inc.htm` | 63 |
 | `header_start.htm` | `view/htm/header.inc.htm` | 12 |
-| `index_end.htm` | `view/htm/index.htm` | 79 |
+| `index_end.htm` | `view/htm/index.htm` | 80 |
 | `index_end.php` | `route/__index.php` | 11 |
 | `index_end.php` | `route/bbs.inc.php` | 45 |
 | `index_end.php` | `route/index.php` | 45 |
 | `index_inc_end.php` | `index.inc.php` | 120 |
 | `index_inc_route_before.php` | `index.inc.php` | 56 |
 | `index_inc_start.php` | `index.inc.php` | 5 |
-| `index_js.htm` | `view/htm/index.htm` | 87 |
-| `index_main_end.htm` | `view/htm/index.htm` | 36 |
+| `index_js.htm` | `view/htm/index.htm` | 88 |
+| `index_main_end.htm` | `view/htm/index.htm` | 37 |
 | `index_main_start.htm` | `view/htm/index.htm` | 7 |
 | `index_page_after.htm` | `view/htm/index.htm` | 33 |
 | `index_page_before.htm` | `view/htm/index.htm` | 29 |
+| `index_page_end.htm` | `view/htm/index.htm` | 34 |
 | `index_route_case_default.php` | `index.inc.php` | 107 |
 | `index_route_case_end.php` | `index.inc.php` | 105 |
 | `index_route_case_start.php` | `index.inc.php` | 63 |
-| `index_site_brief_after.htm` | `view/htm/index.htm` | 75 |
-| `index_site_brief_before.htm` | `view/htm/index.htm` | 42 |
-| `index_site_brief_end.htm` | `view/htm/index.htm` | 73 |
-| `index_site_brief_start.htm` | `view/htm/index.htm` | 44 |
+| `index_site_brief_after.htm` | `view/htm/index.htm` | 76 |
+| `index_site_brief_before.htm` | `view/htm/index.htm` | 43 |
+| `index_site_brief_end.htm` | `view/htm/index.htm` | 74 |
+| `index_site_brief_start.htm` | `view/htm/index.htm` | 45 |
 | `index_start.htm` | `view/htm/index.htm` | 3 |
 | `index_start.php` | `route/__index.php` | 3 |
 | `index_start.php` | `route/bbs.inc.php` | 9 |
