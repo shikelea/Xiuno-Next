@@ -8,8 +8,11 @@ if ($root === false) {
 
 $root = str_replace('\\', '/', $root);
 $trackedFiles = git_tracked_files($root);
+$sampleRoots = sample_roots($argv, $root);
 $assetFiles = array_values(array_filter($trackedFiles, 'is_frontend_asset'));
 $sourceFiles = array_values(array_filter($trackedFiles, 'is_scan_source'));
+$sampleSourceFiles = sample_source_files($root, $sampleRoots);
+$sourceFiles = array_values(array_unique(array_merge($sourceFiles, $sampleSourceFiles)));
 
 $assets = [];
 foreach ($assetFiles as $asset) {
@@ -31,6 +34,8 @@ usort($assets, fn($a, $b) => [$a['status'], $a['path']] <=> [$b['status'], $b['p
 $summary = [
     'generated_at' => date('c'),
     'asset_count' => count($assets),
+    'sample_roots' => $sampleRoots,
+    'sample_source_count' => count($sampleSourceFiles),
     'referenced_count' => count(array_filter($assets, fn($a) => $a['status'] === 'referenced')),
     'compatibility_keep_count' => count(array_filter($assets, fn($a) => $a['status'] === 'compatibility_keep')),
     'possibly_unused_count' => count(array_filter($assets, fn($a) => $a['status'] === 'possibly_unused')),
@@ -48,11 +53,12 @@ if (!is_dir(dirname($out))) {
 file_put_contents($out, json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . PHP_EOL);
 
 echo sprintf(
-    "Scanned %d frontend assets. Referenced: %d, compatibility keep: %d, possibly unused: %d.\nReport: %s\n",
+    "Scanned %d frontend assets. Referenced: %d, compatibility keep: %d, possibly unused: %d.\nSample sources: %d.\nReport: %s\n",
     $summary['asset_count'],
     $summary['referenced_count'],
     $summary['compatibility_keep_count'],
     $summary['possibly_unused_count'],
+    $summary['sample_source_count'],
     $out
 );
 
@@ -90,14 +96,84 @@ function is_frontend_asset(string $path): bool
 
 function is_scan_source(string $path): bool
 {
+    if ($path === 'bin/scan_frontend_assets.php' || $path === 'PLAN.md' || $path === 'README.md' || str_starts_with($path, 'docs/')) {
+        return false;
+    }
+
     if (preg_match('#^(?:plugin|vendor|tmp|log|upload|开发手册)/#u', $path)) {
         return false;
     }
 
+    return is_source_extension($path);
+}
+
+function is_source_extension(string $path): bool
+{
     $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
     return in_array($extension, [
         'php', 'inc', 'htm', 'html', 'css', 'js', 'md', 'json', 'yml', 'yaml', 'txt', 'sh', 'bat', 'ps1',
     ], true);
+}
+
+function sample_roots(array $argv, string $root): array
+{
+    $roots = [];
+    for ($i = 1; $i < count($argv); $i++) {
+        $arg = $argv[$i];
+        if ($arg === '--samples' && isset($argv[$i + 1])) {
+            $roots = array_merge($roots, explode(',', $argv[++$i]));
+            continue;
+        }
+        if (str_starts_with($arg, '--samples=')) {
+            $roots = array_merge($roots, explode(',', substr($arg, strlen('--samples='))));
+        }
+    }
+
+    $normalized = [];
+    foreach ($roots as $path) {
+        $path = trim($path);
+        if ($path === '') {
+            continue;
+        }
+
+        $fullPath = realpath(preg_match('#^[A-Za-z]:/#', str_replace('\\', '/', $path)) ? $path : $root . '/' . $path);
+        if ($fullPath === false || !is_dir($fullPath)) {
+            fwrite(STDERR, "Sample directory not found, skipped: $path\n");
+            continue;
+        }
+
+        $fullPath = str_replace('\\', '/', $fullPath);
+        if (!str_starts_with($fullPath . '/', $root . '/')) {
+            fwrite(STDERR, "Sample directory outside project root, skipped: $path\n");
+            continue;
+        }
+
+        $normalized[] = substr($fullPath, strlen($root) + 1);
+    }
+
+    return array_values(array_unique($normalized));
+}
+
+function sample_source_files(string $root, array $sampleRoots): array
+{
+    $files = [];
+    foreach ($sampleRoots as $sampleRoot) {
+        $dir = $root . '/' . $sampleRoot;
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $path = str_replace('\\', '/', $file->getPathname());
+            $relative = substr($path, strlen($root) + 1);
+            if (is_source_extension($relative)) {
+                $files[] = $relative;
+            }
+        }
+    }
+
+    return $files;
 }
 
 function find_asset_references(string $asset, array $sourceFiles, string $root): array
@@ -183,8 +259,6 @@ function compatibility_reasons(string $asset): array
         'view/js/bs4-compat.js' => ['BS4 plugin/theme compatibility shim.'],
         'view/css/bs4-compat.css' => ['BS4 plugin/theme compatibility shim.'],
         'view/js/popper.js' => ['Legacy Popper global kept for older plugins using tooltip/popover behavior.'],
-        'view/js/popper-utils.js' => ['Legacy Popper utility module; remove only after ecosystem sample audit.'],
-        'view/js/vue.js' => ['Legacy bundled framework; remove only after ecosystem sample audit confirms no local users.'],
         'view/js/upload.js' => ['Legacy upload helper may be loaded by attachment/avatar plugins.'],
         'view/img/filetype.png' => ['Legacy file-type sprite may be used by attachment plugins.'],
         'view/img/water-small-xiuno.png' => ['Bundled alternate watermark; keep until branding assets are normalized.'],
