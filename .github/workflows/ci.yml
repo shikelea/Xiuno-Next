@@ -44,6 +44,9 @@ jobs:
       - name: Smoke test frontend security guards
         run: php bin/check_frontend_security.php
 
+      - name: Smoke test ecosystem matrix builder
+        run: php bin/check_ecosystem_matrix.php
+
       - name: Check generated Hook docs
         shell: bash
         run: |
