@@ -200,8 +200,9 @@
     - [x] 将线程列表分页 HTMX 属性集中到 `view/htm/htmx_thread_list_pagination_attrs.inc.htm`，避免后续模板复制漂移。
     - [x] HTMX 安全收口：关闭响应脚本/eval 执行；`message()` 的 HTMX 分支改为 `HX-Trigger` + `204 No Content`，避免消息正文被误 swap 进 DOM。
     - [x] CI 增加 `bin/check_htmx_security.php`，防止 HTMX 安全默认值和消息响应语义回退。
+    - [x] 建立 HTMX fragment 生命周期约定：swap settle 后触发 `xiuno:fragment-ready`；帖子列表点击、全选、确认链接、管理弹窗入口改为事件委托以适配局部替换。
   - **CSS/JS 压缩**：编写 PHP 脚本实现静态资源合并压缩，**不引入 Node.js 工具链**。
-  - **下一步**：观察帖子列表分页试点；通知列表当前核心暂无独立路由/模板，帖子详情页分页因快捷回复和媒体重排脚本暂缓，下一步优先梳理 HTMX swap 后的 JS 生命周期约定。
+  - **下一步**：观察帖子列表分页试点与 `xiuno:fragment-ready` 生命周期约定；稳定后再评估帖子详情页分页是否能拆出安全的只读 postlist 区域。
 - [ ] **API 持续开发**（阶段三完成了基础接口，此处扩展和完善）：
   - [x] API 路由最小 smoke test：覆盖默认入口、缺失 action 和非法 action，防止路径拼接边界回退。
   - 扩展 API 覆盖面：用户资料修改、版块管理、附件上传、搜索、通知等。

@@ -1,5 +1,5 @@
 // 表单快捷键提交 CTRL+ENTER   / form quick submit
-$('form').keyup(function(e) {
+$(document).on('keyup', 'form', function(e) {
 	var jthis = $(this);
 	if((e.ctrlKey && (e.which == 13 || e.which == 10)) || (e.altKey && e.which == 83)) {
 		jthis.trigger('submit');
@@ -8,7 +8,7 @@ $('form').keyup(function(e) {
 });
 
 // 点击响应整行：方便手机浏览  / check response line
-$('.tap').on('click', function(e) {
+$(document).on('click', '.tap', function(e) {
 	var href = $(this).attr('href') || $(this).data('href');
 	if(e.target.nodeName == 'INPUT') return true;
 	if($(window).width() > 992) return;
@@ -20,7 +20,7 @@ $('.tap').on('click', function(e) {
 	}
 });
 // 点击响应整行：导航栏下拉菜单   / check response line
-$('ul.nav > li').on('click', function(e) {
+$(document).on('click', 'ul.nav > li', function(e) {
 	var jthis = $(this);
 	var href = jthis.children('a').attr('href');
 	if(e.ctrlKey) {
@@ -29,7 +29,7 @@ $('ul.nav > li').on('click', function(e) {
 	}
 });
 // 点击响应整行：，但是不响应 checkbox 的点击  / check response line, without checkbox
-$('.thread input[type="checkbox"]').parents('td').on('click', function(e) {
+$(document).on('click', '.thread input[type="checkbox"]', function(e) {
 	e.stopPropagation();
 })
 
@@ -106,7 +106,7 @@ $('.mod-button button._close').on('click', function() {
 // 确定框 / confirm / GET / POST
 // <a href="1.php" data-confirm-text="确定删除？" class="confirm">删除</a>
 // <a href="1.php" data-method="post" data-confirm-text="确定删除？" class="confirm">删除</a>
-$('a.confirm').on('click', function() {
+$(document).on('click', 'a.confirm', function() {
 	var jthis = $(this);
 	var text = jthis.data('confirm-text');
 	$.confirm(text, function() {
@@ -129,7 +129,7 @@ $('a.confirm').on('click', function() {
 
 // 选中所有 / check all
 // <input class="checkall" data-target=".tid" />
-$('input.checkall').on('click', function() {
+$(document).on('click', 'input.checkall', function() {
 	var jthis = $(this);
 	var target = jthis.data('target');
 	jtarget = $(target);
