@@ -32,6 +32,9 @@ jobs:
       - name: Check release version consistency
         run: php bin/check_version.php
 
+      - name: Smoke test lightweight helpers
+        run: php bin/check_lightweight_helpers.php
+
       - name: Check generated Hook docs
         shell: bash
         run: |
