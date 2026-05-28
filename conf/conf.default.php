@@ -124,7 +124,7 @@ return array (
 	'csrf_on' => 1,
 	  
 	'version' => '4.4.5',
-	'static_version' => '?1.0',
+	'static_version' => '?v=4.4.5',
 	'installed' => 0,
 );
 ?>

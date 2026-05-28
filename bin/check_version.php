@@ -10,11 +10,15 @@ $checks = [
     'index.php' => '/\$conf\[\'version\'\]\s*=\s*\'([^\']+)\'/',
     'conf/conf.default.php' => '/\'version\'\s*=>\s*\'([^\']+)\'/',
     'src/Console/Command/UpgradeCommand.php' => '/TARGET_VERSION\s*=\s*\'([^\']+)\'/',
+    'bin/xiuno' => '/XIUNO_CLI_VERSION\s*=\s*\'([^\']+)\'/',
+    'conf/conf.default.php static_version' => '/\'static_version\'\s*=>\s*\'\?v=([^\']+)\'/',
+    'src/Console/Command/UpgradeCommand.php static_version' => '/\'static_version\'\s*=>\s*\'\?v=([^\']+)\'/',
 ];
 
 $versions = [];
 foreach ($checks as $file => $pattern) {
-    $path = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $file);
+    $realFile = explode(' ', $file, 2)[0];
+    $path = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $realFile);
     $content = is_file($path) ? file_get_contents($path) : false;
     if ($content === false || !preg_match($pattern, $content, $match)) {
         $versions[$file] = null;
