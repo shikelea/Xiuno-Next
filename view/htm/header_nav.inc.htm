@@ -71,6 +71,7 @@
 				<li class="nav-item username"><a class="nav-link" href="<?php echo url('my');?>"><img class="avatar-1"
 							src="<?php echo $user['avatar_url'];?>" loading="lazy">
 						<?php echo $user['username'];?>
+						<!--{hook header_nav_user_username_after.htm}-->
 					</a></li>
 				<!-- 管理员 -->
 				<?php if($gid == 1) { ?>
