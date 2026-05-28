@@ -4,25 +4,37 @@
 function_exists('set_magic_quotes_runtime') AND set_magic_quotes_runtime(0);
 $dir = '../xiunophp/';
 
+function xiuno_strip_file($file) {
+	$s = php_strip_whitespace($file);
+	$s = preg_replace('#^\s*<\?php\s*#', '', $s);
+	$s = preg_replace('#\?>\s*$#', '', $s);
+	return trim($s);
+}
 
-$s = php_strip_whitespace($dir.'db_mysql.class.php');
-$s .= php_strip_whitespace($dir.'db_pdo_mysql.class.php');
-$s .= php_strip_whitespace($dir.'db_pdo_sqlite.class.php');
-$s .= php_strip_whitespace($dir.'cache_apc.class.php');
-$s .= php_strip_whitespace($dir.'cache_memcached.class.php');
-$s .= php_strip_whitespace($dir.'cache_mysql.class.php');
-$s .= php_strip_whitespace($dir.'cache_redis.class.php');
-$s .= php_strip_whitespace($dir.'cache_xcache.class.php');
-$s .= php_strip_whitespace($dir.'cache_yac.class.php');
+$files = array(
+	'db_mysql.class.php',
+	'db_pdo_mysql.class.php',
+	'db_pdo_sqlite.class.php',
+	'cache_apc.class.php',
+	'cache_memcached.class.php',
+	'cache_mysql.class.php',
+	'cache_redis.class.php',
+	'cache_xcache.class.php',
+	'cache_yac.class.php',
+	'db.func.php',
+	'cache.func.php',
+	'image.func.php',
+	'array.func.php',
+	'config.func.php',
+	'xn_encrypt.func.php',
+	'misc.func.php',
+	'php8_compat.php',
+);
 
-$s .= php_strip_whitespace($dir.'db.func.php');
-$s .= php_strip_whitespace($dir.'cache.func.php');
-$s .= php_strip_whitespace($dir.'image.func.php');
-$s .= php_strip_whitespace($dir.'array.func.php');
-$s .= php_strip_whitespace($dir.'xn_encrypt.func.php');
-$s .= php_strip_whitespace($dir.'misc.func.php');
-
-$s = substr($s, 8, -2);
+$s = '';
+foreach($files as $file) {
+	$s .= xiuno_strip_file($dir.$file)."\r\n";
+}
 
 $xiunophp = file_get_contents($dir.'xiunophp.php');
 $before = '// hook xiunophp_include_before.php';
