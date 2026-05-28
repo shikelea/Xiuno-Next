@@ -12,6 +12,7 @@ $conf['log_path'] = APP_PATH . 'tmp/helper_smoke/';
 
 include APP_PATH . 'xiunophp/xiunophp.php';
 include_once APP_PATH . 'xiunophp/xn_zip.func.php';
+include_once APP_PATH . 'model/attach.func.php';
 
 $errors = array();
 
@@ -54,6 +55,10 @@ unset($_REQUEST['helper_smoke_b64']);
 
 if (!xn_zip_safe_name('safe/path.txt') || xn_zip_safe_name('../unsafe.txt') || xn_zip_safe_name('/unsafe.txt')) {
 	$errors[] = 'xn_zip_safe_name did not enforce zip path safety';
+}
+
+if (attach_download_filename("bad\r\nX-Test: 1\"name.txt") !== "badX-Test: 1'name.txt") {
+	$errors[] = 'attach_download_filename did not strip header-control characters safely';
 }
 
 $_REQUEST[1] = 'noop';

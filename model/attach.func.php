@@ -155,6 +155,12 @@ function attach_type($name, $types) {
 	return 'other';
 }
 
+function attach_download_filename($filename) {
+	$filename = preg_replace('/[\x00-\x1F\x7F]+/', '', (string)$filename);
+	$filename = str_replace(array('"', '\\'), array("'", '_'), $filename);
+	return $filename === '' ? 'download' : $filename;
+}
+
 // 扫描垃圾的附件，每日清理一次
 function attach_gc() {
 	global $time, $conf;
