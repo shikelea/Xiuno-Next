@@ -16,6 +16,9 @@ if ($bridge === FALSE) {
 	if (strpos($bridge, "textContent = detail.message") === FALSE) {
 		$errors[] = 'HTMX message bridge must render message text via textContent';
 	}
+	if (strpos($bridge, "xiuno:fragment-ready") === FALSE || strpos($bridge, "htmx:afterSettle") === FALSE) {
+		$errors[] = 'HTMX bridge must dispatch xiuno:fragment-ready after swaps settle';
+	}
 }
 
 $misc = file_get_contents($root . 'model/misc.func.php');

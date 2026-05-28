@@ -320,22 +320,19 @@ $.ajax_modal = function(url, title, size, callback, arg) {
 }
 
 $(function() {
-	$('[data-modal-title]').each(function() {
+	$(document).on('click', '[data-modal-title]', function() {
 		var jthis = $(this);
-		jthis.on('click', function() {
-			var url = jthis.data('modal-url') || jthis.attr('href');	
-			var title = jthis.data('modal-title');	
-			var arg = jthis.data('modal-arg');	
-			var callback_str = jthis.data('modal-callback');
-			callback = window[callback_str];
-			var size = jthis.data('modal-size'); // 对话框的尺寸
-			
-			// 弹出对话框
-			if(this.ajax_modal) this.ajax_modal.modal('dispose');
-			this.ajax_modal = $.ajax_modal(url, title, size, callback, arg);
-			
-			return false;
-		});
+		var url = jthis.data('modal-url') || jthis.attr('href');
+		var title = jthis.data('modal-title');
+		var arg = jthis.data('modal-arg');
+		var callback_str = jthis.data('modal-callback');
+		var callback = window[callback_str];
+		var size = jthis.data('modal-size'); // 对话框的尺寸
+
+		// 弹出对话框
+		if(this.ajax_modal) this.ajax_modal.modal('dispose');
+		this.ajax_modal = $.ajax_modal(url, title, size, callback, arg);
+
+		return false;
 	});
 });
-

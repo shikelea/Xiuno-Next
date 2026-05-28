@@ -13,6 +13,17 @@ Xiuno Next introduces HTMX as a progressive enhancement layer, not as a frontend
 
 `view/htm/htmx_thread_list_pagination_attrs.inc.htm` centralizes the attributes used by read-only thread-list pagination. Reuse that include for the current pilot instead of copying the attribute set into each template.
 
+## Fragment Lifecycle
+
+`view/js/htmx-xiuno.js` dispatches `xiuno:fragment-ready` after every HTMX settle. New fragment-aware code should either use delegated event binding or listen for that event and initialize only inside `event.detail.elt`.
+
+Current delegated global behaviors that survive swaps:
+
+- thread-row tap navigation
+- check-all moderation checkbox
+- confirm links
+- modal launcher buttons using `data-modal-title`
+
 ## Current Scope
 
 The pilot covers read-only thread-list pagination. Pagination links remain normal anchors, while HTMX-enabled browsers fetch the full page, select `#thread-list-region`, and swap only that region.

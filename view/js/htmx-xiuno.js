@@ -10,6 +10,21 @@
         window.htmx.config.allowScriptTags = false;
     }
 
+    function triggerFragmentReady(elt) {
+        var target = elt || document.body;
+        var event;
+        if (typeof CustomEvent === 'function') {
+            event = new CustomEvent('xiuno:fragment-ready', {
+                bubbles: true,
+                detail: { elt: target }
+            });
+        } else {
+            event = document.createEvent('CustomEvent');
+            event.initCustomEvent('xiuno:fragment-ready', true, false, { elt: target });
+        }
+        target.dispatchEvent(event);
+    }
+
     function csrfToken() {
         if (window.csrf_token) return window.csrf_token;
         var meta = document.querySelector('meta[name="csrf-token"]');
@@ -62,4 +77,10 @@
     document.body.addEventListener('showMessage', function(event) {
         showMessage(event.detail);
     });
+
+    document.body.addEventListener('htmx:afterSettle', function(event) {
+        triggerFragmentReady(event.detail && event.detail.elt);
+    });
+
+    window.xiunoInitFragment = triggerFragmentReady;
 })();
