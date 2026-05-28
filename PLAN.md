@@ -203,6 +203,7 @@
     - [x] 建立 HTMX fragment 生命周期约定：swap settle 后触发 `xiuno:fragment-ready`；帖子列表点击、全选、确认链接、管理弹窗入口改为事件委托以适配局部替换。
   - [x] **前端安全审查增量**：
     - 修复发帖页附件上传列表的 DOM XSS 风险：不再把服务端返回的文件名/URL 拼接成 HTML，改为节点构建、文本写入、class 白名单化，并为新窗口链接添加 `rel="noopener noreferrer"`。
+    - 加固附件下载 `Content-Disposition` 文件名：移除控制字符并处理引号/反斜杠，避免伪造上传文件名破坏响应头语义。
     - 新增 `bin/check_frontend_security.php` 并接入 CI，防止附件上传列表回退到不安全 HTML 拼接。
     - `bootstrap-plugin.js` 的 Ajax modal 动态脚本执行属于历史插件/主题兼容边界，短期保留；后续在生态兼容矩阵稳定后，再设计更窄的受信任片段协议。
     - 旧 jQuery 版本列为版本治理事项：升级前必须先跑真实插件/主题样本矩阵，不能作为单点安全修复直接推进。

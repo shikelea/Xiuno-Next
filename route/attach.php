@@ -142,9 +142,10 @@ if(empty($action) || $action == 'create') {
 		attach_update($aid, array('downloads+'=>1));
 		
 		$filesize = $attach['filesize'];
+		$download_filename = attach_download_filename($attach['orgfilename']);
 		if(stripos($_SERVER["HTTP_USER_AGENT"], 'MSIE') !== FALSE || stripos($_SERVER["HTTP_USER_AGENT"], 'Edge') !== FALSE || stripos($_SERVER["HTTP_USER_AGENT"], 'Trident') !== FALSE) {
-			$attach['orgfilename'] = urlencode($attach['orgfilename']);
-			$attach['orgfilename'] = str_replace("+", "%20", $attach['orgfilename']);
+			$download_filename = urlencode($download_filename);
+			$download_filename = str_replace("+", "%20", $download_filename);
 		}
 		$timefmt = date('D, d M Y H:i:s', $time).' GMT';
 		header('Date: '.$timefmt);
@@ -154,7 +155,7 @@ if(empty($action) || $action == 'create') {
 		header('Cache-control: max-age=86400');
 		header('Content-Transfer-Encoding: binary');
 		header("Pragma: public");
-		header('Content-Disposition: attachment; filename="'.$attach['orgfilename'].'"');
+		header('Content-Disposition: attachment; filename="'.$download_filename.'"');
 		header('Content-Type: application/octet-stream');
 		//header("Content-Type: application/force-download");	// 后面的会覆盖前面
 		

@@ -34,6 +34,7 @@ php bin/check_version.php
 - 已修复发帖页附件上传完成后的列表渲染：`message.orgfilename` 来自浏览器文件名，服务端按原值写入 JSON，旧代码把 `message.url`、`message.filetype`、`message.orgfilename` 拼接成 HTML 后 `.append()`，存在 DOM XSS/属性注入风险。
 - 现改为使用 jQuery 创建节点、`document.createTextNode()` 写入文件名、过滤文件类型 class，并为新窗口附件链接添加 `rel="noopener noreferrer"`。
 - 新增 `bin/check_frontend_security.php` 并纳入 CI，用于守住附件上传列表的安全渲染约定，避免后续回退到 HTML 字符串拼接。
+- 已加固附件下载响应头：`Content-Disposition` 文件名通过 `attach_download_filename()` 移除控制字符并处理引号/反斜杠，降低伪造文件名造成响应头注入或头部格式破坏的风险；`bin/check_lightweight_helpers.php` 增加对应 smoke test。
 - 继续观察：`view/js/bootstrap-plugin.js` 的 Ajax modal 会解析受信任页面片段并执行其中脚本，这是旧插件/主题运行模型的一部分，短期不直接移除；后续应在生态兼容阶段结合插件/主题矩阵逐步收敛信任边界。
 
 ## 2026-05-28 生态样本安全/兼容观察
