@@ -240,6 +240,7 @@
 - [x] **真实生态样本兼容审计（阶段六输入已建立）**：
   - 以本地 `plugin/` 目录中的社区插件和主题样本作为兼容样本库，但不纳入仓库。
   - 使用 `php bin/scan_ecosystem_samples.php` 生成本地 `tmp/ecosystem_scan.json`，作为内部兼容矩阵输入。
+  - 使用 `php bin/build_ecosystem_matrix.php` 将扫描结果归一化为本地 `tmp/ecosystem_matrix.json` / `tmp/ecosystem_matrix.md`，字段覆盖状态、问题类型、最低 Xiuno Next 版本、workaround 和修复归属；生成物不纳入仓库。
   - 2026-05-28 扫描结果：58 个样本（其中 21 个主题型样本），共 593 条兼容发现、22 个 PHP lint 错误；分类以 BS4→BS5（435）和 PHP 8（105）为主，其次是主题覆盖（33）与 CSRF/POST 行为（20）。
   - 按三类拆分问题：PHP 8 语法/运行时问题、BS4→BS5 前端兼容问题、Hook/主题覆盖导致的结构性问题。
   - 下一步进入阶段六前置：优先选择高使用率、低侵入修复的样本验证兼容层，不为单个插件写特例。
@@ -255,7 +256,7 @@
   - 建立官方插件索引源 (Registry)，支持 CLI 安装 (`php xiuno plugin:install`)。
   - 原生插件分阶段开放：当前支持 `conf.json` 传统兼容插件；v4.5.x 固定 `plugin.json` 预览规范；v5.0 形成稳定插件市场闭环。
 - [ ] **插件与主题兼容矩阵**：
-  - 维护一份官方《插件与主题兼容矩阵》，标注每个主流插件/主题在 Xiuno Next 下的兼容状态、最低版本、问题类型和修复建议。
+  - 维护一份官方《插件与主题兼容矩阵》，标注每个主流插件/主题在 Xiuno Next 下的兼容状态、最低版本、问题类型和修复建议；内部字段契约见 `docs/ecosystem-compatibility.md`。
   - 兼容矩阵的优先级高于新功能生态扩张：先确认旧生态能活，再邀请开发者写新生态。
   - 为插件和主题开发者分别提供《BS4→BS5 迁移指南》与《Xiuno Next 主题迁移指南》，降低适配成本。
 - [ ] **主题开发体系**：

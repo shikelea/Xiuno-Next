@@ -80,7 +80,12 @@ $out = $root . '/tmp/ecosystem_scan.json';
 if (!is_dir(dirname($out))) {
     mkdir(dirname($out), 0755, true);
 }
-file_put_contents($out, json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+$json = json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+if ($json === false) {
+    fwrite(STDERR, "Unable to encode ecosystem scan JSON: " . json_last_error_msg() . "\n");
+    exit(1);
+}
+file_put_contents($out, $json . PHP_EOL);
 
 echo sprintf(
     "Scanned %d samples (%d theme-like). Findings: %d, PHP lint errors: %d.\nReport: %s\n",
