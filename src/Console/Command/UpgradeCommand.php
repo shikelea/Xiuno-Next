@@ -24,7 +24,7 @@ class UpgradeCommand extends Command
         'admin_bind_ip' => 0,
         'cdn_on' => 0,
         'url_rewrite_on' => 0,
-        'static_version' => '?1.0',
+        'static_version' => '?v=4.4.5',
     ];
 
     // 已知旧版主流版本号
