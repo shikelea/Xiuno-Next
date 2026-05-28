@@ -248,7 +248,7 @@
 
 1. **发布一致性守卫**：运行 `php bin/check_version.php`，并将其纳入 CI，避免版本号和文档再次漂移。
 2. **在线更新安全加固**：保持 TLS 证书校验开启，已补充 ZIP 路径安全检查、覆盖前备份和最近备份回滚；下一步补发布包 hash/signature 校验。
-3. **自动化测试最小闭环**：已建立核心 `php -l`、版本一致性、Hook 文档生成检查和插件脚手架 smoke test；下一步补安装/迁移/升级命令 smoke test，再逐步覆盖 API。
+3. **自动化测试最小闭环**：已建立核心 `php -l`、版本一致性、Hook 文档生成检查、CLI 命令加载检查和插件脚手架 smoke test；下一步补需要数据库环境的安装/迁移/升级 smoke test，再逐步覆盖 API。
 4. **依赖与 PHP 版本矩阵**：以 PHP 8.0+ 为最低运行线，Docker 默认 PHP 8.2，CI 覆盖 8.0/8.2/8.3/8.4/8.5，并在 CI 中执行 Composer validate/install；依赖升级优先保证旧插件兼容，不盲目追新主版本。后续需要决定是否提交 `composer.lock` 来固定应用依赖。
 5. **社区资料边界**：`开发手册/` 保留为本地参考且不进仓库；Xiuno Next 差异说明迁移到 `docs/`，避免在参考资料目录里继续工作。
 6. **原生插件预览规范**：先发布 `docs/plugin-development.md` 和 Hook 索引，再补 `plugin.json` 草案、CLI 原生模板和插件 smoke test。
