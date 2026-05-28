@@ -28,3 +28,16 @@ rg -n "CURLOPT_SSL_VERIFYPEER|eval\s*\(|unserialize\s*\(|create_function\s*\(|ad
 php bin/check_lightweight_helpers.php
 php bin/check_version.php
 ```
+
+## 2026-05-28 前端 DOM XSS 复查
+
+- 已修复发帖页附件上传完成后的列表渲染：`message.orgfilename` 来自浏览器文件名，服务端按原值写入 JSON，旧代码把 `message.url`、`message.filetype`、`message.orgfilename` 拼接成 HTML 后 `.append()`，存在 DOM XSS/属性注入风险。
+- 现改为使用 jQuery 创建节点、`document.createTextNode()` 写入文件名、过滤文件类型 class，并为新窗口附件链接添加 `rel="noopener noreferrer"`。
+- 新增 `bin/check_frontend_security.php` 并纳入 CI，用于守住附件上传列表的安全渲染约定，避免后续回退到 HTML 字符串拼接。
+- 继续观察：`view/js/bootstrap-plugin.js` 的 Ajax modal 会解析受信任页面片段并执行其中脚本，这是旧插件/主题运行模型的一部分，短期不直接移除；后续应在生态兼容阶段结合插件/主题矩阵逐步收敛信任边界。
+
+## 2026-05-28 生态样本安全/兼容观察
+
+- `php bin/scan_ecosystem_samples.php` 当前扫描 58 个本地样本，其中 21 个呈主题型特征；输出仅写入忽略的 `tmp/ecosystem_scan.json`，不纳入仓库。
+- 本轮发现 593 条兼容/风险信号、22 个 PHP lint 错误。分类统计：BS4→BS5 435 条、PHP 8 105 条、主题 header/footer 覆盖 33 条、CSRF/POST 行为 20 条。
+- 结论：短期继续增强核心兼容层和扫描矩阵，不对单个第三方插件/主题做仓库内特例；正式插件/主题开发手册仍放到生态重建阶段，在兼容边界稳定后发布。

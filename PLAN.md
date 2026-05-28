@@ -201,6 +201,11 @@
     - [x] HTMX 安全收口：关闭响应脚本/eval 执行；`message()` 的 HTMX 分支改为 `HX-Trigger` + `204 No Content`，避免消息正文被误 swap 进 DOM。
     - [x] CI 增加 `bin/check_htmx_security.php`，防止 HTMX 安全默认值和消息响应语义回退。
     - [x] 建立 HTMX fragment 生命周期约定：swap settle 后触发 `xiuno:fragment-ready`；帖子列表点击、全选、确认链接、管理弹窗入口改为事件委托以适配局部替换。
+  - [x] **前端安全审查增量**：
+    - 修复发帖页附件上传列表的 DOM XSS 风险：不再把服务端返回的文件名/URL 拼接成 HTML，改为节点构建、文本写入、class 白名单化，并为新窗口链接添加 `rel="noopener noreferrer"`。
+    - 新增 `bin/check_frontend_security.php` 并接入 CI，防止附件上传列表回退到不安全 HTML 拼接。
+    - `bootstrap-plugin.js` 的 Ajax modal 动态脚本执行属于历史插件/主题兼容边界，短期保留；后续在生态兼容矩阵稳定后，再设计更窄的受信任片段协议。
+    - 旧 jQuery 版本列为版本治理事项：升级前必须先跑真实插件/主题样本矩阵，不能作为单点安全修复直接推进。
   - **CSS/JS 压缩**：编写 PHP 脚本实现静态资源合并压缩，**不引入 Node.js 工具链**。
   - **下一步**：观察帖子列表分页试点与 `xiuno:fragment-ready` 生命周期约定；稳定后再评估帖子详情页分页是否能拆出安全的只读 postlist 区域。
 - [ ] **API 持续开发**（阶段三完成了基础接口，此处扩展和完善）：
@@ -231,6 +236,7 @@
 - [ ] **真实生态样本兼容审计**（阶段六前置准备）：
   - 以本地 `plugin/` 目录中的社区插件和主题样本作为兼容样本库，但不纳入仓库。
   - 使用 `php bin/scan_ecosystem_samples.php` 生成本地 `tmp/ecosystem_scan.json`，作为内部兼容矩阵输入。
+  - 2026-05-28 扫描结果：58 个样本（其中 21 个主题型样本），共 593 条兼容发现、22 个 PHP lint 错误；分类以 BS4→BS5（435）和 PHP 8（105）为主，其次是主题覆盖（33）与 CSRF/POST 行为（20）。
   - 按三类拆分问题：PHP 8 语法/运行时问题、BS4→BS5 前端兼容问题、Hook/主题覆盖导致的结构性问题。
   - 优先选择高使用率、低侵入修复的样本验证兼容层，不为单个插件写特例。
   - 输出结果先沉淀为内部兼容矩阵；正式公开清单放到生态重建阶段。
