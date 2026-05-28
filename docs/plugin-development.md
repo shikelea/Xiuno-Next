@@ -1,8 +1,10 @@
-# Xiuno Next 插件体系状态草案
+# Xiuno Next 插件与主题生态状态草案
 
 本文回答一个现实问题：开发者什么时候可以构建 Xiuno Next 的原生插件？
 
 本文不是正式插件开发手册，只记录当前状态和阶段性判断。正式开发文档设计放到生态重建阶段启动。
+
+主题开发同样是一等生态入口，不作为插件开发的附属章节处理。正式主题开发手册需要等待主题 API、兼容矩阵和资源加载约定稳定后再发布。
 
 ## 短答案
 
@@ -58,5 +60,6 @@
 
 - 固定 `plugin.json` 字段草案。
 - 让 `make:plugin` 支持生成 Next 原生插件模板。
-- 在 CI 中增加 `php bin/xiuno make:plugin smoke_plugin` 的命令级 smoke test。
-- 从 `docs/hooks.md` 选出最常用 Hook，整理成开发者友好的插件入门文档。
+- 固定主题 API 草案，明确 `theme_register()`、资源入队、HTMX 能力声明和模板覆盖边界。
+- 在 CI 中增加插件/主题样本的轻量 smoke test。
+- 从 `docs/hooks.md` 选出最常用 Hook，整理成开发者友好的插件/主题入门资料。
