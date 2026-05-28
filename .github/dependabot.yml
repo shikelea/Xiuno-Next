@@ -9,6 +9,10 @@ updates:
       timezone: "Asia/Shanghai"
     open-pull-requests-limit: 3
     versioning-strategy: "increase-if-necessary"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
     groups:
       composer-runtime:
         dependency-type: "production"
