@@ -37,6 +37,10 @@ Local or server-side package smoke checks should stay outside the repository unl
 - `minimum_xiuno_next`: earliest Xiuno Next baseline implied by the scan.
 - `workaround`: practical mitigation before a package/core fix lands.
 - `fix_owner`: whether the fix belongs in the core compatibility layer, the third-party package, or the theme API boundary.
+- `missing_hooks`: absent legacy hook files referenced by the package.
+- `metadata_valid`: whether `conf.json` was valid enough for install/enable flow review.
+
+The matrix summary also includes `issue_type_counts` (affected sample count by issue type) and `missing_hook_counts` (affected sample count by hook name) so the stage-six review can prioritize shared compatibility work before package-by-package patches.
 
 ## Status Values
 

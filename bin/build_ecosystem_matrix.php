@@ -104,10 +104,20 @@ function build_matrix(array $scan): array
 
     $statusCounts = [];
     $typeCounts = [];
+    $issueTypeCounts = [];
+    $missingHookCounts = [];
     foreach ($rows as $row) {
         $statusCounts[$row['status']] = ($statusCounts[$row['status']] ?? 0) + 1;
         $typeCounts[$row['type']] = ($typeCounts[$row['type']] ?? 0) + 1;
+        foreach ($row['issue_types'] as $issueType) {
+            $issueTypeCounts[$issueType] = ($issueTypeCounts[$issueType] ?? 0) + 1;
+        }
+        foreach ($row['missing_hooks'] as $hookName) {
+            $missingHookCounts[$hookName] = ($missingHookCounts[$hookName] ?? 0) + 1;
+        }
     }
+    arsort($issueTypeCounts);
+    arsort($missingHookCounts);
 
     return [
         'summary' => [
@@ -116,6 +126,8 @@ function build_matrix(array $scan): array
             'sample_count' => count($rows),
             'status_counts' => $statusCounts,
             'type_counts' => $typeCounts,
+            'issue_type_counts' => $issueTypeCounts,
+            'missing_hook_counts' => $missingHookCounts,
             'field_contract' => [
                 'status',
                 'issue_types',
@@ -132,6 +144,7 @@ function matrix_row(array $sample): array
 {
     $groups = issue_groups($sample);
     $labels = issue_labels($sample);
+    $missingHooks = missing_hooks($sample);
     $lintCount = count($sample['php_lint_errors'] ?? []);
     $status = sample_status($sample, $groups, $lintCount);
 
@@ -145,6 +158,8 @@ function matrix_row(array $sample): array
         'risk_score' => (int)($sample['risk_score'] ?? 0),
         'issue_types' => array_values($groups),
         'issue_labels' => array_values($labels),
+        'missing_hooks' => $missingHooks,
+        'metadata_valid' => !isset($groups['metadata']),
         'php_lint_errors' => $lintCount,
         'finding_count' => count($sample['findings'] ?? []),
         'minimum_xiuno_next' => minimum_version($status, $groups),
@@ -152,6 +167,20 @@ function matrix_row(array $sample): array
         'fix_owner' => fix_owners($groups, $lintCount),
         'notes' => notes($status, $groups, $lintCount),
     ];
+}
+
+function missing_hooks(array $sample): array
+{
+    $hooks = [];
+    foreach ($sample['findings'] ?? [] as $finding) {
+        if (($finding['group'] ?? '') !== 'hook' || empty($finding['file'])) {
+            continue;
+        }
+        $hookName = basename(str_replace('\\', '/', $finding['file']));
+        $hooks[$hookName] = $hookName;
+    }
+    sort($hooks);
+    return array_values($hooks);
 }
 
 function issue_groups(array $sample): array

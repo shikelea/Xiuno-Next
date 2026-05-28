@@ -111,6 +111,20 @@ if (($matrix['summary']['status_counts']['needs_hook_boundary_review'] ?? 0) !==
 if (($matrix['summary']['status_counts']['needs_metadata_repair'] ?? 0) !== 1) {
     $errors[] = 'needs_metadata_repair status count mismatch';
 }
+if (($matrix['summary']['issue_type_counts']['hook'] ?? 0) !== 1) {
+    $errors[] = 'hook issue type count mismatch';
+}
+if (($matrix['summary']['missing_hook_counts']['old_hook.htm'] ?? 0) !== 1) {
+    $errors[] = 'missing hook count mismatch';
+}
+foreach ($matrix['matrix'] as $row) {
+    if (($row['name'] ?? '') === 'missing_hook_plugin' && ($row['missing_hooks'][0] ?? '') !== 'old_hook.htm') {
+        $errors[] = 'missing hook row details mismatch';
+    }
+    if (($row['name'] ?? '') === 'bad_metadata_plugin' && ($row['metadata_valid'] ?? true) !== false) {
+        $errors[] = 'metadata_valid row details mismatch';
+    }
+}
 if (!is_file($markdown)) {
     $errors[] = 'matrix markdown output missing';
 }
