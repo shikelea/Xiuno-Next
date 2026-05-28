@@ -16,7 +16,9 @@ $r = XiunoHttp::json('https://example.com/api', array('name' => 'xiuno'));
 ## 约定
 
 - 不引入 Guzzle，优先使用 PHP cURL；没有 cURL 时回退到 stream。
+- 仅支持 `http://` 和 `https://`，避免误读本地文件或其他协议。
 - HTTPS 默认开启证书校验，只有明确传入 `verify_tls => false` 时才关闭。
+- 默认不自动跟随跳转；确有需要时传入 `follow_redirects => true`。
 - 返回值统一为数组：`ok`、`code`、`headers`、`body`、`json`、`errno`、`errstr`。
 - `post()` 默认发送 `application/x-www-form-urlencoded`，`json()` 默认发送 `application/json`。
 - 支持 `timeout`、`connect_timeout`、`headers`、`query`、`user_agent`、`proxy`、`proxy_auth` 等轻量选项。

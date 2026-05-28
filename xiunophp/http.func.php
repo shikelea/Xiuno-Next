@@ -27,6 +27,11 @@ if (!class_exists('XiunoHttp', false)) {
 		}
 
 		public static function request($url, $options = array()) {
+			$scheme = strtolower((string)parse_url($url, PHP_URL_SCHEME));
+			if(!in_array($scheme, array('http', 'https'), TRUE)) {
+				return self::response(0, '', '', 1, 'Only http and https URLs are supported');
+			}
+
 			$method = strtoupper(isset($options['method']) ? $options['method'] : 'GET');
 			$query = isset($options['query']) ? $options['query'] : array();
 			if(!empty($query)) {
@@ -45,6 +50,7 @@ if (!class_exists('XiunoHttp', false)) {
 			$verify = array_key_exists('verify_tls', $options) ? (bool)$options['verify_tls'] : TRUE;
 			$headers = self::headers(isset($options['headers']) ? $options['headers'] : array());
 			$body = isset($options['body']) ? $options['body'] : NULL;
+			$followRedirects = !empty($options['follow_redirects']);
 
 			$ch = curl_init();
 			curl_setopt($ch, CURLOPT_URL, $url);
@@ -56,7 +62,7 @@ if (!class_exists('XiunoHttp', false)) {
 			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verify);
 			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $verify ? 2 : 0);
 			curl_setopt($ch, CURLOPT_USERAGENT, isset($options['user_agent']) ? $options['user_agent'] : 'Xiuno-Next');
-			empty(ini_get('open_basedir')) AND curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+			($followRedirects && empty(ini_get('open_basedir'))) AND curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
 			curl_setopt($ch, CURLOPT_MAXREDIRS, isset($options['max_redirects']) ? intval($options['max_redirects']) : 5);
 
 			if(!empty($headers)) curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
@@ -89,6 +95,8 @@ if (!class_exists('XiunoHttp', false)) {
 					'content' => $body === NULL ? '' : $body,
 					'timeout' => $timeout,
 					'ignore_errors' => TRUE,
+					'follow_location' => !empty($options['follow_redirects']) ? 1 : 0,
+					'max_redirects' => isset($options['max_redirects']) ? intval($options['max_redirects']) : 5,
 				),
 				'ssl' => array(
 					'verify_peer' => $verify,
@@ -129,9 +137,13 @@ if (!class_exists('XiunoHttp', false)) {
 		private static function headers($headers) {
 			$list = array();
 			foreach((array)$headers as $key => $value) {
-				$list[] = is_int($key) ? $value : $key.': '.$value;
+				$list[] = is_int($key) ? self::headerLine($value) : self::headerLine($key).': '.self::headerLine($value);
 			}
 			return $list;
+		}
+
+		private static function headerLine($value) {
+			return str_replace(array("\r", "\n"), '', (string)$value);
 		}
 
 		private static function parseHeaders($rawHeaders) {
