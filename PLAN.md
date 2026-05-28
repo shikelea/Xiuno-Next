@@ -246,6 +246,7 @@
   - 2026-05-28 本地临时 smoke：矩阵中的 6 个 `likely_compatible` 样本均通过编译 smoke；`till_password_strength` 被缺失 Hook 拦截，`ax_comment` 被坏 `conf.json` 拦截，验证矩阵分类有效；临时样本 smoke 工具不纳入仓库。
   - 下一步进入阶段六前置：优先选择高使用率、低侵入修复的样本验证兼容层，不为单个插件写特例。
   - 已恢复低风险历史 Hook 契约：`user_resetpw_password_after.htm`、`index_page_end.htm`、`index_thread_list_nav_item_end.htm`、`header_nav_user_username_after.htm`、`my_common_avatar_after.htm`、`my_common_groupname_after.htm`、`my_nav_photo_after.htm` 与 `__my_nav_end.htm`，优先覆盖旧插件/主题真实引用且不改变核心页面结构的扩展点。
+  - 已完成剩余缺失 Hook 的边界分流：核心只恢复共享、被动、语义明确的旧扩展点；插件内部二级 Hook、主题私有布局槽、异常文件名和需审计执行时机的 PHP 级 Hook 不直接提升为核心契约。
   - 正式输出为插件/主题兼容矩阵；公开清单放到生态重建阶段。
 
 ### 阶段六：生态重建 (Ecosystem Phase)

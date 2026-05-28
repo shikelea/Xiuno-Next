@@ -39,4 +39,14 @@ Local temporary smoke on the six `likely_compatible` samples passed for `a8c5_ra
 
 The first shared hook-boundary fixes restored low-risk legacy anchors that match existing core page semantics: `user_resetpw_password_after.htm` on the reset-password form, `index_page_end.htm` after homepage pagination, `index_thread_list_nav_item_end.htm` after the homepage thread navigation items, `header_nav_user_username_after.htm` after the logged-in header username, `my_common_avatar_after.htm` after the account sidebar avatar, `my_common_groupname_after.htm` after the account profile group name, `my_nav_photo_after.htm` after the account avatar tab, and `__my_nav_end.htm` at the end of the account profile navigation. Package-private hooks found inside individual samples are not promoted to core unless a stable cross-package contract is identified.
 
+## Hook Boundary Review
+
+Remaining missing-hook signals are split before any core change:
+
+- Restore to core only when an old hook has a clear existing page position, is passive, and represents a shared extension contract.
+- Keep package-private nested hooks inside the package or future package patches. Examples include helper includes such as `index_page_end_fox_tags.php`, package-owned menu hooks, and post-processing helper hooks included by a package's own `.htm` hook.
+- Keep theme-private layout slots inside the theme API track. Large families such as `stately_*`, `widget_*`, legacy sidebars, and custom layout fragments are theme composition contracts, not default-core hook points.
+- Treat malformed hook filenames and assets found under `hook/` as package quality issues, not core compatibility gaps.
+- Review PHP-level runtime hooks separately because execution timing can affect data mutation, permissions, cache state, and security checks.
+
 This confirms the stage-six order: build the matrix first, improve shared compatibility layers second, and only then publish formal plugin/theme development manuals.
