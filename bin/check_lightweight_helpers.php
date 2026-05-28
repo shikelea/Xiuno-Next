@@ -56,6 +56,17 @@ if (!xn_zip_safe_name('safe/path.txt') || xn_zip_safe_name('../unsafe.txt') || x
 	$errors[] = 'xn_zip_safe_name did not enforce zip path safety';
 }
 
+$_REQUEST[1] = 'noop';
+include_once APP_PATH . 'admin/route/update.php';
+unset($_REQUEST[1]);
+$hash = str_repeat('a', 64);
+if (update_parse_sha256_text($hash . '  v4.4.5.zip', 'v4.4.5.zip', 'v4.4.5') !== $hash) {
+	$errors[] = 'update_parse_sha256_text did not parse targeted checksum lines';
+}
+if (update_parse_sha256_text(str_repeat('b', 64) . '  other.zip', 'v4.4.5.zip', 'v4.4.5') !== '') {
+	$errors[] = 'update_parse_sha256_text accepted checksum for another file';
+}
+
 @unlink($logfile);
 @rmdir(dirname($logfile));
 @rmdir($conf['log_path']);
