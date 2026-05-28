@@ -32,6 +32,7 @@
         "fix": "php-cs-fixer fix",
         "check": "php-cs-fixer fix --dry-run --diff",
         "docs:hooks": "php bin/generate_hook_docs.php",
+        "scan:ecosystem": "php bin/scan_ecosystem_samples.php",
         "check:version": "php bin/check_version.php"
     },
     "config": {
