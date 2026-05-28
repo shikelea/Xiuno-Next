@@ -11,14 +11,16 @@ Xiuno Next introduces HTMX as a progressive enhancement layer, not as a frontend
 
 `view/js/htmx-xiuno.js` is the local bridge. It attaches CSRF headers to non-GET HTMX requests and listens for the existing `showMessage` event emitted by `message()` through `HX-Trigger`.
 
-## First Scope
+## Current Scope
 
-The first pilot is homepage and forum pagination. Pagination links remain normal anchors, while HTMX-enabled browsers fetch the full page, select `#thread-list-region`, and swap only that region.
+The pilot covers read-only thread-list pagination. Pagination links remain normal anchors, while HTMX-enabled browsers fetch the full page, select `#thread-list-region`, and swap only that region.
 
 Covered templates:
 
 - `view/htm/index.htm`
 - `view/htm/forum.htm`
+- `view/htm/my_thread.htm`
+- `view/htm/user_thread.htm`
 
 Avoided for now:
 
