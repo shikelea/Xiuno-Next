@@ -145,6 +145,17 @@ if ($action == 'check') {
 		message(-1, lang('update_not_zip') . ' (' . htmlspecialchars($hint) . ')');
 	}
 
+	$zip_sha256 = hash('sha256', $zipdata);
+	$checksum_source = '';
+	$expected_sha256 = update_release_expected_sha256($latest, $tag_name, $download_url, $proxy, $checksum_source);
+	$checksum_verified = FALSE;
+	if ($expected_sha256 !== '') {
+		if (!hash_equals(strtolower($expected_sha256), strtolower($zip_sha256))) {
+			message(-1, lang('update_checksum_mismatch') . " (expected {$expected_sha256}, got {$zip_sha256})");
+		}
+		$checksum_verified = TRUE;
+	}
+
 	file_put_contents($zipfile, $zipdata);
 
 	// 检查 ZipArchive 扩展
@@ -208,8 +219,8 @@ if ($action == 'check') {
 	}
 	$result = update_copy_files($source_dir, $app_root, $protected);
 	$result['backed_up'] = $backup_result['backed_up'] + (is_file($backup_dir . 'conf/conf.php') ? 1 : 0);
-	$zip_sha256 = hash_file('sha256', $zipfile);
-	@file_put_contents(APP_PATH . 'log/update.log', date('Y-m-d H:i:s') . " updated to v{$latest_version}, copied={$result['copied']}, backed_up={$result['backed_up']}, zip_sha256={$zip_sha256}, backup={$backup_dir}\n", FILE_APPEND);
+	$checksum_log = $checksum_verified ? "checksum_verified=1, checksum_source={$checksum_source}" : 'checksum_verified=0';
+	@file_put_contents(APP_PATH . 'log/update.log', date('Y-m-d H:i:s') . " updated to v{$latest_version}, copied={$result['copied']}, backed_up={$result['backed_up']}, zip_sha256={$zip_sha256}, {$checksum_log}, backup={$backup_dir}\n", FILE_APPEND);
 
 	// 更新 conf.php 中的版本号
 	update_conf_version($latest_version);
@@ -226,6 +237,7 @@ if ($action == 'check') {
 	}
 
 	$msg = lang('update_success', array('version' => $latest_version));
+	$msg .= ' ' . ($checksum_verified ? lang('update_checksum_verified') : lang('update_checksum_unverified'));
 	if (!empty($proxy_fallback_used)) $msg .= ' ' . lang('update_proxy_fallback_used');
 	if (!empty($result['backed_up'])) $msg .= ' Backup: ' . str_replace(APP_PATH, '', $backup_dir);
 	message(0, $msg);
@@ -402,6 +414,75 @@ function update_github_download_binary($url, $timeout = 120, &$error = '') {
 	$s = @file_get_contents($url, false, $ctx);
 	if ($s === FALSE) $error = 'file_get_contents failed';
 	return $s !== FALSE ? $s : FALSE;
+}
+
+function update_release_expected_sha256($release, $tag_name, $download_url, $proxy = '', &$source = '') {
+	$zip_name = basename(parse_url($download_url, PHP_URL_PATH));
+	$body = isset($release['body']) ? $release['body'] : '';
+	$hash = update_parse_sha256_text($body, $zip_name, $tag_name);
+	if ($hash !== '') {
+		$source = 'release_body';
+		return $hash;
+	}
+
+	if (empty($release['assets']) || !is_array($release['assets'])) return '';
+	foreach ($release['assets'] as $asset) {
+		$name = isset($asset['name']) ? $asset['name'] : '';
+		$url = isset($asset['browser_download_url']) ? $asset['browser_download_url'] : '';
+		if ($name === '' || $url === '' || !update_checksum_asset_name($name)) continue;
+
+		$error = '';
+		$text = update_github_download_binary(update_proxied_url($url, $proxy), 30, $error);
+		if ($text === FALSE && !empty($proxy)) {
+			$text = update_github_download_binary($url, 30, $error);
+		}
+		if ($text === FALSE || strlen($text) > 102400) continue;
+		$hash = update_parse_sha256_text($text, $zip_name, $tag_name);
+		if ($hash !== '') {
+			$source = 'asset:' . $name;
+			return $hash;
+		}
+	}
+	return '';
+}
+
+function update_checksum_asset_name($name) {
+	$name = strtolower($name);
+	return $name === 'sha256sums'
+		|| $name === 'sha256sums.txt'
+		|| $name === 'checksums.txt'
+		|| substr($name, -7) === '.sha256'
+		|| substr($name, -11) === '.sha256.txt';
+}
+
+function update_parse_sha256_text($text, $zip_name = '', $tag_name = '') {
+	$text = trim((string)$text);
+	if ($text === '') return '';
+
+	$targets = array_filter(array(
+		$zip_name,
+		$tag_name ? $tag_name . '.zip' : '',
+		$tag_name ? 'v' . ltrim($tag_name, 'vV') . '.zip' : '',
+	));
+	$has_named_checksum = FALSE;
+	foreach (preg_split('/\r\n|\r|\n/', $text) as $line) {
+		$line = trim($line);
+		if ($line === '') continue;
+		if (preg_match('/^([a-f0-9]{64})(?:\s+\*?(.+))?$/i', $line, $m)) {
+			$file = isset($m[2]) ? trim($m[2]) : '';
+			if ($file !== '') $has_named_checksum = TRUE;
+			if ($file === '' || in_array(basename($file), $targets, TRUE)) {
+				return strtolower($m[1]);
+			}
+		}
+	}
+	if (preg_match('/(?:archive_sha256|zip_sha256)\s*[:=]\s*([a-f0-9]{64})/i', $text, $m)) {
+		return strtolower($m[1]);
+	}
+	if (!$has_named_checksum && preg_match_all('/\b[a-f0-9]{64}\b/i', $text, $m) && count($m[0]) === 1) {
+		return strtolower($m[0][0]);
+	}
+	return '';
 }
 
 /**

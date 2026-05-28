@@ -146,7 +146,7 @@
 | `index_thread_list_before.php` | `route/index.php` | 20 |
 | `lang_en_us_bbs.php` | `lang/en-us/bbs.php` | 307 |
 | `lang_en_us_bbs.php` | `lang/ru-ru/bbs.php` | 311 |
-| `lang_en_us_bbs_admin.php` | `lang/en-us/bbs_admin.php` | 236 |
+| `lang_en_us_bbs_admin.php` | `lang/en-us/bbs_admin.php` | 239 |
 | `lang_en_us_bbs_install.php` | `lang/en-us/bbs_install.php` | 61 |
 | `lang_en_us_bbs_install.php` | `lang/ru-ru/bbs_install.php` | 61 |
 | `lang_ru_ru_bbs_admin.php` | `lang/ru-ru/bbs_admin.php` | 198 |
@@ -154,7 +154,7 @@
 | `lang_th_th_bbs_admin.php` | `lang/th-th/bbs_admin.php` | 195 |
 | `lang_th_th_bbs_install.php` | `lang/th-th/bbs_install.php` | 61 |
 | `lang_zh_cn_bbs.php` | `lang/zh-cn/bbs.php` | 307 |
-| `lang_zh_cn_bbs_admin.php` | `lang/zh-cn/bbs_admin.php` | 238 |
+| `lang_zh_cn_bbs_admin.php` | `lang/zh-cn/bbs_admin.php` | 241 |
 | `lang_zh_cn_bbs_install.php` | `lang/zh-cn/bbs_install.php` | 60 |
 | `lang_zh_tw_bbs.php` | `lang/zh-tw/bbs.php` | 304 |
 | `lang_zh_tw_bbs_admin.php` | `lang/zh-tw/bbs_admin.php` | 196 |
