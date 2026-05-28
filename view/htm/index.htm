@@ -28,7 +28,7 @@
 
 			<!--{hook index_page_before.htm}-->
 			<?php if($pagination) { ?>
-			<nav hx-boost="true" hx-select="#thread-list-region" hx-target="#thread-list-region" hx-swap="outerHTML show:top" hx-push-url="true"><ul class="pagination my-4 justify-content-center flex-wrap"><?php echo $pagination; ?></ul></nav>
+			<nav<?php include _include(APP_PATH.'view/htm/htmx_thread_list_pagination_attrs.inc.htm');?>><ul class="pagination my-4 justify-content-center flex-wrap"><?php echo $pagination; ?></ul></nav>
 			<?php } ?>
 			<!--{hook index_page_after.htm}-->
 		</div>
