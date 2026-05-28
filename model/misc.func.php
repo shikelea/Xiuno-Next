@@ -118,7 +118,7 @@ function message($code, $message, $extra = array()) {
 		$hx_trigger_name = 'HX-Trigger';
 		// hook model_message_htmx_trigger.php
 		header($hx_trigger_name . ': ' . json_encode($trigger_data, JSON_UNESCAPED_UNICODE));
-		echo $msg_str;
+		http_response_code(204);
 		// hook model_message_htmx_after.php
 		exit;
 	}

@@ -198,6 +198,8 @@
     - [x] 首个低风险试点：首页与版块页分页使用 `hx-boost` + `hx-select` 局部替换帖子列表区域，保留普通链接降级能力。
     - [x] 第二批只读列表试点：我的帖子、用户帖子分页纳入同一 `#thread-list-region` 局部替换模式。
     - [x] 将线程列表分页 HTMX 属性集中到 `view/htm/htmx_thread_list_pagination_attrs.inc.htm`，避免后续模板复制漂移。
+    - [x] HTMX 安全收口：关闭响应脚本/eval 执行；`message()` 的 HTMX 分支改为 `HX-Trigger` + `204 No Content`，避免消息正文被误 swap 进 DOM。
+    - [x] CI 增加 `bin/check_htmx_security.php`，防止 HTMX 安全默认值和消息响应语义回退。
   - **CSS/JS 压缩**：编写 PHP 脚本实现静态资源合并压缩，**不引入 Node.js 工具链**。
   - **下一步**：观察帖子列表分页试点；通知列表当前核心暂无独立路由/模板，帖子详情页分页因快捷回复和媒体重排脚本暂缓，下一步优先梳理 HTMX swap 后的 JS 生命周期约定。
 - [ ] **API 持续开发**（阶段三完成了基础接口，此处扩展和完善）：

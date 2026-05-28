@@ -5,6 +5,11 @@
 (function() {
     'use strict';
 
+    if (window.htmx && window.htmx.config) {
+        window.htmx.config.allowEval = false;
+        window.htmx.config.allowScriptTags = false;
+    }
+
     function csrfToken() {
         if (window.csrf_token) return window.csrf_token;
         var meta = document.querySelector('meta[name="csrf-token"]');

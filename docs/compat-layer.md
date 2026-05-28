@@ -240,8 +240,8 @@ BS5 移除了 jQuery `.button()` 插件，但几乎所有旧插件都依赖它�
 
 ```
 请求头: HX-Request: true
+响应状态: 204 No Content
 响应头: HX-Trigger: {"showMessage":{"code":0,"type":"success","message":"操作成功"}}
-响应体: 操作成功
 ```
 
 **type 映射规则**:
