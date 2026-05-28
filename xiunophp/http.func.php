@@ -37,6 +37,9 @@ if (!class_exists('XiunoHttp', false)) {
 			if(!empty($query)) {
 				$url .= (strpos($url, '?') === FALSE ? '?' : '&').(is_array($query) ? http_build_query($query) : $query);
 			}
+			if(self::hasControlChars($url)) {
+				return self::response(0, '', '', 1, 'URL contains unsupported control characters');
+			}
 
 			if(function_exists('curl_init')) {
 				return self::requestCurl($method, $url, $options);
@@ -51,6 +54,7 @@ if (!class_exists('XiunoHttp', false)) {
 			$headers = self::headers(isset($options['headers']) ? $options['headers'] : array());
 			$body = isset($options['body']) ? $options['body'] : NULL;
 			$followRedirects = !empty($options['follow_redirects']);
+			$maxRedirects = self::intOption($options, 'max_redirects', 5, 0, 10);
 
 			$ch = curl_init();
 			curl_setopt($ch, CURLOPT_URL, $url);
@@ -61,9 +65,10 @@ if (!class_exists('XiunoHttp', false)) {
 			curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connectTimeout);
 			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verify);
 			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $verify ? 2 : 0);
-			curl_setopt($ch, CURLOPT_USERAGENT, isset($options['user_agent']) ? $options['user_agent'] : 'Xiuno-Next');
+			curl_setopt($ch, CURLOPT_USERAGENT, isset($options['user_agent']) ? self::headerLine($options['user_agent']) : 'Xiuno-Next');
+			self::setCurlProtocols($ch);
 			($followRedirects && empty(ini_get('open_basedir'))) AND curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
-			curl_setopt($ch, CURLOPT_MAXREDIRS, isset($options['max_redirects']) ? intval($options['max_redirects']) : 5);
+			curl_setopt($ch, CURLOPT_MAXREDIRS, $maxRedirects);
 
 			if(!empty($headers)) curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 			if($body !== NULL) curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
@@ -95,8 +100,8 @@ if (!class_exists('XiunoHttp', false)) {
 					'content' => $body === NULL ? '' : $body,
 					'timeout' => $timeout,
 					'ignore_errors' => TRUE,
-					'follow_location' => !empty($options['follow_redirects']) ? 1 : 0,
-					'max_redirects' => isset($options['max_redirects']) ? intval($options['max_redirects']) : 5,
+					'follow_location' => 0,
+					'max_redirects' => self::intOption($options, 'max_redirects', 5, 0, 10),
 				),
 				'ssl' => array(
 					'verify_peer' => $verify,
@@ -144,6 +149,28 @@ if (!class_exists('XiunoHttp', false)) {
 
 		private static function headerLine($value) {
 			return str_replace(array("\r", "\n"), '', (string)$value);
+		}
+
+		private static function hasControlChars($value) {
+			return preg_match('/[\x00-\x1F\x7F]/', (string)$value) === 1;
+		}
+
+		private static function intOption($options, $key, $default, $min, $max) {
+			$value = isset($options[$key]) ? intval($options[$key]) : $default;
+			return max($min, min($max, $value));
+		}
+
+		private static function setCurlProtocols($ch) {
+			if(defined('CURLOPT_PROTOCOLS_STR')) {
+				curl_setopt($ch, CURLOPT_PROTOCOLS_STR, 'http,https');
+			} elseif(defined('CURLOPT_PROTOCOLS') && defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+				curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+			}
+			if(defined('CURLOPT_REDIR_PROTOCOLS_STR')) {
+				curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS_STR, 'http,https');
+			} elseif(defined('CURLOPT_REDIR_PROTOCOLS') && defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+				curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+			}
 		}
 
 		private static function parseHeaders($rawHeaders) {

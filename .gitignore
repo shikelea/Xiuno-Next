@@ -2,6 +2,7 @@
 .idea/
 .vscode/
 *.log
+/vendor/
 tmp/*
 !tmp/.gitkeep
 log/*
