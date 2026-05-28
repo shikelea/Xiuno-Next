@@ -28,13 +28,7 @@ All generated files stay in `tmp/` and are intentionally ignored.
 
 The scanner and matrix builder tolerate malformed legacy UTF-8 by substituting invalid bytes while writing JSON. This keeps local reports machine-readable, but public compatibility lists still need manual package-name verification before publication.
 
-For local or server-side package checks, run:
-
-```powershell
-php bin/smoke_ecosystem_sample.php <sample_dir>
-```
-
-This command temporarily enables the selected ignored sample, compiles the core files touched by its hooks, lints generated PHP, then restores the sample `conf.json`. It intentionally fails when package metadata is invalid or when a package references hook points that no longer exist in the current core index.
+Local or server-side package smoke checks should stay outside the repository unless they become stable CI guards. Temporary sample tooling may enable ignored samples, compile the core files touched by their hooks, lint generated PHP, then restore sample `conf.json`; do not commit those local smoke scripts.
 
 ## Matrix Fields
 
@@ -59,6 +53,6 @@ This command temporarily enables the selected ignored sample, compiles the core 
 
 The 2026-05-28 scan covered 58 local samples, including 21 theme-like samples. It found 983 compatibility signals and 22 PHP lint errors. The normalized matrix currently classifies 10 samples as blocked by PHP lint, 15 as needing metadata repair, 5 as needing package patches, 7 as needing hook boundary review, 15 as needing core/theme validation, and 6 as likely compatible. Most findings fell into BS4 to BS5 compatibility and missing legacy hooks, followed by PHP 8 migration, theme boundary, CSRF/POST behavior, and malformed package metadata.
 
-Local smoke on the six `likely_compatible` samples passed for `a8c5_rank_member`, `cf_nored`, `rob_reply_hide`, `till_users_widget`, `till_widget_monthlyProgress`, and `wr_html2word`. Negative controls also behaved as expected: `till_password_strength` fails on missing hook points, while `ax_comment` fails on invalid `conf.json`.
+Local temporary smoke on the six `likely_compatible` samples passed for `a8c5_rank_member`, `cf_nored`, `rob_reply_hide`, `till_users_widget`, `till_widget_monthlyProgress`, and `wr_html2word`. Negative controls also behaved as expected: `till_password_strength` fails on missing hook points, while `ax_comment` fails on invalid `conf.json`.
 
 This confirms the stage-six order: build the matrix first, improve shared compatibility layers second, and only then publish formal plugin/theme development manuals.

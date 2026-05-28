@@ -14,3 +14,5 @@ REVIEW.md
 plugin/*
 !plugin/.gitkeep
 开发手册/
+bin/local_*.php
+bin/*_local.php

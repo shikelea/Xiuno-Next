@@ -241,10 +241,9 @@
   - 以本地 `plugin/` 目录中的社区插件和主题样本作为兼容样本库，但不纳入仓库。
   - 使用 `php bin/scan_ecosystem_samples.php` 生成本地 `tmp/ecosystem_scan.json`，作为内部兼容矩阵输入。
   - 使用 `php bin/build_ecosystem_matrix.php` 将扫描结果归一化为本地 `tmp/ecosystem_matrix.json` / `tmp/ecosystem_matrix.md`，字段覆盖状态、问题类型、最低 Xiuno Next 版本、workaround 和修复归属；生成物不纳入仓库。
-  - 使用 `php bin/smoke_ecosystem_sample.php <sample>` 对指定本地样本做可重复 smoke：临时启用样本、编译命中的核心 Hook 文件、lint 生成 PHP，并在结束后恢复样本 `conf.json`。
   - 2026-05-28 扫描结果：58 个样本（其中 21 个主题型样本），共 983 条兼容发现、22 个 PHP lint 错误；分类以 BS4→BS5（435）和缺失旧 Hook（372）为主，其次是 PHP 8（105）、主题覆盖（33）、CSRF/POST 行为（20）与元数据损坏（18）。
   - 按五类拆分问题：PHP 8 语法/运行时问题、BS4→BS5 前端兼容问题、缺失旧 Hook 契约问题、主题覆盖导致的结构性问题、`conf.json` 元数据损坏问题。
-  - 2026-05-28 本地 smoke：矩阵中的 6 个 `likely_compatible` 样本均通过编译 smoke；`till_password_strength` 被缺失 Hook 拦截，`ax_comment` 被坏 `conf.json` 拦截，验证矩阵分类有效。
+  - 2026-05-28 本地临时 smoke：矩阵中的 6 个 `likely_compatible` 样本均通过编译 smoke；`till_password_strength` 被缺失 Hook 拦截，`ax_comment` 被坏 `conf.json` 拦截，验证矩阵分类有效；临时样本 smoke 工具不纳入仓库。
   - 下一步进入阶段六前置：优先选择高使用率、低侵入修复的样本验证兼容层，不为单个插件写特例。
   - 正式输出为插件/主题兼容矩阵；公开清单放到生态重建阶段。
 
