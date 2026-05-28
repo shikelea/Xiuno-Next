@@ -11,6 +11,10 @@ function xiuno_strip_file($file) {
 	return trim($s);
 }
 
+function xiuno_normalize_lf($s) {
+	return str_replace(array("\r\n", "\r"), "\n", $s);
+}
+
 $files = array(
 	'db_mysql.class.php',
 	'db_pdo_mysql.class.php',
@@ -35,7 +39,7 @@ $files = array(
 
 $s = '';
 foreach($files as $file) {
-	$s .= xiuno_strip_file($dir.$file)."\r\n";
+	$s .= xiuno_strip_file($dir.$file)."\n";
 }
 
 $xiunophp = file_get_contents($dir.'xiunophp.php');
@@ -43,7 +47,8 @@ $before = '// hook xiunophp_include_before.php';
 $after = '// hook xiunophp_include_after.php';
 $pre = substr($xiunophp, 0, strpos($xiunophp, $before) + 1 + strlen($before));
 $suffix = substr($xiunophp, strpos($xiunophp, $after));
-$xiunophp_min = trim($pre)."\r\n\r\n".trim($s)."\r\n\r\n".trim($suffix);
+$xiunophp_min = trim($pre)."\n\n".trim($s)."\n\n".trim($suffix);
+$xiunophp_min = xiuno_normalize_lf($xiunophp_min);
 
 //echo $xiunophp_min;exit;
 /*

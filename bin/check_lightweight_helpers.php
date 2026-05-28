@@ -31,6 +31,16 @@ foreach (array('ok', 'code', 'headers', 'body', 'json', 'errno', 'errstr') as $k
 	}
 }
 
+$blocked = XiunoHttp::get('file:///etc/passwd');
+if ($blocked['ok'] || strpos($blocked['errstr'], 'Only http and https') === FALSE) {
+	$errors[] = 'XiunoHttp did not reject unsupported URL scheme';
+}
+
+$blocked = XiunoHttp::get("https://example.com/\r\nX-Test: 1");
+if ($blocked['ok'] || strpos($blocked['errstr'], 'control characters') === FALSE) {
+	$errors[] = 'XiunoHttp did not reject URL control characters';
+}
+
 @unlink($logfile);
 @rmdir(dirname($logfile));
 @rmdir($conf['log_path']);
