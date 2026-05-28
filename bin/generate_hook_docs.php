@@ -51,6 +51,15 @@ foreach ($iterator as $file) {
                 );
             }
         }
+        if (preg_match_all('/<!--\{hook\s+([A-Za-z0-9_.-]+)\}-->/', $line, $matches)) {
+            foreach ($matches[1] as $hookName) {
+                $hooks[] = array(
+                    'hook' => $hookName,
+                    'file' => $relative,
+                    'line' => $lineNumber + 1,
+                );
+            }
+        }
     }
 }
 
