@@ -11,6 +11,7 @@ $conf = include APP_PATH . 'conf/conf.default.php';
 $conf['log_path'] = APP_PATH . 'tmp/helper_smoke/';
 
 include APP_PATH . 'xiunophp/xiunophp.php';
+include_once APP_PATH . 'xiunophp/xn_zip.func.php';
 
 $errors = array();
 
@@ -39,6 +40,20 @@ if ($blocked['ok'] || strpos($blocked['errstr'], 'Only http and https') === FALS
 $blocked = XiunoHttp::get("https://example.com/\r\nX-Test: 1");
 if ($blocked['ok'] || strpos($blocked['errstr'], 'control characters') === FALSE) {
 	$errors[] = 'XiunoHttp did not reject URL control characters';
+}
+
+if (http_get('file:///etc/passwd') !== FALSE) {
+	$errors[] = 'legacy http_get did not reject unsupported URL scheme';
+}
+
+$_REQUEST['helper_smoke_b64'] = base64_encode('xiuno');
+if (param_base64('helper_smoke_b64') !== 'xiuno') {
+	$errors[] = 'param_base64 did not decode raw base64 safely';
+}
+unset($_REQUEST['helper_smoke_b64']);
+
+if (!xn_zip_safe_name('safe/path.txt') || xn_zip_safe_name('../unsafe.txt') || xn_zip_safe_name('/unsafe.txt')) {
+	$errors[] = 'xn_zip_safe_name did not enforce zip path safety';
 }
 
 @unlink($logfile);
