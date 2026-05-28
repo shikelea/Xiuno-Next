@@ -10,6 +10,12 @@ Run the audit from the repository root:
 php bin/scan_frontend_assets.php
 ```
 
+To include local plugin/theme samples that are intentionally not tracked:
+
+```powershell
+php bin/scan_frontend_assets.php --samples=plugin
+```
+
 The script scans tracked assets under `view/css`, `view/js`, `view/img`, `view/font`, and `admin/view/css`, then writes a local report to `tmp/frontend_assets_scan.json`. The report is intentionally ignored by git.
 
 Asset status:
@@ -27,11 +33,11 @@ Removed in this pass:
 - `view/img/water-small-xiuno.psd`: source design file, not a runtime asset.
 - `view/font/FontAwesome.otf`: not referenced by the shipped FontAwesome stylesheet.
 - `view/font/fontawesome-webfont.woff2`: redundant because the shipped FontAwesome stylesheet embeds WOFF2 as a data URI.
+- `view/js/vue.js`: no core reference and no local plugin/theme sample reference in the current sample library.
+- `view/js/popper-utils.js`: no core reference and no local plugin/theme sample reference; `popper.js` remains as the legacy global.
 
 Retained for now:
 
-- `view/js/vue.js`: unused by core, but kept until local plugin/theme samples confirm there is no ecosystem dependency on the bundled Vue 2 file.
-- `view/js/popper-utils.js`: unused by core, but related to the legacy Popper 1 global. Keep until plugin/theme audit proves it is safe to remove.
 - `view/js/popper.js`: redundant for Bootstrap 5 bundle internals, but still useful as a compatibility global for older plugins.
 - `view/js/upload.js`, `view/img/filetype.png`: legacy upload/attachment helpers, kept until attachment plugin samples are audited.
 - `view/img/water-small-xiuno.png`: alternate watermark asset, kept until branding assets are normalized.
