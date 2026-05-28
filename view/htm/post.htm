@@ -138,7 +138,10 @@ $('#addattach').on('change', function(e) {
 	
 	// 并发下会 服务端 session 写入会有问题，由客户端控制改为串行
 	if (!jattachparent.find('.attachlist').length) {
-		jattachparent.append('<fieldset class="fieldset"><legend><?php echo lang('uploaded_attach');?></legend><ul class="attachlist"><ul></fieldset>');
+		var juploaded = $('<fieldset>').addClass('fieldset');
+		$('<legend>').text(<?php echo xn_json_encode(lang('uploaded_attach'));?>).appendTo(juploaded);
+		$('<ul>').addClass('attachlist').appendTo(juploaded);
+		jattachparent.append(juploaded);
 	}
 	
 	var jprogress = jattachparent.find('.progress');
@@ -153,9 +156,22 @@ $('#addattach').on('change', function(e) {
 			if (code != 0) return $.alert(message);
 			// 把文件 append 到附件列表
 			var url = message.url;
-			var filetype = message.filetype;
-			var aid = message.aid;
-			$('.attachlist').append('<li aid="' + aid + '"><a href="' + message.url + '" target="_blank"><i class="icon filetype ' + filetype + '"></i> ' + message.orgfilename + '</a> <a href="javascript:void(0);" class="delete ms-2"><i class="icon-remove"></i> <?php echo lang('delete');?></a></li>');
+			var filetype = String(message.filetype || '').replace(/[^\w-]/g, '');
+			var aid = String(message.aid || '');
+			var orgfilename = String(message.orgfilename || '');
+			var jli = $('<li>').attr('aid', aid);
+			var jfile = $('<a>').attr({
+				href: url,
+				target: '_blank',
+				rel: 'noopener noreferrer'
+			});
+			$('<i>').addClass('icon filetype').addClass(filetype).attr('aria-hidden', 'true').appendTo(jfile);
+			jfile.append(document.createTextNode(' ' + orgfilename));
+			var jdelete = $('<a>').attr('href', '#').addClass('delete ms-2');
+			$('<i>').addClass('icon-remove').attr('aria-hidden', 'true').appendTo(jdelete);
+			jdelete.append(document.createTextNode(' ' + <?php echo xn_json_encode(lang('delete'));?>));
+			jli.append(jfile, ' ', jdelete);
+			$('.attachlist').append(jli);
 			callback();
 			jprogress.hide();
 		}, function(percent) {
