@@ -186,8 +186,8 @@
 - [ ] **前端精简**（减法而非加法）：
   - [x] **前端资源审计脚本**：新增 `php bin/scan_frontend_assets.php`，扫描核心前端资产引用关系并输出本地 `tmp/frontend_assets_scan.json`，删除资源前先看报告，避免误伤兼容层。
   - [x] **历史资源清理（第一轮）**：移除 IE 专用 `es6-shim.js` 加载与文件、未加载且注释化的 `bootstrap-umeditor.css`、非运行时 PSD 源图，以及未被 FontAwesome CSS 引用的冗余字体文件。
-  - [x] **本地生态样本验证**：`scan_frontend_assets.php` 支持 `--samples=plugin`，当前 58 个本地插件/主题样本未发现 `vue.js` 与 `popper-utils.js` 引用，已删除这两个未加载资产。
-  - [x] **前端资产边界文档**：新增 `docs/frontend-assets.md`，记录扫描方式、删除规则和暂留的兼容候选（如 `upload.js`、`filetype.png`）。
+  - [x] **本地生态样本验证**：`scan_frontend_assets.php` 支持 `--samples=plugin`，当前 58 个本地插件/主题样本未发现 `vue.js`、`popper-utils.js`、`upload.js`、`filetype.png` 和 `water-small-xiuno.png` 引用，已删除这些未加载资产。
+  - [x] **前端资产边界文档**：新增 `docs/frontend-assets.md`，记录扫描方式、删除规则和暂留的兼容资产。
   - **保留 jQuery**：作为底层依赖，确保现有插件可用。
   - **逐步用原生 JS 替代 jQuery**：新功能优先使用 `fetch()`、`querySelector()` 等现代 API。
   - **引入 HTMX 作为渐进增强层**（社区已验证可行：Aether 主题成功实现无刷新跳转、局部更新）：
@@ -195,7 +195,7 @@
     - 通过 HTML 属性（`hx-get`、`hx-swap`）实现类 SPA 体验，无需写 JS。
     - 与 Xiuno 的服务端渲染架构天然契合，不引入前端框架。
   - **CSS/JS 压缩**：编写 PHP 脚本实现静态资源合并压缩，**不引入 Node.js 工具链**。
-  - **下一步**：继续用本地插件/主题样本验证 `upload.js`、`filetype.png` 等附件相关候选；确认附件生态边界后，再进入 HTMX 小范围试点。
+  - **下一步**：前端资产清理进入观察期；下一段优先选择一个低风险页面做 HTMX 小范围试点。
 - [ ] **API 持续开发**（阶段三完成了基础接口，此处扩展和完善）：
   - [x] API 路由最小 smoke test：覆盖默认入口、缺失 action 和非法 action，防止路径拼接边界回退。
   - 扩展 API 覆盖面：用户资料修改、版块管理、附件上传、搜索、通知等。
@@ -276,7 +276,7 @@
 3. **自动化测试最小闭环**：已建立核心 `php -l`、版本一致性、轻量 Helper smoke test、API 路由 smoke test、Hook 文档生成检查、`xiunophp.min.php` 生成一致性检查、CLI 命令加载检查、插件脚手架 smoke test、迁移/升级命令检查模式和 MySQL 8 安装表结构 smoke test；生成包已固定 LF 输出以保证跨平台一致；下一步逐步覆盖在线更新流程和真实插件/主题样本。
 4. **依赖与 PHP 版本矩阵**：以 PHP 8.0+ 为最低运行线，Docker 默认 PHP 8.2，CI 覆盖 8.0/8.2/8.3/8.4/8.5，并在 CI 中执行 Composer validate/install；Dependabot 仅用于每周检查 Composer 与 GitHub Actions 更新，Composer 主版本升级默认忽略并改由人工评估，依赖升级优先保证旧插件兼容。后续需要决定是否提交 `composer.lock` 来固定应用依赖。
 5. **社区资料边界**：`开发手册/` 保留为本地参考且不进仓库；Xiuno Next 差异说明迁移到 `docs/`，避免在参考资料目录里继续工作。
-6. **前端精简审计**：持续使用 `php bin/scan_frontend_assets.php --samples=plugin` 检查核心资产与本地插件/主题样本引用；下一步验证 `upload.js`、`filetype.png` 等附件相关候选，再决定是否继续删除或转入 HTMX 小试点。
+6. **前端精简审计**：持续使用 `php bin/scan_frontend_assets.php --samples=plugin` 检查核心资产与本地插件/主题样本引用；当前扫描已无疑似无用资产，下一步进入 HTMX 小试点前仍需保持该检查。
 7. **生态样本兼容审计**：使用本地插件/主题样本库做内部扫描，先形成问题分类和兼容矩阵，不急于发布正式开发文档。
 8. **原生插件与主题预览规范**：先维护状态说明和 Hook 索引，再补 `plugin.json` 草案、主题 API 草案、CLI 原生模板和插件/主题 smoke test。
 9. **数据库层长期治理**：短期继续收敛直接 SQL 拼接点，长期把高风险写路径迁移到兼容旧插件的预处理语句层；在迁移完成前，不宣称 SQL 注入问题已被彻底解决。
