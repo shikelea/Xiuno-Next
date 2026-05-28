@@ -45,6 +45,8 @@ jobs:
           php bin/xiuno help make:plugin
           php bin/xiuno help migrate
           php bin/xiuno help upgrade
+          php bin/xiuno migrate --check
+          php bin/xiuno upgrade --check
 
       - name: Smoke test plugin scaffold
         shell: bash
