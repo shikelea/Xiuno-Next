@@ -107,9 +107,19 @@ isset($blocked['ok']) && fail('Satisfied dependency must not block install/enabl
 plugin_dependency_status_text($blocked['old']) !== '' || fail('Dependency status text must describe structured dependency details.');
 
 $dependency_guard = section_between($plugin_route, 'function plugin_check_dependency', 'function plugin_reload_local');
+strpos($dependency_guard, '$check_self_metadata = TRUE') !== FALSE
+	|| fail('Plugin dependency checks must keep self metadata validation enabled by default.');
 strpos($dependency_guard, "!empty(\$plugins[\$dir]['metadata_error'])") !== FALSE
 	|| fail('Plugin install/upgrade dependency checks must reject target plugin metadata errors.');
+strpos($dependency_guard, '$check_self_metadata && !empty') !== FALSE
+	|| fail('Self metadata validation must be explicitly controllable for upgrade repair preflights.');
 strpos($dependency_guard, "'conf.json '.lang('format_maybe_error')") !== FALSE
 	|| fail('Target plugin metadata errors must report a conf.json format error.');
+
+$upgrade_flow = section_between($plugin_route, "} elseif(\$action == 'upgrade')", "} elseif(\$action == 'setting')");
+strpos($upgrade_flow, "plugin_check_dependency(\$dir, 'install', NULL, NULL, FALSE);") !== FALSE
+	|| fail('Upgrade preflight must allow the new package to repair old target metadata errors.');
+strpos($upgrade_flow, "plugin_check_dependency(\$dir, 'install', \$plugin_snapshot, \$package_snapshot);") !== FALSE
+	|| fail('Upgrade must re-check dependencies and target metadata after loading the replacement package.');
 
 echo "OK: plugin dependency status checks passed\n";

@@ -297,8 +297,7 @@ if($action == 'local') {
 	//plugin_check_dir_is_writable();
 	
 	// 插件依赖检查
-	plugin_check_dependency($dir, 'install');
-	plugin_check_dependency($dir, 'install');
+	plugin_check_dependency($dir, 'install', NULL, NULL, FALSE);
 	$official = plugin_read_by_dir($dir, FALSE);
 	
 	// 检查版本  / check version match
@@ -361,11 +360,11 @@ function plugin_check_dir_is_writable() {
 	!empty($dirarr) AND message(-1, $msg);
 }*/
 
-function plugin_check_dependency($dir, $action = 'install', $snapshot = NULL, $package_snapshot = NULL) {
+function plugin_check_dependency($dir, $action = 'install', $snapshot = NULL, $package_snapshot = NULL, $check_self_metadata = TRUE) {
 	global $plugins;
 	$name = $plugins[$dir]['name'];
 	if($action == 'install') {
-		if(!empty($plugins[$dir]['metadata_error'])) {
+		if($check_self_metadata && !empty($plugins[$dir]['metadata_error'])) {
 			if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
 			if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
 			plugin_message(-1, 'conf.json '.lang('format_maybe_error'));
