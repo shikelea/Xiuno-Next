@@ -109,15 +109,13 @@ function plugin_init() {
 	);
 */
 function plugin_dependencies($dir) {
-	global $plugin_srcfiles, $plugin_paths, $plugins;
-	$plugin = $plugins[$dir];
-	$dependencies = $plugin['dependencies'];
+	$details = plugin_dependency_details($dir);
 	
 	// 检查插件依赖关系
 	$arr = array();
-	foreach($dependencies as $_dir=>$version) {
-		if(!isset($plugins[$_dir]) || !$plugins[$_dir]['enable']) {
-			$arr[$_dir] = $version;
+	foreach($details as $_dir=>$detail) {
+		if($detail['status'] != 'ok') {
+			$arr[$_dir] = $detail;
 		}
 	}
 	return $arr;
@@ -130,12 +128,91 @@ function plugin_dependencies($dir) {
 		'xn_umeditor'=>'1.0',
 	);
 */
+function plugin_dependency_details($dir) {
+	global $plugins;
+	if(!isset($plugins[$dir])) return array();
+
+	$plugin = $plugins[$dir];
+	if(!isset($plugin['dependencies']) || !is_array($plugin['dependencies'])) return array();
+
+	$arr = array();
+	foreach($plugin['dependencies'] as $_dir=>$version) {
+		$detail = array(
+			'dir'=>$_dir,
+			'name'=>$_dir,
+			'required_version'=>(string)$version,
+			'current_version'=>'',
+			'status'=>'ok',
+			'cycle_path'=>array(),
+		);
+
+		if(!isset($plugins[$_dir])) {
+			$detail['status'] = 'not_downloaded';
+		} else {
+			$dep = $plugins[$_dir];
+			$detail['name'] = isset($dep['name']) && $dep['name'] !== '' ? $dep['name'] : $_dir;
+			$detail['current_version'] = isset($dep['version']) ? (string)$dep['version'] : '';
+			if(!empty($dep['metadata_error']) || (isset($dep['dependencies']) && !is_array($dep['dependencies']))) {
+				$detail['status'] = 'metadata_error';
+			} elseif(empty($dep['installed'])) {
+				$detail['status'] = 'downloaded_not_installed';
+			} elseif(empty($dep['enable'])) {
+				$detail['status'] = 'installed_disabled';
+			} elseif($version !== '' && $detail['current_version'] !== '' && version_compare($detail['current_version'], (string)$version) < 0) {
+				$detail['status'] = 'version_low';
+			} else {
+				$cycle_path = plugin_dependency_cycle_path($_dir, $dir);
+				if(!empty($cycle_path)) {
+					$detail['status'] = 'cycle';
+					$detail['cycle_path'] = $cycle_path;
+				}
+			}
+		}
+		$arr[$_dir] = $detail;
+	}
+	return $arr;
+}
+
+function plugin_dependency_cycle_path($current, $target, $visited = array()) {
+	global $plugins;
+	if(!isset($plugins[$current])) return array();
+	if(isset($visited[$current])) return array();
+	$visited[$current] = TRUE;
+
+	$dependencies = isset($plugins[$current]['dependencies']) && is_array($plugins[$current]['dependencies']) ? $plugins[$current]['dependencies'] : array();
+	foreach($dependencies as $next=>$version) {
+		if($next == $target) return array($current, $target);
+		$path = plugin_dependency_cycle_path($next, $target, $visited);
+		if(!empty($path)) {
+			array_unshift($path, $current);
+			return $path;
+		}
+	}
+	return array();
+}
+
+function plugin_dependency_status_text($detail) {
+	if(!is_array($detail)) return '';
+	$status = isset($detail['status']) ? $detail['status'] : '';
+	$required = isset($detail['required_version']) ? $detail['required_version'] : '';
+	$current = isset($detail['current_version']) ? $detail['current_version'] : '';
+	$map = array(
+		'not_downloaded'=>'not downloaded',
+		'downloaded_not_installed'=>'downloaded, not installed',
+		'installed_disabled'=>'installed, disabled',
+		'version_low'=>'version too low' . ($required !== '' ? " ({$current} < {$required})" : ''),
+		'metadata_error'=>'metadata error',
+		'cycle'=>'dependency cycle',
+	);
+	return isset($map[$status]) ? $map[$status] : $status;
+}
+
 function plugin_by_dependencies($dir) {
 	global $plugins;
 	
 	$arr = array();
 	foreach($plugins as $_dir=>$plugin) {
-		if(isset($plugin['dependencies'][$dir]) && $plugin['enable']) {
+		if(isset($plugin['dependencies']) && is_array($plugin['dependencies']) && isset($plugin['dependencies'][$dir]) && $plugin['enable']) {
 			$arr[$_dir] = $plugin['version'];
 		}
 	}
@@ -449,6 +526,16 @@ function plugin_read_by_dir($dir, $local_first = TRUE) {
 	!isset($local['hooks']) && $local['hooks'] = array();
 	!isset($local['hooks_rank']) && $local['hooks_rank'] = array();
 	!isset($local['dependencies']) && $local['dependencies'] = array();
+	!isset($local['metadata_error']) && $local['metadata_error'] = 0;
+	if(!is_array($local['dependencies'])) {
+		$local['dependencies'] = array();
+		$local['metadata_error'] = 1;
+	}
+	$local['installed'] = empty($local['installed']) ? 0 : 1;
+	$local['enable'] = empty($local['enable']) ? 0 : 1;
+	if(!$local['installed'] && $local['enable']) {
+		$local['metadata_error'] = 1;
+	}
 	!isset($local['icon_url']) && $local['icon_url'] = '';
 	!isset($local['have_setting']) && $local['have_setting'] = 0;
 	!isset($local['setting_url']) && $local['setting_url'] = 0;
