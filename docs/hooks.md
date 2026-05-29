@@ -357,7 +357,7 @@
 | `mod_top_start.php` | `route/mod.php` | 27 |
 | `model__thread_find_by_fid_end.php` | `model/thread.func.php` | 251 |
 | `model__thread_find_by_fid_start.php` | `model/thread.func.php` | 226 |
-| `model_api_output_start.php` | `model/misc.func.php` | 314 |
+| `model_api_output_start.php` | `model/misc.func.php` | 317 |
 | `model_attach__create_end.php` | `model/attach.func.php` | 10 |
 | `model_attach__create_start.php` | `model/attach.func.php` | 8 |
 | `model_attach__delete_end.php` | `model/attach.func.php` | 31 |
@@ -526,7 +526,7 @@
 | `model_message_htmx_before.php` | `model/misc.func.php` | 116 |
 | `model_message_htmx_trigger.php` | `model/misc.func.php` | 119 |
 | `model_message_start.php` | `model/misc.func.php` | 104 |
-| `model_misc_end.php` | `model/misc.func.php` | 489 |
+| `model_misc_end.php` | `model/misc.func.php` | 492 |
 | `model_misc_start.php` | `model/misc.func.php` | 3 |
 | `model_modlog__create_end.php` | `model/modlog.func.php` | 10 |
 | `model_modlog__create_start.php` | `model/modlog.func.php` | 8 |
@@ -790,10 +790,10 @@
 | `model_user_update_group_policy_start.php` | `model/user.func.php` | 241 |
 | `model_user_update_group_start.php` | `model/user.func.php` | 235 |
 | `model_user_update_start.php` | `model/user.func.php` | 55 |
-| `model_xn_html_safe_end.php` | `model/misc.func.php` | 298 |
-| `model_xn_html_safe_new_before.php` | `model/misc.func.php` | 292 |
-| `model_xn_html_safe_parse_before.php` | `model/misc.func.php` | 295 |
-| `model_xn_html_safe_start.php` | `model/misc.func.php` | 179 |
+| `model_xn_html_safe_end.php` | `model/misc.func.php` | 301 |
+| `model_xn_html_safe_new_before.php` | `model/misc.func.php` | 295 |
+| `model_xn_html_safe_parse_before.php` | `model/misc.func.php` | 298 |
+| `model_xn_html_safe_start.php` | `model/misc.func.php` | 182 |
 | `my_action_before.php` | `route/my.php` | 19 |
 | `my_avatar_get_start.php` | `route/my.php` | 89 |
 | `my_avatar_post_end.php` | `route/my.php` | 117 |

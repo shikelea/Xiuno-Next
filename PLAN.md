@@ -268,6 +268,7 @@
   - 制定标准化的 `plugin.json` 元数据规范。
   - 建立官方插件索引源 (Registry)，支持 CLI 安装 (`php xiuno plugin:install`)。
   - 原生插件分阶段开放：当前支持 `conf.json` 传统兼容插件；v4.5.x 固定 `plugin.json` 预览规范；v5.0 形成稳定插件市场闭环。
+  - 插件后台写操作先完成任务安全治理：共享全局插件任务锁、依赖失败不残留锁、长任务不误释放、安装/启用/禁用/卸载/升级逐步改为 POST+CSRF，并让依赖提示区分“未安装”“已安装未启用”“版本不足”。
 - [ ] **插件与主题兼容矩阵**：
   - 维护一份官方《插件与主题兼容矩阵》，标注每个主流插件/主题在 Xiuno Next 下的兼容状态、最低版本、问题类型和修复建议；内部字段契约见 `docs/ecosystem-compatibility.md`。
   - 兼容矩阵的优先级高于新功能生态扩张：先确认旧生态能活，再邀请开发者写新生态。
@@ -307,7 +308,7 @@
 
 1. **阶段五收尾冻结**：保留 CSS/JS 压缩、帖子详情页只读 HTMX 评估、在线更新 smoke test 和发布包签名为收尾项；不再把它们作为阶段五主线阻塞项。
 2. **在线更新安全加固**：保持 TLS 证书校验开启，已补充 ZIP 路径安全检查、覆盖前备份、最近备份回滚和发布包 SHA-256 元数据校验；下一步补发布包签名，并逐步要求更新/插件包处理路径使用 ZipArchive。
-3. **自动化测试最小闭环**：已建立核心 `php -l`、版本一致性、轻量 Helper smoke test、API 路由 smoke test、前端/HTMX 安全守卫、Hook 文档生成检查、`xiunophp.min.php` 生成一致性检查、CLI 命令加载检查、插件脚手架 smoke test、迁移/升级命令检查模式和 MySQL 8 安装表结构 smoke test；生成包已固定 LF 输出以保证跨平台一致；下一步逐步覆盖在线更新流程和真实插件/主题样本。
+3. **自动化测试最小闭环**：已建立核心 `php -l`、版本一致性、轻量 Helper smoke test、API 路由 smoke test、前端/HTMX 安全守卫、插件任务锁安全 smoke test、Hook 文档生成检查、`xiunophp.min.php` 生成一致性检查、CLI 命令加载检查、插件脚手架 smoke test、迁移/升级命令检查模式和 MySQL 8 安装表结构 smoke test；生成包已固定 LF 输出以保证跨平台一致；下一步逐步覆盖在线更新流程和真实插件/主题样本。
 4. **依赖与 PHP 版本矩阵**：以 PHP 8.0+ 为最低运行线，Docker 默认 PHP 8.2，CI 覆盖 8.0/8.2/8.3/8.4/8.5，并在 CI 中执行 Composer validate/install；Dependabot 仅用于每周检查 Composer 与 GitHub Actions 更新，Composer 主版本升级默认忽略并改由人工评估，依赖升级优先保证旧插件兼容。后续需要决定是否提交 `composer.lock` 来固定应用依赖。
 5. **社区资料边界**：`开发手册/` 保留为本地参考且不进仓库；Xiuno Next 差异说明迁移到 `docs/`，避免在参考资料目录里继续工作。
 6. **前端精简审计**：持续使用 `php bin/scan_frontend_assets.php --samples=plugin` 检查核心资产与本地插件/主题样本引用；当前扫描已无疑似无用资产，后续只在删除或替换资源前运行。

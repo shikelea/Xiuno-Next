@@ -158,8 +158,11 @@ function xn_lock_start($lockname = '', $life = 10) {
 		}
 	}
 	
-	$r = file_put_contents($lockfile, $time, LOCK_EX);
-	return $r;
+	$fp = @fopen($lockfile, 'x');
+	if(!$fp) return FALSE;
+	fwrite($fp, (string)$time);
+	fclose($fp);
+	return TRUE;
 }
 
 // 删除锁
