@@ -418,27 +418,117 @@ function plugin_download_unzip($dir) {
 	//$arr['code'] != 0 AND message(-1, '服务端返回数据错误：'.$arr['message']);
 	
 	$zipfile = $conf['tmp_path'].'plugin_'.$dir.'.zip';
-	$destpath = APP_PATH."plugin/";
-	file_put_contents($zipfile, $s);
-	
-	// 清理原来的钩子，防止叠加。
-	rmdir_recusive(APP_PATH."plugin/$dir/hook/", 1);
-	rmdir_recusive(APP_PATH."plugin/$dir/overwrite/", 1);
-	
-	// 直接覆盖原来的 plugin 目录下的插件目录
-	xn_unzip($zipfile, $destpath);
-	//echo $zipfile; echo $destpath;exit;
-	//list($destpath, $wrapdir) = xn_zip_unwrap_path($destpath.$dir, $dir);
-	//empty($files) AND message(-1, lang('zip_data_error'));
-	//unlink($zipfile);
-	
-	// 检查配置文件
-	$conffile = "../plugin/$dir/conf.json";
-	!is_file($conffile) AND plugin_message(-1, 'conf.json '.lang('not_exists'));
+	if(file_put_contents($zipfile, $s) !== strlen($s)) {
+		plugin_message(-1, lang('plugin_maybe_download_failed')." plugin/$dir");
+	}
+	if(!class_exists('ZipArchive')) {
+		@unlink($zipfile);
+		plugin_message(-1, 'ZipArchive does not exists!');
+	}
+
+	$extract_dir = $conf['tmp_path'].'plugin_extract_'.$dir.'/';
+	if(is_dir($extract_dir)) {
+		rmdir_recusive($extract_dir, 1);
+	}
+	xn_mkdir($extract_dir);
+
+	$zip = new ZipArchive;
+	$open_result = $zip->open($zipfile);
+	if($open_result !== TRUE) {
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		plugin_message(-1, lang('zip_data_error').' (ZipArchive error: '.$open_result.')');
+	}
+	$zip_error = '';
+	if(!plugin_zip_validate_package($zip, $dir, $zip_error)) {
+		$zip->close();
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		plugin_message(-1, lang('zip_data_error').' ('.htmlspecialchars($zip_error).')');
+	}
+	if(!$zip->extractTo($extract_dir)) {
+		$zip->close();
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		plugin_message(-1, lang('zip_data_error'));
+	}
+	$zip->close();
+
+	$source_dir = $extract_dir.$dir.'/';
+	$conffile = $source_dir.'conf.json';
+	if(!is_dir($source_dir) || !is_file($conffile)) {
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		plugin_message(-1, 'conf.json '.lang('not_exists'));
+	}
 	$arr = xn_json_decode(file_get_contents($conffile));
-	empty($arr['name']) AND plugin_message(-1, 'conf.json '.lang('format_maybe_error'));
-	
-	!is_dir("../plugin/$dir") AND plugin_message(-1, lang('plugin_maybe_download_failed')." plugin/$dir");
+	if(empty($arr['name'])) {
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		plugin_message(-1, 'conf.json '.lang('format_maybe_error'));
+	}
+
+	$dest_dir = APP_PATH."plugin/$dir/";
+	rmdir_recusive($dest_dir.'hook/', 1);
+	rmdir_recusive($dest_dir.'overwrite/', 1);
+	$copy_error = '';
+	if(!plugin_copy_dir($source_dir, $dest_dir, $copy_error)) {
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		plugin_message(-1, lang('plugin_maybe_download_failed')." plugin/$dir (".htmlspecialchars($copy_error).')');
+	}
+	@unlink($zipfile);
+	rmdir_recusive($extract_dir, 1);
+	!is_dir($dest_dir) AND plugin_message(-1, lang('plugin_maybe_download_failed')." plugin/$dir");
+}
+
+function plugin_zip_validate_package($zip, $dir, &$error = '') {
+	for($i = 0; $i < $zip->numFiles; $i++) {
+		$name = str_replace('\\', '/', $zip->getNameIndex($i));
+		if(!xn_zip_safe_name($name)) {
+			$error = 'Unsafe path in zip: '.$name;
+			return FALSE;
+		}
+		$name = ltrim($name, './');
+		if($name === '') continue;
+		if(strpos($name, $dir.'/') !== 0 && $name !== $dir) {
+			$error = 'Unexpected plugin directory in zip: '.$name;
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+function plugin_copy_dir($src, $dst, &$error = '') {
+	$src = rtrim(str_replace('\\', '/', $src), '/').'/';
+	$dst = rtrim(str_replace('\\', '/', $dst), '/').'/';
+	if(!is_dir($src)) {
+		$error = 'Source directory missing: '.$src;
+		return FALSE;
+	}
+	if(!plugin_mkdir_recursive($dst)) {
+		$error = 'Cannot create directory: '.$dst;
+		return FALSE;
+	}
+	$items = glob($src.'*');
+	if(empty($items)) return TRUE;
+	foreach($items as $item) {
+		$item = str_replace('\\', '/', $item);
+		$name = basename($item);
+		if(is_dir($item)) {
+			if(!plugin_copy_dir($item.'/', $dst.$name.'/', $error)) return FALSE;
+		} else {
+			if(!@copy($item, $dst.$name)) {
+				$error = 'Cannot copy file: '.$name;
+				return FALSE;
+			}
+		}
+	}
+	return TRUE;
+}
+
+function plugin_mkdir_recursive($dir) {
+	return is_dir($dir) || mkdir($dir, 0777, TRUE);
 }
 
 function plugin_is_bought($dir) {
