@@ -585,37 +585,12 @@ function plugin_is_local($dir) {
 }
 
 function plugin_check_php_syntax($dir) {
-	$root = APP_PATH."plugin/$dir/";
-	if(!is_dir($root) || !function_exists('exec')) return TRUE;
-	$files = plugin_php_files($root);
-	foreach($files as $file) {
-		$path = str_replace('\\', '/', $file);
-		if(strpos($path, "/plugin/$dir/hook/") !== FALSE) continue;
-		$out = array();
-		$code = 0;
-		$php = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
-		exec(escapeshellarg($php).' -l '.escapeshellarg($file).' 2>&1', $out, $code);
-		if($code !== 0) {
-			$rel = str_replace(APP_PATH, '', $path);
-			$detail = implode("\n", $out);
-			plugin_message(-1, 'Plugin PHP syntax check failed: '.htmlspecialchars($rel).' '.htmlspecialchars($detail));
-		}
+	$errors = plugin_php_syntax_errors($dir);
+	if(!empty($errors)) {
+		$error = $errors[0];
+		plugin_message(-1, 'Plugin PHP syntax check failed: '.htmlspecialchars($error['file']).' '.htmlspecialchars($error['detail']));
 	}
 	return TRUE;
-}
-
-function plugin_php_files($dir) {
-	$files = array();
-	$items = glob(rtrim($dir, '/').'/*');
-	if(empty($items)) return $files;
-	foreach($items as $item) {
-		if(is_dir($item)) {
-			$files = array_merge($files, plugin_php_files($item));
-		} elseif(strtolower(substr($item, -4)) === '.php') {
-			$files[] = $item;
-		}
-	}
-	return $files;
 }
 
 function plugin_check_exists($dir, $local = TRUE) {
