@@ -181,8 +181,8 @@ safe_header('X-Custom: ' . $value);  // 即使 $value 不是 string 也不会报
 |------|----------|
 | `<meta name="csrf-token">` 注入 | 供 JS 读取 token 值 |
 | `var csrf_token` 全局变量 | 旧插件直接使用此变量 |
-| `jQuery.ajaxSetup` 拦截器 | 所有 jQuery AJAX POST 自动携带 `X-CSRF-TOKEN` 头 |
-| `fetch` API 拦截器 | 现代主题使用 fetch 的 POST 请求 |
+| `jQuery.ajaxSetup` 拦截器 | 同源 jQuery AJAX POST 自动携带 `X-CSRF-TOKEN` 头 |
+| `fetch` API 拦截器 | 同源 `fetch()` POST 自动携带 `X-CSRF-TOKEN` 头，跨域请求不会泄露 token |
 | `<form>` hidden field 注入 | 所有 POST 表单自动添加 `_token` 字段 |
 | `MutationObserver` | 动态插入的表单也会被自动注入 |
 
