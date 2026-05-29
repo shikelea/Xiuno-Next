@@ -85,6 +85,14 @@ if(strpos($userRoute, 'api_auth_uid(FALSE)') === FALSE) {
 	$errors[] = 'user read API must use api_auth_uid(FALSE) for token fallback';
 }
 
+$forumRoute = api_route_source('route/api/forum.php');
+if(strpos($forumRoute, 'forum_list_access_filter($forumlist, $gid, \'allowread\')') === FALSE) {
+	$errors[] = 'forum list API must filter forums by read permission';
+}
+if(strpos($forumRoute, 'forum_safe_info($forum)') === FALSE) {
+	$errors[] = 'forum API must return forum_safe_info() output';
+}
+
 if(!empty($errors)) {
 	fwrite(STDERR, implode(PHP_EOL, $errors) . PHP_EOL);
 	exit(1);

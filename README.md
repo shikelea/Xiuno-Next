@@ -167,6 +167,9 @@ bin\benchmark.bat
     *   `GET /api/v1/thread/list`: 获取帖子列表 (参数: `fid`, `page`)
     *   `GET /api/v1/thread/read`: 获取帖子详情及回复 (参数: `tid`, `page`)
     *   `POST /api/v1/thread/create`: 发布新帖 (参数: `fid`, `subject`, `message`, `doctype`)
+*   **版块 (Forum)**
+    *   `GET /api/v1/forum/list`: 获取当前用户可读版块列表
+    *   `GET /api/v1/forum/read`: 获取单个版块信息 (参数: `fid`)
 *   **回复 (Post)**
     *   `POST /api/v1/post/create`: 发布回复 (参数: `tid`, `message`, `doctype`)
 

@@ -200,7 +200,7 @@ function forum_filter_moduid($moduids) {
 
 function forum_safe_info($forum) {
 	// hook model_forum_safe_info_start.php
-	//unset($forum['moduids']);
+	unset($forum['accesslist']);
 	// hook model_forum_safe_info_end.php
 	return $forum;
 }
