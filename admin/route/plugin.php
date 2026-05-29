@@ -163,6 +163,7 @@ if($action == 'local') {
 	$dir = param_word(2);
 	plugin_check_exists($dir);
 	$name = $plugins[$dir]['name'];
+	plugin_require_action_state($dir, 'install');
 	
 	// 检查目录可写 / check directory writable
 	//plugin_check_dir_is_writable();
@@ -210,6 +211,7 @@ if($action == 'local') {
 	$dir = param_word(2);
 	plugin_check_exists($dir);
 	$name = $plugins[$dir]['name'];
+	plugin_require_action_state($dir, 'unstall');
 	
 	// 检查目录可写
 	// plugin_check_dir_is_writable();
@@ -239,6 +241,7 @@ if($action == 'local') {
 	$dir = param_word(2);
 	plugin_check_exists($dir);
 	$name = $plugins[$dir]['name'];
+	plugin_require_action_state($dir, 'enable');
 	
 	// 检查目录可写
 	//plugin_check_dir_is_writable();
@@ -264,6 +267,7 @@ if($action == 'local') {
 	$dir = param_word(2);
 	plugin_check_exists($dir);
 	$name = $plugins[$dir]['name'];
+	plugin_require_action_state($dir, 'disable');
 	
 	// 检查目录可写
 	//plugin_check_dir_is_writable();
@@ -291,7 +295,7 @@ if($action == 'local') {
 	
 	// 判断插件版本
 	$plugin = plugin_read_by_dir($dir);
-	//!$plugin['have_upgrade'] AND message(-1, lang('plugin_not_need_update'));
+	plugin_require_action_state($dir, 'upgrade', $plugin);
 	
 	// 检查目录可写
 	//plugin_check_dir_is_writable();
@@ -359,6 +363,18 @@ function plugin_check_dir_is_writable() {
 	$msg = lang('plugin_set_relatied_dir_writable', array('dir'=>implode(', ', $dirarr)));
 	!empty($dirarr) AND message(-1, $msg);
 }*/
+
+function plugin_require_action_state($dir, $action, $plugin = NULL) {
+	global $plugins;
+	if($plugin === NULL) $plugin = array_value($plugins, $dir, array());
+	$installed = !empty($plugin['installed']);
+	$enable = !empty($plugin['enable']);
+	if($action == 'install' && $installed) plugin_message(-1, 'Plugin already installed, please refresh.');
+	if($action == 'unstall' && !$installed) plugin_message(-1, 'Plugin is not installed, please refresh.');
+	if($action == 'enable' && (!$installed || $enable)) plugin_message(-1, 'Plugin cannot be enabled in its current state, please refresh.');
+	if($action == 'disable' && (!$installed || !$enable)) plugin_message(-1, 'Plugin cannot be disabled in its current state, please refresh.');
+	if($action == 'upgrade' && (empty($plugin) || empty($plugin['have_upgrade']))) plugin_message(-1, lang('plugin_not_need_update'));
+}
 
 function plugin_check_dependency($dir, $action = 'install', $snapshot = NULL, $package_snapshot = NULL, $check_self_metadata = TRUE) {
 	global $plugins;
