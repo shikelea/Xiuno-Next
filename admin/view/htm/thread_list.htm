@@ -13,6 +13,7 @@
 <div class="row">
 	<div class="col-12">
 		<form action="<?php echo url('thread-scan');?>" method="post" id="form">
+			<input type="hidden" name="queueid" value="<?php echo $queueid;?>" />
 			<div class="card card-body">
 				<h4 class="card-title"><?php echo lang('search_condition');?></h4>
 				<div class="row">
@@ -77,7 +78,7 @@
 					<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 0%" id="progress"></div>
 				</div>
 				
-				<?php echo lang('thread_search_result', array('n'=>'<b id="threads">0</b>'));?>, <a href="<?php echo url('thread-found');?>" target="_blank"><b><?php echo lang('click_to_view');?></b></a>
+				<?php echo lang('thread_search_result', array('n'=>'<b id="threads">0</b>'));?>, <a href="<?php echo url("thread-found-$queueid");?>" target="_blank"><b><?php echo lang('click_to_view');?></b></a>
 				<p id="operation" class="hidden mt-4">
 					<button type="button" id="close" class="btn btn-primary" data-loading-text="<?php echo lang('operating');?>... "><i class="icon-lock"></i> <?php echo lang('close');?></button>
 					<button type="button" id="open" class="btn btn-primary" data-loading-text="<?php echo lang('operating');?>... "><i class="icon-unlock"></i> <?php echo lang('open');?></button>
@@ -163,8 +164,8 @@ jopsubmit.on('click', function() {
 	var totalpage = Math.max(1, Math.ceil(threads / pagesize));
 	var jsubmit = jthis;
 	jsubmit.button('loading');
-	var postdata = {};
-	jprogress.val(0);
+	var postdata = {queueid: jform.find('input[name="queueid"]').val()};
+	jprogress.width(0);
 	var operation_threads = 0;
 	$.each_sync(pagearr, function(i, callback) {
 		postdata.page = pagearr[i];
@@ -176,7 +177,7 @@ jopsubmit.on('click', function() {
 				var tids = message;
 				operation_threads += tids.length;
 				jthreads.html(operation_threads);
-				jprogress.val( (postdata.page / totalpage) * 100 );
+				jprogress.width( (postdata.page / totalpage) * 100 + '%' );
 				if(postdata.page == totalpage) {
 					jsubmit.button('<?php echo lang('operator_complete');?>');
 					jopsubmit.button('disabled');

@@ -70,3 +70,10 @@ rg -n "simplexml_load_string|simplexml_load_file|DOMDocument|LIBXML_NOENT|xml_pa
 - 安装完成后写入 `conf/.installed.lock`，让已安装状态在 `conf/conf.php` 之外再有一层阻断。
 - 附件读删加入统一文件名/路径校验，头像上传改为验证真实图片并重编码为 PNG。
 - 新增 `bin/check_route_method_safety.php` 并纳入 CI，作为阶段六前置硬化闸门的回归守卫。
+
+## 2026-05-29 Admin Thread Queue Hardening
+
+- Admin thread batch scan/operation now carries a per-page `queueid` instead of relying on the single legacy `thread_find_queueid` session slot.
+- `thread-scan`, `thread-operation-*`, and `thread-found-*` validate that the submitted queue id belongs to the current admin session before reading, writing, or consuming queue rows.
+- Opening a second admin thread search page no longer destroys or overwrites the first page's queue. Completed operations destroy only their own queue id.
+- `bin/check_admin_thread_queue_safety.php` is part of CI so this multi-tab/duplicate-click boundary cannot silently regress.
