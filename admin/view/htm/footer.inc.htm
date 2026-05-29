@@ -46,11 +46,11 @@
 	<script src="../view/js/jquery-3.1.0.js<?php echo $static_version;?>"></script>
 	<script src="../view/js/popper.js<?php echo $static_version;?>"></script>
 	<script src="../view/js/bootstrap.js<?php echo $static_version;?>"></script>
-	<script src="../view/js/xiuno.js<?php echo $static_version;?>"></script>
-	<script src="../view/js/bs4-compat.js<?php echo $static_version;?>"></script>
-	<script src="../view/js/bootstrap-plugin.js<?php echo $static_version;?>"></script>
-	<script src="../view/js/async.js<?php echo $static_version;?>"></script>
-	<script src="../view/js/form.js<?php echo $static_version;?>"></script>
+	<script src="../view/js/xiuno.min.js<?php echo $static_version;?>"></script>
+	<script src="../view/js/bs4-compat.min.js<?php echo $static_version;?>"></script>
+	<script src="../view/js/bootstrap-plugin.min.js<?php echo $static_version;?>"></script>
+	<script src="../view/js/async.min.js<?php echo $static_version;?>"></script>
+	<script src="../view/js/form.min.js<?php echo $static_version;?>"></script>
 	<script>
 	var debug = DEBUG = <?php echo DEBUG; ?>;
 	var url_rewrite_on = <?php echo $conf['url_rewrite_on'];?>;
@@ -58,7 +58,7 @@
 	var csrf_token = '<?php echo csrf_token();?>';
 	$.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN',csrf_token);}});
 	</script>
-	<script src="../view/js/bbs.js<?php echo $static_version;?>"></script>
+	<script src="../view/js/bbs.min.js<?php echo $static_version;?>"></script>
 	
 	<!--{hook admin_footer_js_after.htm}-->
 	

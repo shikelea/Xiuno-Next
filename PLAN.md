@@ -213,7 +213,7 @@
     - `bin/check_frontend_security.php` 扩展为守护页面标题/meta、站点名、`sitebrief` 和附件文件名输出约定，防止历史 XSS 类修复回退。
     - `bootstrap-plugin.js` 的 Ajax modal 动态脚本执行属于历史插件/主题兼容边界，短期保留；后续在生态兼容矩阵稳定后，再设计更窄的受信任片段协议。
     - 旧 jQuery 版本列为版本治理事项：升级前必须先跑真实插件/主题样本矩阵，不能作为单点安全修复直接推进。
-  - [ ] **CSS/JS 压缩（阶段五收尾项）**：编写 PHP 脚本实现静态资源合并压缩，**不引入 Node.js 工具链**。
+  - [x] **CSS/JS 压缩（阶段五收尾项）**：新增 `php bin/build_frontend_assets.php`，用 PHP 生成核心 `.min.css` / `.min.js`，核心模板优先加载压缩版；CI 使用 `--check` 防止生成物漂移。保留未压缩源文件作为维护入口和旧插件/主题兼容路径，**不引入 Node.js 工具链**。
   - **阶段五收尾**：继续观察帖子列表分页试点与 `xiuno:fragment-ready` 生命周期约定；稳定后再评估帖子详情页分页是否能拆出安全的只读 postlist 区域。
 - [ ] **API 持续开发（后续增强项）**（阶段三完成了基础接口，此处扩展和完善）：
   - [x] API 路由最小 smoke test：覆盖默认入口、缺失 action 和非法 action，防止路径拼接边界回退。
