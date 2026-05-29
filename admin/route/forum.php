@@ -28,15 +28,31 @@ if(empty($action) || $action == 'list') {
 	
 	} elseif($method == 'POST') {
 		
-		$fidarr = param('fid', array(0));
-		$namearr = param('name', array(''));
-		$rankarr = param('rank', array(0));
+		$fidarr = forum_post_array('fid');
+		$namearr = forum_post_array('name');
+		$rankarr = forum_post_array('rank');
 		$iconarr = param('icon', array(''));
+		$deletefidarr = param('delete_fid', array(0));
 		
 		// hook admin_forum_list_post_start.php
+		forum_post_array_keys_match($fidarr, array('name'=>$namearr, 'rank'=>$rankarr));
+		$deleteids = forum_delete_ids($deletefidarr, $forumlist);
+		foreach($deleteids as $fid) {
+			if(in_array($fid, $system_forum)) continue;
+			$threadlist = thread_find_by_fid($fid, 1, 20);
+			if(!empty($threadlist)) {
+				message(-1, lang('forum_delete_thread_before_delete_forum'));
+			}
+			$sublist = forum_find_son_list($forumlist, $fid);
+			if(!empty($sublist)) {
+				message(-1, lang('forum_please_delete_sub_forum'));
+			}
+		}
 		
 		$arrlist = array();
 		foreach($fidarr as $k=>$v) {
+			$k = intval($k);
+			$k <= 0 AND message(-1, 'Bad Request');
 			$arr = array(
 				'fid'=>$k,
 				'name'=>array_value($namearr, $k),
@@ -67,8 +83,7 @@ if(empty($action) || $action == 'list') {
 		}
 		
 		// 删除 / delete
-		$deletearr = array_diff_key($forumlist, $fidarr);
-		foreach($deletearr as $k=>$v) {
+		foreach($deleteids as $k) {
 			if(in_array($k, $system_forum)) continue;
 			// hook admin_forum_list_delete_before.php
 			forum_delete($k);
@@ -256,6 +271,32 @@ function user_ids_to_names($ids, $sep = ',') {
 		$r[] = $user ? $user['username'] : '';
 	}
 	return implode($sep, $r);
+}
+
+function forum_post_array($key) {
+	if(!isset($_POST[$key]) || !is_array($_POST[$key]) || empty($_POST[$key])) {
+		message(-1, 'Bad Request');
+	}
+	return param($key, array());
+}
+
+function forum_post_array_keys_match($keys, $arrays) {
+	foreach($keys as $k=>$v) {
+		foreach($arrays as $name=>$arr) {
+			if(!isset($arr[$k])) message(-1, 'Bad Request');
+		}
+	}
+}
+
+function forum_delete_ids($deletearr, $forumlist) {
+	$ids = array();
+	if(empty($deletearr) || !is_array($deletearr)) return $ids;
+	foreach($deletearr as $fid=>$v) {
+		$fid = intval($fid);
+		if($fid <= 0 || empty($v) || !isset($forumlist[$fid])) continue;
+		$ids[$fid] = $fid;
+	}
+	return $ids;
 }
 
 // hook admin_forum_end.php

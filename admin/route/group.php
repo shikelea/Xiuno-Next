@@ -27,20 +27,25 @@ if(empty($action) || $action == 'list') {
 	
 	} elseif($method == 'POST') {
 		
-		$gidarr = param('_gid', array(0));
-		$namearr = param('name', array(''));
-		$creditsfromarr = param('creditsfrom', array(0));
-		$creditstoarr = param('creditsto', array(0));
+		$gidarr = group_post_array('_gid');
+		$namearr = group_post_array('name');
+		$creditsfromarr = group_post_array('creditsfrom');
+		$creditstoarr = group_post_array('creditsto');
+		$deletegidarr = param('delete_gid', array(0));
 		$arrlist = array();
 		
 		// hook admin_group_list_post_start.php
+		group_post_array_keys_match($gidarr, array('name'=>$namearr, 'creditsfrom'=>$creditsfromarr, 'creditsto'=>$creditstoarr));
+		$deleteids = group_delete_ids($deletegidarr, $grouplist);
 		
 		foreach ($gidarr as $k=>$v) {
+			$k = intval($k);
+			$k < 0 AND message(-1, 'Bad Request');
 			$arr = array(
 				'gid'=>$k,
-				'name'=>$namearr[$k],
-				'creditsfrom'=>$creditsfromarr[$k],
-				'creditsto'=>$creditstoarr[$k],
+				'name'=>array_value($namearr, $k),
+				'creditsfrom'=>array_value($creditsfromarr, $k),
+				'creditsto'=>array_value($creditstoarr, $k),
 			);
 			if(!isset($grouplist[$k])) {
 				// 添加 / add
@@ -52,8 +57,7 @@ if(empty($action) || $action == 'list') {
 		}
 		
 		// 删除 / delete
-		$deletearr = array_diff_key($grouplist, $gidarr);
-		foreach($deletearr as $k=>$v) {
+		foreach($deleteids as $k) {
 			if(in_array($k, $system_group)) continue;
 			group_delete($k);
 		}
@@ -151,6 +155,32 @@ if(empty($action) || $action == 'list') {
 		message(0, lang('edit_sucessfully'));	
 	}
 	
+}
+
+function group_post_array($key) {
+	if(!isset($_POST[$key]) || !is_array($_POST[$key]) || empty($_POST[$key])) {
+		message(-1, 'Bad Request');
+	}
+	return param($key, array());
+}
+
+function group_post_array_keys_match($keys, $arrays) {
+	foreach($keys as $k=>$v) {
+		foreach($arrays as $name=>$arr) {
+			if(!isset($arr[$k])) message(-1, 'Bad Request');
+		}
+	}
+}
+
+function group_delete_ids($deletearr, $grouplist) {
+	$ids = array();
+	if(empty($deletearr) || !is_array($deletearr)) return $ids;
+	foreach($deletearr as $gid=>$v) {
+		$gid = intval($gid);
+		if($gid < 0 || empty($v) || !isset($grouplist[$gid])) continue;
+		$ids[$gid] = $gid;
+	}
+	return $ids;
 }
 
 // hook admin_group_start.php

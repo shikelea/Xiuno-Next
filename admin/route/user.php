@@ -65,16 +65,20 @@ if(empty($action) || $action == 'list') {
 
 	} elseif ($method == 'POST') {
 
-		$email = param('email');
-		$username = param('username');
+		$email = trim(param('email'));
+		$username = trim(param('username'));
 		$password = param('password');
 		$_gid = param('_gid');
 		
 		// hook admin_user_create_post_start.php
 		
 		empty($email) AND message('email', lang('please_input_email'));
-		$email AND !is_email($email, $err) AND message('email', $err);
-		$username AND !is_username($username, $err) AND message('username', $err);
+		empty($username) AND message('username', lang('please_input_username'));
+		empty($password) AND message('password', lang('please_input_password'));
+		!isset($grouplist[$_gid]) AND message('_gid', 'Invalid user group');
+		!is_email($email, $err) AND message('email', $err);
+		!is_username($username, $err) AND message('username', $err);
+		!is_password(md5($password), $err) AND message('password', $err);
 
 		$_user = user_read_by_email($email);
 		$_user AND message('email', lang('email_is_in_use'));
@@ -113,6 +117,7 @@ if(empty($action) || $action == 'list') {
 		$header['mobile_title'] = lang('user_edit');
 		
 		$_user = user_read($_uid);
+		empty($_user) AND message('username', lang('uid_not_exists'));
 		
 		$input['email'] = form_text('email', $_user['email']);
 		$input['username'] = form_text('username', $_user['username']);
@@ -126,8 +131,8 @@ if(empty($action) || $action == 'list') {
 
 	} elseif($method == 'POST') {
 
-		$email = param('email');
-		$username = param('username');
+		$email = trim(param('email'));
+		$username = trim(param('username'));
 		$password = param('password');
 		$_gid = param('_gid');
 		
@@ -136,7 +141,11 @@ if(empty($action) || $action == 'list') {
 		$old = user_read($_uid);
 		empty($old) AND message('username', lang('uid_not_exists'));
 		
-		$email AND !is_email($email, $err) AND message(2, $err);
+		empty($email) AND message('email', lang('please_input_email'));
+		empty($username) AND message('username', lang('please_input_username'));
+		!isset($grouplist[$_gid]) AND message('_gid', 'Invalid user group');
+		!is_email($email, $err) AND message('email', $err);
+		!is_username($username, $err) AND message('username', $err);
 		if($email AND $old['email'] != $email) {
 			$_user = user_read_by_email($email);
 			$_user AND $_user['uid'] != $_uid AND message('email', lang('email_already_exists'));
@@ -152,6 +161,7 @@ if(empty($action) || $action == 'list') {
 		$arr['gid'] = $_gid;
 		
 		if($password) {
+			!is_password(md5($password), $err) AND message('password', $err);
 			$arr['password'] = user_hash_password(md5($password));
 		}
 		
