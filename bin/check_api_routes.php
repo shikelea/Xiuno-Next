@@ -114,6 +114,28 @@ if(substr_count($threadRoute, 'api_page_params()') < 2) {
 	$errors[] = 'thread list/read APIs must use api_page_params()';
 }
 
+$searchRoute = api_route_source('route/api/search.php');
+if(strpos($searchRoute, 'thread_search_by_subject($keyword, $gid, $page, $pagesize)') === FALSE) {
+	$errors[] = 'thread search API must use thread_search_by_subject()';
+}
+if(strpos($searchRoute, 'api_page_params(20, 50)') === FALSE) {
+	$errors[] = 'thread search API must use bounded pagination';
+}
+if(strpos($searchRoute, "str_replace(array('%', '_'), '', \$keyword)") === FALSE || strpos($searchRoute, 'Keyword is too short') === FALSE) {
+	$errors[] = 'thread search API must reject broad wildcard-only keywords';
+}
+
+$threadModel = api_route_source('model/thread.func.php');
+if(strpos($threadModel, 'function thread_search_by_subject') === FALSE) {
+	$errors[] = 'thread model must define thread_search_by_subject()';
+}
+if(strpos($threadModel, 'forum_access_user($thread[\'fid\'], $gid, \'allowread\')') === FALSE) {
+	$errors[] = 'thread search helper must filter by forum read permission';
+}
+if(strpos($threadModel, 'thread_safe_info($thread)') === FALSE) {
+	$errors[] = 'thread search helper must return thread_safe_info() output';
+}
+
 if(!empty($errors)) {
 	fwrite(STDERR, implode(PHP_EOL, $errors) . PHP_EOL);
 	exit(1);

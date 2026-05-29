@@ -2,7 +2,7 @@
 
 > 此文件由 `php bin/generate_hook_docs.php` 生成。修改 Hook 注释后请重新运行脚本。
 
-- Hook 数量：1059
+- Hook 数量：1061
 - 涉及文件：97
 
 | Hook | 文件 | 行号 |
@@ -679,13 +679,13 @@
 | `model_thread__read_start.php` | `model/thread.func.php` | 22 |
 | `model_thread__update_end.php` | `model/thread.func.php` | 17 |
 | `model_thread__update_start.php` | `model/thread.func.php` | 15 |
-| `model_thread_count_end.php` | `model/thread.func.php` | 358 |
-| `model_thread_count_start.php` | `model/thread.func.php` | 356 |
+| `model_thread_count_end.php` | `model/thread.func.php` | 384 |
+| `model_thread_count_start.php` | `model/thread.func.php` | 382 |
 | `model_thread_create_end.php` | `model/thread.func.php` | 115 |
 | `model_thread_create_start.php` | `model/thread.func.php` | 69 |
 | `model_thread_delete_end.php` | `model/thread.func.php` | 206 |
 | `model_thread_delete_start.php` | `model/thread.func.php` | 185 |
-| `model_thread_end.php` | `model/thread.func.php` | 437 |
+| `model_thread_end.php` | `model/thread.func.php` | 463 |
 | `model_thread_find_by_fid_end.php` | `model/thread.func.php` | 275 |
 | `model_thread_find_by_fid_middle.php` | `model/thread.func.php` | 265 |
 | `model_thread_find_by_fid_start.php` | `model/thread.func.php` | 261 |
@@ -693,28 +693,30 @@
 | `model_thread_find_by_fids_start.php` | `model/thread.func.php` | 282 |
 | `model_thread_find_by_keyword_end.php` | `model/thread.func.php` | 302 |
 | `model_thread_find_by_keyword_start.php` | `model/thread.func.php` | 293 |
-| `model_thread_find_by_tids_end.php` | `model/thread.func.php` | 413 |
-| `model_thread_find_by_tids_start.php` | `model/thread.func.php` | 407 |
+| `model_thread_find_by_tids_end.php` | `model/thread.func.php` | 439 |
+| `model_thread_find_by_tids_start.php` | `model/thread.func.php` | 433 |
 | `model_thread_find_end.php` | `model/thread.func.php` | 215 |
 | `model_thread_find_start.php` | `model/thread.func.php` | 212 |
-| `model_thread_format_end.php` | `model/thread.func.php` | 342 |
-| `model_thread_format_last_date_end.php` | `model/thread.func.php` | 352 |
-| `model_thread_format_last_date_start.php` | `model/thread.func.php` | 346 |
-| `model_thread_format_start.php` | `model/thread.func.php` | 312 |
-| `model_thread_get_level_end.php` | `model/thread.func.php` | 384 |
-| `model_thread_get_level_start.php` | `model/thread.func.php` | 380 |
+| `model_thread_format_end.php` | `model/thread.func.php` | 368 |
+| `model_thread_format_last_date_end.php` | `model/thread.func.php` | 378 |
+| `model_thread_format_last_date_start.php` | `model/thread.func.php` | 372 |
+| `model_thread_format_start.php` | `model/thread.func.php` | 338 |
+| `model_thread_get_level_end.php` | `model/thread.func.php` | 410 |
+| `model_thread_get_level_start.php` | `model/thread.func.php` | 406 |
 | `model_thread_inc_views_end.php` | `model/thread.func.php` | 155 |
 | `model_thread_inc_views_start.php` | `model/thread.func.php` | 148 |
-| `model_thread_list_access_filter_end.php` | `model/thread.func.php` | 403 |
-| `model_thread_list_access_filter_start.php` | `model/thread.func.php` | 394 |
-| `model_thread_maxid_end.php` | `model/thread.func.php` | 365 |
-| `model_thread_maxid_start.php` | `model/thread.func.php` | 363 |
+| `model_thread_list_access_filter_end.php` | `model/thread.func.php` | 429 |
+| `model_thread_list_access_filter_start.php` | `model/thread.func.php` | 420 |
+| `model_thread_maxid_end.php` | `model/thread.func.php` | 391 |
+| `model_thread_maxid_start.php` | `model/thread.func.php` | 389 |
 | `model_thread_read_cache_end.php` | `model/thread.func.php` | 173 |
 | `model_thread_read_cache_start.php` | `model/thread.func.php` | 169 |
 | `model_thread_read_end.php` | `model/thread.func.php` | 163 |
 | `model_thread_read_start.php` | `model/thread.func.php` | 160 |
-| `model_thread_safe_info_end.php` | `model/thread.func.php` | 375 |
-| `model_thread_safe_info_start.php` | `model/thread.func.php` | 370 |
+| `model_thread_safe_info_end.php` | `model/thread.func.php` | 401 |
+| `model_thread_safe_info_start.php` | `model/thread.func.php` | 396 |
+| `model_thread_search_by_subject_end.php` | `model/thread.func.php` | 328 |
+| `model_thread_search_by_subject_start.php` | `model/thread.func.php` | 307 |
 | `model_thread_start.php` | `model/thread.func.php` | 3 |
 | `model_thread_top_cache_delete_end.php` | `model/thread_top.func.php` | 69 |
 | `model_thread_top_cache_delete_start.php` | `model/thread_top.func.php` | 63 |
