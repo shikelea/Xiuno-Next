@@ -98,6 +98,9 @@ $miscModel = api_route_source('model/misc.func.php');
 if(strpos($miscModel, 'function api_method_required') === FALSE) {
 	$errors[] = 'misc helpers must define api_method_required()';
 }
+if(strpos($miscModel, 'function api_page_params') === FALSE) {
+	$errors[] = 'misc helpers must define api_page_params()';
+}
 
 $forumRoute = api_route_source('route/api/forum.php');
 if(strpos($forumRoute, 'forum_list_access_filter($forumlist, $gid, \'allowread\')') === FALSE) {
@@ -105,6 +108,10 @@ if(strpos($forumRoute, 'forum_list_access_filter($forumlist, $gid, \'allowread\'
 }
 if(strpos($forumRoute, 'forum_safe_info($forum)') === FALSE) {
 	$errors[] = 'forum API must return forum_safe_info() output';
+}
+
+if(substr_count($threadRoute, 'api_page_params()') < 2) {
+	$errors[] = 'thread list/read APIs must use api_page_params()';
 }
 
 if(!empty($errors)) {

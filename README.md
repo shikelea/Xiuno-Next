@@ -164,8 +164,8 @@ bin\benchmark.bat
     *   `POST /api/v1/user/login`: 用户登录 (参数: `email`, `password`)
     *   `GET /api/v1/user/read`: 获取用户信息 (参数: `uid` 或 `token`)
 *   **帖子 (Thread)**
-    *   `GET /api/v1/thread/list`: 获取帖子列表 (参数: `fid`, `page`)
-    *   `GET /api/v1/thread/read`: 获取帖子详情及回复 (参数: `tid`, `page`)
+    *   `GET /api/v1/thread/list`: 获取帖子列表 (参数: `fid`, `page`, `pagesize`)
+    *   `GET /api/v1/thread/read`: 获取帖子详情及回复 (参数: `tid`, `page`, `pagesize`)
     *   `POST /api/v1/thread/create`: 发布新帖 (参数: `fid`, `subject`, `message`, `doctype`)
 *   **版块 (Forum)**
     *   `GET /api/v1/forum/list`: 获取当前用户可读版块列表
@@ -175,7 +175,7 @@ bin\benchmark.bat
 
 更多详情请参考 [route/api/](route/api/) 目录下的源码。
 
-API 鉴权：登录接口返回的 `token` 可以通过 `token` 参数、`bbs_token` 参数，或 `Authorization: Bearer <token>` 请求头传递。需要登录的 API 应统一使用 `api_login_required()` / `api_auth_uid()`，写入类接口应统一使用 `api_method_required()` 约束请求方法，避免各接口重复处理 token 与方法校验。
+API 鉴权：登录接口返回的 `token` 可以通过 `token` 参数、`bbs_token` 参数，或 `Authorization: Bearer <token>` 请求头传递。需要登录的 API 应统一使用 `api_login_required()` / `api_auth_uid()`，写入类接口应统一使用 `api_method_required()` 约束请求方法，分页接口应统一使用 `api_page_params()` 约束页码和每页数量，避免各接口重复处理 token、方法校验与分页边界。
 
 ## 插件体系状态
 
