@@ -74,15 +74,29 @@ $postRoute = api_route_source('route/api/post.php');
 if(strpos($postRoute, 'api_login_required();') === FALSE) {
 	$errors[] = 'post create API must use api_login_required()';
 }
+if(strpos($postRoute, 'api_method_required(\'POST\');') === FALSE) {
+	$errors[] = 'post create API must require POST through api_method_required()';
+}
 
 $threadRoute = api_route_source('route/api/thread.php');
 if(strpos($threadRoute, 'api_login_required();') === FALSE) {
 	$errors[] = 'thread create API must use api_login_required()';
 }
+if(strpos($threadRoute, 'api_method_required(\'POST\');') === FALSE) {
+	$errors[] = 'thread create API must require POST through api_method_required()';
+}
 
 $userRoute = api_route_source('route/api/user.php');
 if(strpos($userRoute, 'api_auth_uid(FALSE)') === FALSE) {
 	$errors[] = 'user read API must use api_auth_uid(FALSE) for token fallback';
+}
+if(strpos($userRoute, 'api_method_required(\'POST\');') === FALSE) {
+	$errors[] = 'user login API must require POST through api_method_required()';
+}
+
+$miscModel = api_route_source('model/misc.func.php');
+if(strpos($miscModel, 'function api_method_required') === FALSE) {
+	$errors[] = 'misc helpers must define api_method_required()';
 }
 
 $forumRoute = api_route_source('route/api/forum.php');

@@ -92,10 +92,9 @@ if($action == 'list') {
 
 } elseif($action == 'create') {
 	
+	api_method_required('POST');
 	// 校验登录
 	api_login_required();
-	
-	if($method != 'POST') api_output(-1, 'Method Not Allowed');
 	
 	$fid = param('fid', 0);
 	$subject = param('subject');
