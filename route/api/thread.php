@@ -93,7 +93,7 @@ if($action == 'list') {
 } elseif($action == 'create') {
 	
 	// 校验登录
-	if($uid == 0) api_output(-1, lang('please_login'));
+	api_login_required();
 	
 	if($method != 'POST') api_output(-1, 'Method Not Allowed');
 	

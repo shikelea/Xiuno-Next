@@ -27,6 +27,10 @@ function api_output($code, $message, $data = array()) {
 	));
 }
 
+function api_route_source($path) {
+	return file_get_contents(APP_PATH . $path);
+}
+
 function api_smoke_run($request) {
 	global $conf;
 	$_REQUEST = array();
@@ -64,6 +68,21 @@ if(!is_array($response) || $response['code'] !== 404) {
 $response = api_smoke_run(array(1 => 'v1', 2 => 'thread', 3 => '../list'));
 if(!is_array($response) || $response['code'] !== 404) {
 	$errors[] = 'unsafe versioned API action did not return 404';
+}
+
+$postRoute = api_route_source('route/api/post.php');
+if(strpos($postRoute, 'api_login_required();') === FALSE) {
+	$errors[] = 'post create API must use api_login_required()';
+}
+
+$threadRoute = api_route_source('route/api/thread.php');
+if(strpos($threadRoute, 'api_login_required();') === FALSE) {
+	$errors[] = 'thread create API must use api_login_required()';
+}
+
+$userRoute = api_route_source('route/api/user.php');
+if(strpos($userRoute, 'api_auth_uid(FALSE)') === FALSE) {
+	$errors[] = 'user read API must use api_auth_uid(FALSE) for token fallback';
 }
 
 if(!empty($errors)) {

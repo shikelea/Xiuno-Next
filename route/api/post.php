@@ -8,7 +8,7 @@ $action = param(2);
 if($action == 'create') {
 	
 	if($method != 'POST') api_output(-1, 'Method Not Allowed');
-	if($uid == 0) api_output(-1, lang('please_login'));
+	api_login_required();
 	
 	$tid = param('tid', 0);
 	$message = param('message');
