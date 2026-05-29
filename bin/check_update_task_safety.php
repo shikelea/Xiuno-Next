@@ -51,6 +51,10 @@ strpos($rollback_locked, "\tmessage(") === FALSE
 	|| fail('Rollback locked paths must call update_message(), not message().');
 strpos($rollback_locked, 'AND message(') === FALSE
 	|| fail('Rollback locked guards must call update_message(), not message().');
+strpos($rollback_locked, "trim(_POST('backup', ''))") !== FALSE
+	|| fail('Rollback backup selection must read from POST only.');
+strpos($rollback_locked, "param('backup', '', 'POST')") === FALSE
+	|| fail('Rollback must not use param(..., "POST"); param() does not select the request method.');
 
 strpos($download, 'file_put_contents($zipfile, $zipdata) !== strlen($zipdata)') !== FALSE
 	|| fail('Downloaded ZIP writes must be checked for short writes.');

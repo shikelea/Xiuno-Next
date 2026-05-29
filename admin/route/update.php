@@ -271,7 +271,7 @@ if ($action == 'check') {
 	$method != 'POST' AND message(-1, 'Method Not Allowed');
 	update_lock_start();
 
-	$backup = trim(param('backup', '', 'POST'));
+	$backup = trim(_POST('backup', ''));
 	$backup_dir = update_resolve_backup($backup);
 	if ($backup_dir === FALSE) {
 		update_message(-1, lang('update_rollback_no_backup'));
