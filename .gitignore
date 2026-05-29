@@ -11,6 +11,7 @@ upload/*
 !upload/.gitkeep
 conf/conf.php
 REVIEW.md
+PLAN.md
 plugin/*
 !plugin/.gitkeep
 开发手册/

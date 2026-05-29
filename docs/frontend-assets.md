@@ -69,4 +69,4 @@ Only delete an asset when all of these are true:
 - It has no core reference in `php bin/scan_frontend_assets.php`.
 - It is not part of the BS4 compatibility layer or a known legacy global.
 - Local plugin/theme sample scans do not show a dependency on its public path.
-- The deletion is recorded here and reflected in `PLAN.md`.
+- The deletion is recorded here or in another stable developer-facing document when the change needs public context.
