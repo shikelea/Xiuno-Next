@@ -100,7 +100,10 @@ strpos($thread_operation, "\$method != 'POST' AND message(-1, 'Method Not Allowe
 strpos($thread_operation, "in_array(\$op, array('delete', 'close', 'open'), TRUE)") !== FALSE
 	|| fail('Admin thread batch operation must validate op before popping queue items.');
 
-strpos($thread_operation, 'queue_destory($queueid);') !== FALSE
+(
+	strpos($thread_operation, 'queue_destory($queueid);') !== FALSE ||
+	strpos($thread_operation, 'thread_queue_destroy($queueid);') !== FALSE
+)
 	|| fail('Admin thread batch operation should destroy the queue after it is exhausted.');
 
 strpos($admin_route_index, "\$method != 'POST' AND message(-1, 'Method Not Allowed');") !== FALSE

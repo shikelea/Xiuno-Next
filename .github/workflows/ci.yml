@@ -53,6 +53,9 @@ jobs:
       - name: Smoke test admin list delete safety
         run: php bin/check_admin_list_delete_safety.php
 
+      - name: Smoke test admin thread queue safety
+        run: php bin/check_admin_thread_queue_safety.php
+
       - name: Smoke test plugin task safety
         run: php bin/check_plugin_task_safety.php
 
