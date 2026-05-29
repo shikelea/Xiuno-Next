@@ -44,6 +44,9 @@ jobs:
       - name: Smoke test frontend security guards
         run: php bin/check_frontend_security.php
 
+      - name: Smoke test BS4 compatibility layer
+        run: php bin/check_bs4_compat_layer.php
+
       - name: Smoke test theme API safety
         run: php bin/check_theme_api_safety.php
 
