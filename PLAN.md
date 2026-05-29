@@ -248,6 +248,7 @@
   - 已恢复低风险历史 Hook 契约：`user_resetpw_password_after.htm`、`index_page_end.htm`、`index_thread_list_nav_item_end.htm`、`header_nav_user_username_after.htm`、`my_common_avatar_after.htm`、`my_common_groupname_after.htm`、`my_nav_photo_after.htm`、`__my_nav_end.htm`、`thread_username_after.htm`、`thread_user_avatar_after.htm`、`thread_quick_reply_message_after.htm`、`user_profile_avatar_after.htm` 与 `user_nav_after.htm`，优先覆盖旧插件/主题真实引用且不改变核心页面结构的扩展点。
   - 已完成剩余缺失 Hook 的边界分流：核心只恢复共享、被动、语义明确的旧扩展点；插件内部二级 Hook、主题私有布局槽、异常文件名和需审计执行时机的 PHP 级 Hook 不直接提升为核心契约。
   - 2026-05-29 并行审计确认：剩余 358 个缺失 Hook 信号中，293 个属于 `stately_*`/`widget_*` 主题或组件私有槽，5 个是误放在 `hook/` 下的资源文件；线程/用户/主题槽三组复核后暂无新的低风险核心 Hook 需要立即恢复，后续重点转向 PHP 级运行时 Hook 的逐个审计和主题 API 设计。
+  - 2026-05-29 PHP 级 Hook 审计确认：`model_website_*`、`stately_threadlist_*`、`qg_auction_*`、`*_fox_tags.php` 等不提升为核心契约；审计中顺手修复公开用户页无效 UID 缺少中性兜底的问题，避免依赖主题私有 `x_user_start.php`。
   - 正式输出为插件/主题兼容矩阵；公开清单放到生态重建阶段。
 
 ### 阶段六：生态重建 (Ecosystem Phase)

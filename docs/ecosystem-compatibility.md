@@ -59,4 +59,6 @@ Deferred examples:
 - `notice_route_menu_array_end.php`, `menu_*`, `my_trade_*`, and `plugin_haya_post_like_create_end.php` belong to plugin-owned modules that core does not currently provide.
 - `stately_*`, `widget_*`, legacy sidebar/nav fragments, and theme helper files belong to the future theme API and theme packaging track.
 
+The PHP-level review found no remaining package PHP hook that should be restored as a core contract. `model_website_*`, `stately_threadlist_*`, and `stately_wellcms_*` are WellCMS/Stately private runtime slots; `qg_auction_*` and `plugin_haya_post_like_create_end.php` are package business events; `*_fox_tags.php` files are package-private includes behind existing public `.htm` hooks. The review did identify one core behavior fix outside Hook restoration: invalid public user profile requests now stop with the neutral `user_not_exists` message instead of relying on a theme-specific `x_user_start.php` workaround.
+
 This confirms the stage-six order: build the matrix first, improve shared compatibility layers second, and only then publish formal plugin/theme development manuals.
