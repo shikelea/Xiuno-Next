@@ -332,6 +332,8 @@ theme_enqueue_script('htmx', './plugin/my_theme/view/js/htmx.min.js', 5, [
 ]);
 ```
 
+资源 URL 只允许相对路径或 `http://` / `https://`，会跳过空白/控制字符、`javascript:`、`data:` 和协议相对 URL。脚本属性会过滤非法属性名和 `on*` 事件属性，并统一按 HTML 属性上下文转义。该契约由 `bin/check_theme_api_safety.php` 守护。
+
 #### theme_render_styles() / theme_render_scripts()
 
 由核心模板自动调用（`header.inc.htm` / `footer.inc.htm`）。如果主题覆盖了这些模板，需要在自己的模板中手动调用。

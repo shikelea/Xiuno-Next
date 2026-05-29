@@ -472,7 +472,8 @@ function theme_render_styles() {
 	$sv = isset($conf['static_version']) ? $conf['static_version'] : '';
 	uasort($g_theme_styles, function($a, $b) { return $a['priority'] - $b['priority']; });
 	foreach($g_theme_styles as $handle => $style) {
-		echo '<link rel="stylesheet" href="' . htmlspecialchars($style['src']) . $sv . '" id="style-' . htmlspecialchars($handle) . '">' . "\n";
+		if(!theme_asset_src_allowed($style['src'])) continue;
+		echo '<link rel="stylesheet" href="' . theme_attr_escape($style['src'] . $sv) . '" id="style-' . theme_attr_escape($handle) . '">' . "\n";
 	}
 }
 
@@ -483,10 +484,33 @@ function theme_render_scripts() {
 	$sv = isset($conf['static_version']) ? $conf['static_version'] : '';
 	uasort($g_theme_scripts, function($a, $b) { return $a['priority'] - $b['priority']; });
 	foreach($g_theme_scripts as $handle => $script) {
+		if(!theme_asset_src_allowed($script['src'])) continue;
 		$extra = '';
-		foreach($script['attrs'] as $k => $v) { $extra .= ' ' . htmlspecialchars($k) . '="' . htmlspecialchars($v) . '"'; }
-		echo '<script src="' . htmlspecialchars($script['src']) . $sv . '"' . $extra . ' id="script-' . htmlspecialchars($handle) . '"></script>' . "\n";
+		foreach($script['attrs'] as $k => $v) {
+			if(!theme_script_attr_allowed($k)) continue;
+			$extra .= ' ' . theme_attr_escape($k) . '="' . theme_attr_escape($v) . '"';
+		}
+		echo '<script src="' . theme_attr_escape($script['src'] . $sv) . '"' . $extra . ' id="script-' . theme_attr_escape($handle) . '"></script>' . "\n";
 	}
+}
+
+function theme_asset_src_allowed($src) {
+	$src = (string)$src;
+	if($src === '' || preg_match('/[\x00-\x20\x7F]/', $src)) return FALSE;
+	if(substr($src, 0, 2) == '//') return FALSE;
+	$scheme = parse_url($src, PHP_URL_SCHEME);
+	if($scheme === NULL || $scheme === FALSE || $scheme === '') return TRUE;
+	return in_array(strtolower($scheme), array('http', 'https'), TRUE);
+}
+
+function theme_script_attr_allowed($name) {
+	$name = (string)$name;
+	if(!preg_match('/^[A-Za-z_:][A-Za-z0-9_:.:-]*$/', $name)) return FALSE;
+	return stripos($name, 'on') !== 0;
+}
+
+function theme_attr_escape($value) {
+	return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', FALSE);
 }
 
 // hook model_misc_end.php
