@@ -50,6 +50,9 @@ jobs:
       - name: Smoke test plugin dependency status
         run: php bin/check_plugin_dependency_status.php
 
+      - name: Smoke test plugin PHP syntax guard
+        run: php bin/check_plugin_syntax_guard.php
+
       - name: Smoke test update task safety
         run: php bin/check_update_task_safety.php
 
