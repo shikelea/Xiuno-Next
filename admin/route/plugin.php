@@ -167,6 +167,7 @@ if($action == 'local') {
 	
 	// 插件依赖检查 / check plugin dependency
 	plugin_check_dependency($dir, 'install');
+	plugin_check_php_syntax($dir);
 	
 	// 安装插件 / install plugin
 	plugin_install($dir);
@@ -218,6 +219,7 @@ if($action == 'local') {
 	plugin_check_dependency($dir, 'unstall');
 	
 	// 卸载插件
+	plugin_check_dependency($dir, 'unstall');
 	plugin_unstall($dir);
 	
 	$unstallfile = APP_PATH."plugin/$dir/unstall.php";
@@ -249,6 +251,8 @@ if($action == 'local') {
 	plugin_check_dependency($dir, 'install');
 	
 	// 启用插件
+	plugin_check_dependency($dir, 'install');
+	plugin_check_php_syntax($dir);
 	plugin_enable($dir);
 	
 	plugin_lock_end();
@@ -272,6 +276,7 @@ if($action == 'local') {
 	plugin_check_dependency($dir, 'unstall');
 	
 	// 禁用插件
+	plugin_check_dependency($dir, 'unstall');
 	plugin_disable($dir);
 	
 	plugin_lock_end();
@@ -297,6 +302,7 @@ if($action == 'local') {
 	
 	// 插件依赖检查
 	plugin_check_dependency($dir, 'install');
+	plugin_check_dependency($dir, 'install');
 	$official = plugin_read_by_dir($dir, FALSE);
 	
 	// 检查版本  / check version match
@@ -306,6 +312,7 @@ if($action == 'local') {
 	
 	// 下载，解压 / download and zip
 	plugin_download_unzip($dir);
+	plugin_check_php_syntax($dir);
 	
 	// 安装插件
 	plugin_install($dir);
@@ -575,6 +582,40 @@ function plugin_order_buy_qrcode_url($siteid, $dir, $app_url = '') {
 function plugin_is_local($dir) {
 	global $plugins;
 	return isset($plugins[$dir]) ? TRUE : FALSE;
+}
+
+function plugin_check_php_syntax($dir) {
+	$root = APP_PATH."plugin/$dir/";
+	if(!is_dir($root) || !function_exists('exec')) return TRUE;
+	$files = plugin_php_files($root);
+	foreach($files as $file) {
+		$path = str_replace('\\', '/', $file);
+		if(strpos($path, "/plugin/$dir/hook/") !== FALSE) continue;
+		$out = array();
+		$code = 0;
+		$php = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
+		exec(escapeshellarg($php).' -l '.escapeshellarg($file).' 2>&1', $out, $code);
+		if($code !== 0) {
+			$rel = str_replace(APP_PATH, '', $path);
+			$detail = implode("\n", $out);
+			plugin_message(-1, 'Plugin PHP syntax check failed: '.htmlspecialchars($rel).' '.htmlspecialchars($detail));
+		}
+	}
+	return TRUE;
+}
+
+function plugin_php_files($dir) {
+	$files = array();
+	$items = glob(rtrim($dir, '/').'/*');
+	if(empty($items)) return $files;
+	foreach($items as $item) {
+		if(is_dir($item)) {
+			$files = array_merge($files, plugin_php_files($item));
+		} elseif(strtolower(substr($item, -4)) === '.php') {
+			$files[] = $item;
+		}
+	}
+	return $files;
 }
 
 function plugin_check_exists($dir, $local = TRUE) {

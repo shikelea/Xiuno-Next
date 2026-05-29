@@ -82,6 +82,24 @@ foreach (array('download', 'install', 'unstall', 'enable', 'disable', 'upgrade')
 		|| fail("Plugin $action action must require POST before locking.");
 }
 
+foreach (array('install', 'enable', 'upgrade') as $action) {
+	$next = $action == 'install' ? 'unstall' : ($action == 'enable' ? 'disable' : 'setting');
+	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "} elseif(\$action == '$next')");
+	$code = preg_replace('#//[^\n]*#', '', $branch);
+	strpos($code, "plugin_check_dependency(\$dir, 'install');") !== FALSE
+		|| fail("Plugin $action action must check install dependencies in executable code.");
+	strpos($code, 'plugin_check_php_syntax($dir);') !== FALSE
+		|| fail("Plugin $action action must run PHP syntax checks before enabling code.");
+}
+
+foreach (array('unstall', 'disable') as $action) {
+	$next = $action == 'unstall' ? 'enable' : 'upgrade';
+	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "} elseif(\$action == '$next')");
+	$code = preg_replace('#//[^\n]*#', '', $branch);
+	strpos($code, "plugin_check_dependency(\$dir, 'unstall');") !== FALSE
+		|| fail("Plugin $action action must check reverse dependencies in executable code.");
+}
+
 foreach (array($plugin_list, $plugin_read) as $template) {
 	foreach (array('plugin-download-', 'plugin-install-', 'plugin-unstall-', 'plugin-enable-', 'plugin-disable-', 'plugin-upgrade-') as $needle) {
 		$pos = strpos($template, $needle);
