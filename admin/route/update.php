@@ -189,7 +189,12 @@ if ($action == 'check') {
 		rmdir_recusive($extract_dir, 1);
 		update_message(-1, lang('update_not_zip') . ' (' . htmlspecialchars($zip_error) . ')');
 	}
-	$zip->extractTo($extract_dir);
+	if (!$zip->extractTo($extract_dir)) {
+		$zip->close();
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		update_message(-1, lang('update_extract_failed'));
+	}
 	$zip->close();
 
 	// GitHub zip 解压后有一层包裹目录，找到它
@@ -224,15 +229,23 @@ if ($action == 'check') {
 	$copy_error = '';
 	$result = update_copy_files($source_dir, $app_root, $protected, $copy_error);
 	if ($result === FALSE) {
+		$restore_error = '';
+		$restore_result = update_restore_backup($backup_dir, $app_root, $restore_error);
 		@unlink($zipfile);
 		rmdir_recusive($extract_dir, 1);
-		update_message(-1, lang('update_failed') . ' (' . htmlspecialchars($copy_error) . ')');
+		$restore_note = $restore_result === FALSE ? '; rollback failed: ' . htmlspecialchars($restore_error) : '; backup restored';
+		update_message(-1, lang('update_failed') . ' (' . htmlspecialchars($copy_error) . $restore_note . ')');
 	}
 	$result['backed_up'] = $backup_result['backed_up'] + (is_file($backup_dir . 'conf/conf.php') ? 1 : 0);
 	$checksum_log = $checksum_verified ? "checksum_verified=1, checksum_source={$checksum_source}" : 'checksum_verified=0';
 	@file_put_contents(APP_PATH . 'log/update.log', date('Y-m-d H:i:s') . " updated to v{$latest_version}, copied={$result['copied']}, backed_up={$result['backed_up']}, zip_sha256={$zip_sha256}, {$checksum_log}, backup={$backup_dir}\n", FILE_APPEND);
 	if (!update_conf_version($latest_version)) {
-		update_message(-1, lang('update_failed') . ' (Cannot update conf/conf.php version)');
+		$restore_error = '';
+		$restore_result = update_restore_backup($backup_dir, $app_root, $restore_error);
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		$restore_note = $restore_result === FALSE ? '; rollback failed: ' . htmlspecialchars($restore_error) : '; backup restored';
+		update_message(-1, lang('update_failed') . ' (Cannot update conf/conf.php version' . $restore_note . ')');
 	}
 
 	// 清理临时文件
