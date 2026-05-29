@@ -101,6 +101,8 @@ Plugin upgrades now reload the replaced package's `conf.json` before install and
 
 The same dependency gate now rejects target plugin metadata errors before install/upgrade writes state. This covers malformed self metadata such as a non-array `dependencies` field after `plugin_read_by_dir()` normalization. Upgrade preflight intentionally allows the old package metadata to be repaired by the replacement package, but the upgrade path reloads the new `conf.json` and then applies the strict metadata/dependency gate inside the existing package and state rollback boundary before writing installed/enabled state.
 
+Plugin write actions now enforce backend state preconditions before lifecycle work: install requires not-installed, unstall requires installed, enable requires installed and disabled, disable requires installed and enabled, and upgrade requires a real available upgrade. This prevents stale tabs or manual POSTs from replaying lifecycle scripts in the wrong state.
+
 ## 2026-05-29 BS4 Compatibility Guard Delta
 
 The high-count BS4 signals from the local sample matrix now have a dedicated repository guard. `bin/check_bs4_compat_layer.php` asserts that `bs4-compat.css` keeps the common legacy selectors (`form-group`, `btn-block`, `custom-file`, `custom-control`, `input-group-prepend/append`, legacy spacing, badges, dropdown alignment, and button groups), and that `bs4-compat.js` keeps BS4 data-attribute conversion, jQuery Modal/Tooltip/Popover/Button proxies, Xiuno helper fallbacks, custom-file labels, dropdown alignment, close-button handling, tab href migration, and same-origin CSRF boundaries. This does not replace real browser smoke, but it prevents accidental deletion of the compatibility surface that the 58 local samples currently depend on.

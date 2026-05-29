@@ -33,6 +33,10 @@ strpos($plugin_route, "!xn_lock_start(plugin_lock_name(), 300)") !== FALSE
 	|| fail('Plugin task lock must use the shared key with an extended TTL.');
 strpos($plugin_route, 'function plugin_require_post()') !== FALSE
 	|| fail('Plugin write actions must have a POST guard.');
+strpos($plugin_route, 'function plugin_require_action_state($dir, $action, $plugin = NULL)') !== FALSE
+	|| fail('Plugin write actions must have a state precondition helper.');
+strpos($plugin_route, "lang('plugin_not_need_update')") !== FALSE
+	|| fail('Plugin upgrade action must reject stale no-op upgrade requests.');
 
 $dependency = section_between($plugin_route, 'function plugin_check_dependency', 'function plugin_dependency_arr_to_links');
 substr_count($dependency, 'plugin_message(-1, $msg);') === 2
@@ -86,6 +90,8 @@ foreach (array('install', 'enable', 'upgrade') as $action) {
 	$next = $action == 'install' ? 'unstall' : ($action == 'enable' ? 'disable' : 'setting');
 	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "} elseif(\$action == '$next')");
 	$code = preg_replace('#//[^\n]*#', '', $branch);
+	strpos($code, "plugin_require_action_state(\$dir, '$action") !== FALSE
+		|| fail("Plugin $action action must reject stale or repeated state transitions.");
 	(
 		strpos($code, "plugin_check_dependency(\$dir, 'install');") !== FALSE ||
 		strpos($code, "plugin_check_dependency(\$dir, 'install',") !== FALSE
@@ -99,6 +105,8 @@ foreach (array('unstall', 'disable') as $action) {
 	$next = $action == 'unstall' ? 'enable' : 'upgrade';
 	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "} elseif(\$action == '$next')");
 	$code = preg_replace('#//[^\n]*#', '', $branch);
+	strpos($code, "plugin_require_action_state(\$dir, '$action") !== FALSE
+		|| fail("Plugin $action action must reject stale or repeated state transitions.");
 	strpos($code, "plugin_check_dependency(\$dir, 'unstall');") !== FALSE
 		|| fail("Plugin $action action must check reverse dependencies in executable code.");
 }
