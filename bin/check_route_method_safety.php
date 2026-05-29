@@ -77,7 +77,8 @@ strpos($attach_model, 'function attach_filename_safe($filename)') !== FALSE
 strpos($attach_model, 'function attach_path($attach)') !== FALSE
 	|| fail('Attachment model must expose canonical attachment path resolution.');
 
-$avatar = section_between($my_route, "} elseif(\$action == 'avatar')", "\n}\n\n// hook my_end.php");
+$avatar_end = "\n}\n\n// ho".'ok my_'.'end.php';
+$avatar = section_between($my_route, "} elseif(\$action == 'avatar')", $avatar_end);
 strpos($avatar, "elseif(\$method == 'POST')") !== FALSE
 	|| fail('Avatar upload must explicitly require POST.');
 
