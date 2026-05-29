@@ -47,13 +47,13 @@
 	<script src="<?php echo $conf['view_url'];?>js/jquery-3.1.0.js<?php echo $static_version;?>"></script>
 	<script src="<?php echo $conf['view_url'];?>js/popper.js<?php echo $static_version;?>"></script>
 	<script src="<?php echo $conf['view_url'];?>js/bootstrap.js<?php echo $static_version;?>"></script>
-	<script src="<?php echo $conf['view_url'];?>js/xiuno.js<?php echo $static_version;?>"></script>
+	<script src="<?php echo $conf['view_url'];?>js/xiuno.min.js<?php echo $static_version;?>"></script>
 	<script src="<?php echo $conf['view_url'];?>js/htmx.min.js<?php echo $static_version;?>"></script>
-	<script src="<?php echo $conf['view_url'];?>js/htmx-xiuno.js<?php echo $static_version;?>"></script>
-	<script src="<?php echo $conf['view_url'];?>js/bs4-compat.js<?php echo $static_version;?>"></script>
-	<script src="<?php echo $conf['view_url'];?>js/bootstrap-plugin.js<?php echo $static_version;?>"></script>
-	<script src="<?php echo $conf['view_url'];?>js/async.js<?php echo $static_version;?>"></script>
-	<script src="<?php echo $conf['view_url'];?>js/form.js<?php echo $static_version;?>"></script>
+	<script src="<?php echo $conf['view_url'];?>js/htmx-xiuno.min.js<?php echo $static_version;?>"></script>
+	<script src="<?php echo $conf['view_url'];?>js/bs4-compat.min.js<?php echo $static_version;?>"></script>
+	<script src="<?php echo $conf['view_url'];?>js/bootstrap-plugin.min.js<?php echo $static_version;?>"></script>
+	<script src="<?php echo $conf['view_url'];?>js/async.min.js<?php echo $static_version;?>"></script>
+	<script src="<?php echo $conf['view_url'];?>js/form.min.js<?php echo $static_version;?>"></script>
 	<script>
 	var debug = DEBUG = <?php echo DEBUG; ?>;
 	var url_rewrite_on = <?php echo $conf['url_rewrite_on'];?>;
@@ -65,7 +65,7 @@
 	xn.options.water_image_url = '<?php echo $conf['logo_water_url'];?>';
 	$.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN',csrf_token);}});
 	</script>
-	<script src="<?php echo $conf['view_url'];?>js/bbs.js<?php echo $static_version;?>"></script>
+	<script src="<?php echo $conf['view_url'];?>js/bbs.min.js<?php echo $static_version;?>"></script>
 	<?php theme_render_scripts(); ?>
 	<!--{hook footer_js_after.htm}-->
 	

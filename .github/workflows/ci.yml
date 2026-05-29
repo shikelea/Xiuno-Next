@@ -44,6 +44,9 @@ jobs:
       - name: Smoke test frontend security guards
         run: php bin/check_frontend_security.php
 
+      - name: Check generated frontend assets
+        run: php bin/build_frontend_assets.php --check
+
       - name: Check generated Hook docs
         shell: bash
         run: |

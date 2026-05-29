@@ -259,6 +259,14 @@ function compatibility_reasons(string $asset): array
         'view/js/bs4-compat.js' => ['BS4 plugin/theme compatibility shim.'],
         'view/css/bs4-compat.css' => ['BS4 plugin/theme compatibility shim.'],
         'view/js/popper.js' => ['Legacy Popper global kept for older plugins using tooltip/popover behavior.'],
+        'view/css/bootstrap.css' => ['Source asset for generated bootstrap.min.css and legacy direct references.'],
+        'view/css/bootstrap-bbs.css' => ['Source asset for generated bootstrap-bbs.min.css and legacy direct references.'],
+        'view/js/xiuno.js' => ['Source asset for generated xiuno.min.js and legacy direct references.'],
+        'view/js/htmx-xiuno.js' => ['Source asset for generated htmx-xiuno.min.js.'],
+        'view/js/async.js' => ['Source asset for generated async.min.js and legacy direct references.'],
+        'view/js/form.js' => ['Source asset for generated form.min.js and legacy direct references.'],
+        'view/js/bbs.js' => ['Source asset for generated bbs.min.js and legacy direct references.'],
+        'admin/view/css/admin.css' => ['Source asset for generated admin.min.css.'],
     ];
 
     return $reasons[$asset] ?? [];
