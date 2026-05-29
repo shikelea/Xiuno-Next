@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Bootstrap](https://img.shields.io/badge/bootstrap-5.0-purple)
 
-> **不破不立，在保持轻量的基础上拥抱未来。**
+> **"不破不立，在保持轻量的基础上拥抱未来。"**
 
 ## 🚀 项目介绍
 
