@@ -53,14 +53,7 @@ if($action == 'login') {
 	
 	// 获取用户信息
 	$uid = param('uid');
-	if(empty($uid)) {
-		// 如果未传 uid，尝试获取当前登录用户
-		$token = param('token');
-		if($token) {
-			$_REQUEST['bbs_token'] = $token;
-			$uid = user_token_get_do();
-		}
-	}
+	if(empty($uid)) $uid = api_auth_uid(FALSE);
 	
 	if(empty($uid)) api_output(-1, lang('user_not_exists'));
 	

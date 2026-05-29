@@ -318,6 +318,56 @@ function api_output($code, $message, $data = array()) {
 	exit;
 }
 
+function api_request_token() {
+	$token = param('token', '', FALSE);
+	empty($token) AND $token = param('bbs_token', '', FALSE);
+	if(!empty($token)) return $token;
+
+	$authorization = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '';
+	empty($authorization) AND $authorization = isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) ? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] : '';
+	if(preg_match('/^\s*Bearer\s+(.+?)\s*$/i', $authorization, $m)) {
+		return $m[1];
+	}
+	return '';
+}
+
+function api_auth_uid($required = FALSE) {
+	global $uid, $user, $gid, $group, $grouplist;
+	if(!empty($uid)) return intval($uid);
+
+	$token = api_request_token();
+	if(!empty($token)) {
+		$had_token = array_key_exists('bbs_token', $_REQUEST);
+		$old_token = $had_token ? $_REQUEST['bbs_token'] : NULL;
+		$_REQUEST['bbs_token'] = $token;
+		$_uid = user_token_get_do();
+		if($had_token) {
+			$_REQUEST['bbs_token'] = $old_token;
+		} else {
+			unset($_REQUEST['bbs_token']);
+		}
+
+		if(!empty($_uid)) {
+			$_user = user_read($_uid);
+			if(!empty($_user)) {
+				$uid = intval($_uid);
+				$user = $_user;
+				$gid = intval($user['gid']);
+				empty($grouplist) AND $grouplist = group_list_cache();
+				$group = isset($grouplist[$gid]) ? $grouplist[$gid] : $grouplist[0];
+				return $uid;
+			}
+		}
+	}
+
+	if($required) api_output(-1, lang('please_login'));
+	return 0;
+}
+
+function api_login_required() {
+	return api_auth_uid(TRUE);
+}
+
 // CSRF Token：生成或获取当前 session 的 CSRF token
 function csrf_token() {
 	if (empty($_SESSION['csrf_token'])) {

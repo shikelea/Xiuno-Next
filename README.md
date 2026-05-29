@@ -172,6 +172,8 @@ bin\benchmark.bat
 
 更多详情请参考 [route/api/](route/api/) 目录下的源码。
 
+API 鉴权：登录接口返回的 `token` 可以通过 `token` 参数、`bbs_token` 参数，或 `Authorization: Bearer <token>` 请求头传递。需要登录的 API 应统一使用 `api_login_required()` / `api_auth_uid()`，避免各接口重复处理 token。
+
 ## 插件体系状态
 
 当前已经可以开发传统兼容插件，使用 `php bin/xiuno make:plugin <plugin_name>` 生成基础结构。Xiuno Next 原生插件规范仍处于预览前准备阶段，计划在 v4.5.x 固定 `plugin.json` 草案、Hook 索引和 CLI smoke test，在 v5.0 形成稳定插件市场闭环。详情见 [docs/plugin-development.md](docs/plugin-development.md) 和 [docs/hooks.md](docs/hooks.md)。
