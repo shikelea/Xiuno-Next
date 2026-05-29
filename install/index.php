@@ -118,9 +118,12 @@ if(empty($action)) {
 		
 		empty($host) AND message('host', lang('dbhost_is_empty'));
 		empty($name) AND message('name', lang('dbname_is_empty'));
+		!install_db_name_safe($name) AND message('name', 'Database name may only contain letters, numbers and underscores.');
 		empty($user) AND message('user', lang('dbuser_is_empty'));
 		empty($adminpass) AND message('adminpass', lang('adminuser_is_empty'));
 		empty($adminemail) AND message('adminemail', lang('adminpass_is_empty'));
+
+		install_lock_start();
 		
 		// 设置超时尽量短一些
 		//set_time_limit(60);
@@ -193,7 +196,7 @@ if(empty($action)) {
 		install_sql_file(INSTALL_PATH.'install.sql');
 		
 		// 初始化
-		copy(APP_PATH.'conf/conf.default.php', APP_PATH.'conf/conf.php');
+		copy(APP_PATH.'conf/conf.default.php', APP_PATH.'conf/conf.php') || message(-1, lang('write_to_file_failed'));
 		
 		$password = password_hash(md5($adminpass), PASSWORD_BCRYPT);
 		$update = array('username'=>$adminuser, 'email'=>$adminemail, 'password'=>$password, 'salt'=>'', 'create_date'=>$time, 'create_ip'=>$longip);
@@ -203,7 +206,7 @@ if(empty($action)) {
 		$replace['db'] = $conf['db'];
 		$replace['auth_key'] = xn_rand(64);
 		$replace['installed'] = 1;
-		file_replace_var(APP_PATH.'conf/conf.php', $replace);
+		file_replace_var(APP_PATH.'conf/conf.php', $replace) === FALSE AND message(-1, lang('write_to_file_failed'));
 		file_put_contents(INSTALL_LOCK_FILE, date('c')."\n", LOCK_EX) === FALSE AND message(-1, lang('write_to_file_failed'));
 		
 		// 处理语言包
@@ -227,8 +230,27 @@ if(empty($action)) {
 		xn_mkdir(APP_PATH.'upload/avatar', 0777);
 		xn_mkdir(APP_PATH.'upload/forum', 0777);
 		
+		install_lock_end();
 		message(0, jump(lang('conguralation_installed'), '../'));
 	}
+}
+
+function install_lock_start() {
+	global $install_task_locked;
+	!xn_lock_start('install_task', 600) AND message(-1, 'Another install task is running, please wait.');
+	$install_task_locked = TRUE;
+	register_shutdown_function('install_lock_end');
+}
+
+function install_lock_end() {
+	global $install_task_locked;
+	if(empty($install_task_locked)) return;
+	xn_lock_end('install_task');
+	$install_task_locked = FALSE;
+}
+
+function install_db_name_safe($name) {
+	return is_string($name) && preg_match('/^[A-Za-z0-9_]{1,64}$/', $name);
 }
 
 

@@ -80,6 +80,9 @@ jobs:
       - name: Smoke test update task safety
         run: php bin/check_update_task_safety.php
 
+      - name: Smoke test install safety
+        run: php bin/check_install_safety.php
+
       - name: Smoke test route method safety
         run: php bin/check_route_method_safety.php
 
