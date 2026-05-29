@@ -2,7 +2,7 @@
 
 > 此文件由 `php bin/generate_hook_docs.php` 生成。修改 Hook 注释后请重新运行脚本。
 
-- Hook 数量：1061
+- Hook 数量：1063
 - 涉及文件：97
 
 | Hook | 文件 | 行号 |
@@ -566,11 +566,13 @@
 | `model_mythread_delete_by_uid_start.php` | `model/mythread.func.php` | 35 |
 | `model_mythread_delete_end.php` | `model/mythread.func.php` | 30 |
 | `model_mythread_delete_start.php` | `model/mythread.func.php` | 28 |
-| `model_mythread_end.php` | `model/mythread.func.php` | 74 |
+| `model_mythread_end.php` | `model/mythread.func.php` | 95 |
 | `model_mythread_find_by_uid_end.php` | `model/mythread.func.php` | 70 |
 | `model_mythread_find_by_uid_start.php` | `model/mythread.func.php` | 63 |
 | `model_mythread_find_end.php` | `model/mythread.func.php` | 58 |
 | `model_mythread_find_start.php` | `model/mythread.func.php` | 56 |
+| `model_mythread_find_visible_by_uid_end.php` | `model/mythread.func.php` | 91 |
+| `model_mythread_find_visible_by_uid_start.php` | `model/mythread.func.php` | 75 |
 | `model_mythread_read_end.php` | `model/mythread.func.php` | 23 |
 | `model_mythread_read_start.php` | `model/mythread.func.php` | 21 |
 | `model_mythread_start.php` | `model/mythread.func.php` | 5 |

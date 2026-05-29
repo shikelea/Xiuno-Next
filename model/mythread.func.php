@@ -71,6 +71,27 @@ function mythread_find_by_uid($uid, $page = 1, $pagesize = 20) {
 	return $threadlist;
 }
 
+function mythread_find_visible_by_uid($uid, $gid, $page = 1, $pagesize = 20, $candidate_limit = 200) {
+	// hook model_mythread_find_visible_by_uid_start.php
+	$candidate_pagesize = min($candidate_limit, max($pagesize, $page * $pagesize));
+	$threadlist = mythread_find_by_uid($uid, 1, $candidate_pagesize);
+	$threadlist_allow = array();
+	if($threadlist) {
+		foreach($threadlist as $tid=>$thread) {
+			if(empty($thread)) continue;
+			if(forum_access_user($thread['fid'], $gid, 'allowread')) {
+				$threadlist_allow[$tid] = thread_safe_info($thread);
+			}
+		}
+	}
+
+	$total = count($threadlist_allow);
+	$start = ($page - 1) * $pagesize;
+	$list = array_assoc_slice($threadlist_allow, $start, $pagesize);
+	// hook model_mythread_find_visible_by_uid_end.php
+	return array('total'=>$total, 'list'=>$list);
+}
+
 // hook model_mythread_end.php
 
 ?>
