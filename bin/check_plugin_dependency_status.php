@@ -1,6 +1,7 @@
 <?php
 
 $root = dirname(__DIR__);
+$plugin_route = file_get_contents($root.'/admin/route/plugin.php');
 
 defined('DEBUG') || define('DEBUG', 0);
 defined('APP_PATH') || define('APP_PATH', $root.'/');
@@ -18,6 +19,14 @@ function assert_status($details, $dir, $status) {
 	if(!isset($details[$dir])) fail("Missing dependency detail for $dir");
 	$actual = $details[$dir]['status'];
 	if($actual !== $status) fail("Expected $dir to be $status, got $actual");
+}
+
+function section_between($source, $start, $end) {
+	$start_pos = strpos($source, $start);
+	if($start_pos === FALSE) fail("Missing section start: $start");
+	$end_pos = strpos($source, $end, $start_pos + strlen($start));
+	if($end_pos === FALSE) fail("Missing section end after $start: $end");
+	return substr($source, $start_pos, $end_pos - $start_pos);
 }
 
 $plugins = array(
@@ -96,5 +105,11 @@ foreach(array('missing', 'downloaded', 'disabled', 'old', 'badmeta', 'cycle') as
 isset($blocked['ok']) && fail('Satisfied dependency must not block install/enable');
 
 plugin_dependency_status_text($blocked['old']) !== '' || fail('Dependency status text must describe structured dependency details.');
+
+$dependency_guard = section_between($plugin_route, 'function plugin_check_dependency', 'function plugin_reload_local');
+strpos($dependency_guard, "!empty(\$plugins[\$dir]['metadata_error'])") !== FALSE
+	|| fail('Plugin install/upgrade dependency checks must reject target plugin metadata errors.');
+strpos($dependency_guard, "'conf.json '.lang('format_maybe_error')") !== FALSE
+	|| fail('Target plugin metadata errors must report a conf.json format error.');
 
 echo "OK: plugin dependency status checks passed\n";

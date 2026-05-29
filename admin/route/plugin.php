@@ -365,6 +365,11 @@ function plugin_check_dependency($dir, $action = 'install', $snapshot = NULL, $p
 	global $plugins;
 	$name = $plugins[$dir]['name'];
 	if($action == 'install') {
+		if(!empty($plugins[$dir]['metadata_error'])) {
+			if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
+			if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
+			plugin_message(-1, 'conf.json '.lang('format_maybe_error'));
+		}
 		$arr = plugin_dependencies($dir);
 		if(!empty($arr)) {
 			$s = plugin_dependency_arr_to_links($arr);
