@@ -62,3 +62,15 @@ Deferred examples:
 The PHP-level review found no remaining package PHP hook that should be restored as a core contract. `model_website_*`, `stately_threadlist_*`, and `stately_wellcms_*` are WellCMS/Stately private runtime slots; `qg_auction_*` and `plugin_haya_post_like_create_end.php` are package business events; `*_fox_tags.php` files are package-private includes behind existing public `.htm` hooks. The review did identify one core behavior fix outside Hook restoration: invalid public user profile requests now stop with the neutral `user_not_exists` message instead of relying on a theme-specific `x_user_start.php` workaround.
 
 This confirms the stage-six order: build the matrix first, improve shared compatibility layers second, and only then publish formal plugin/theme development manuals.
+
+## 2026-05-29 Sample Smoke Delta
+
+A follow-up local scan over the same 58 ignored samples refined the earlier raw findings:
+
+- `conf.json` parsing must trim UTF-8 BOM before classifying metadata. After matching core `xn_json_decode()` behavior, the current sample set has no metadata parse blocker in this pass.
+- Standalone PHP files and `hook/` fragments must be classified separately. Hook fragments often contain `case`, `elseif`, array entries, or template-local snippets that are invalid as isolated PHP files but valid when compiled into their target location.
+- After separating hook fragments, the current sample set has one standalone PHP 8 syntax blocker: an old independent model file with an unparenthesized nested ternary. Core now blocks install/enable/upgrade before such files can enter the enabled plugin set.
+- The high-count frontend signals are mostly BS4 compatibility markers already covered by `bs4-compat.css` and `bs4-compat.js`: `btn-block`, `data-toggle`, `data-target`, `data-dismiss`, `text-left/right`, `float-left/right`, `custom-select`, `custom-control`, and contextual `badge-*` classes. These still need runtime smoke, but they are not automatic package blockers.
+- Dependency edges in the sample set should remain first-class matrix data. Known examples include `abs_themeacp_stately -> abs_theme_stately`, `ax_notice_sx/ob_feedback/till_quick_at -> huux_notice`, and several `tt_* -> tt_credits` packages. Dependency checks are now guarded as executable backend logic, not comment-only scanner matches.
+
+Local scan scripts and generated reports remain ignored. Only stable conclusions, field contracts, and CI guards should be committed.
