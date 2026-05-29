@@ -146,7 +146,9 @@ if($action == 'local') {
 	}
 	
 	// 下载，解压 / download and zip
-	plugin_download_unzip($dir);
+	$package_snapshot = plugin_package_snapshot($dir);
+	plugin_download_unzip($dir, $package_snapshot);
+	plugin_package_snapshot_delete($package_snapshot);
 
 	plugin_lock_end();
 	
@@ -305,13 +307,15 @@ if($action == 'local') {
 	}
 	
 	// 下载，解压 / download and zip
-	plugin_download_unzip($dir);
-	plugin_check_php_syntax($dir);
+	$package_snapshot = plugin_package_snapshot($dir);
+	plugin_download_unzip($dir, $package_snapshot);
+	plugin_check_php_syntax($dir, $package_snapshot);
 	
 	// 安装插件
 	$plugin_snapshot = plugin_state_snapshot($dir);
-	plugin_require_state_write(plugin_install($dir), $dir, $plugin_snapshot);
-	plugin_run_lifecycle($dir, 'upgrade', $plugin_snapshot);
+	plugin_require_state_write(plugin_install($dir), $dir, $plugin_snapshot, $package_snapshot);
+	plugin_run_lifecycle($dir, 'upgrade', $plugin_snapshot, $package_snapshot);
+	plugin_package_snapshot_delete($package_snapshot);
 	
 	plugin_lock_end();
 	
@@ -375,22 +379,25 @@ function plugin_check_dependency($dir, $action = 'install') {
 	}
 }
 
-function plugin_require_state_write($ok, $dir, $snapshot = NULL) {
+function plugin_require_state_write($ok, $dir, $snapshot = NULL, $package_snapshot = NULL) {
 	if($ok) return TRUE;
+	if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
 	if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
 	plugin_message(-1, lang('save_conf_failed', array('file'=>"plugin/$dir/conf.json")));
 }
 
-function plugin_run_lifecycle($dir, $action, $snapshot = NULL) {
+function plugin_run_lifecycle($dir, $action, $snapshot = NULL, $package_snapshot = NULL) {
 	$file = APP_PATH."plugin/$dir/$action.php";
 	if(!is_file($file)) return TRUE;
 	try {
 		$result = include _include($file);
 		if($result === FALSE) {
+			if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
 			if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
 			plugin_message(-1, 'Plugin '.$action.' failed: '.htmlspecialchars($dir));
 		}
 	} catch(Throwable $e) {
+		if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
 		if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
 		plugin_message(-1, 'Plugin '.$action.' failed: '.htmlspecialchars($e->getMessage()));
 	}
@@ -413,8 +420,9 @@ function plugin_dependency_arr_to_links($arr) {
 
 
 // 下载插件、解压
-function plugin_download_unzip($dir) {
+function plugin_download_unzip($dir, $package_snapshot = NULL) {
 	global $conf;
+	$own_package_snapshot = FALSE;
 	$app_url = http_url_path();
 	$siteid =  plugin_siteid();
 	$app_url = xn_urlencode($app_url);
@@ -489,17 +497,67 @@ function plugin_download_unzip($dir) {
 	}
 
 	$dest_dir = APP_PATH."plugin/$dir/";
+	if($package_snapshot === NULL) {
+		$package_snapshot = plugin_package_snapshot($dir);
+		$own_package_snapshot = TRUE;
+	}
 	rmdir_recusive($dest_dir.'hook/', 1);
 	rmdir_recusive($dest_dir.'overwrite/', 1);
 	$copy_error = '';
 	if(!plugin_copy_dir($source_dir, $dest_dir, $copy_error)) {
 		@unlink($zipfile);
 		rmdir_recusive($extract_dir, 1);
+		plugin_package_restore($package_snapshot);
 		plugin_message(-1, lang('plugin_maybe_download_failed')." plugin/$dir (".htmlspecialchars($copy_error).')');
 	}
 	@unlink($zipfile);
 	rmdir_recusive($extract_dir, 1);
-	!is_dir($dest_dir) AND plugin_message(-1, lang('plugin_maybe_download_failed')." plugin/$dir");
+	if(!is_dir($dest_dir)) {
+		plugin_package_restore($package_snapshot);
+		plugin_message(-1, lang('plugin_maybe_download_failed')." plugin/$dir");
+	}
+	if($own_package_snapshot) plugin_package_snapshot_delete($package_snapshot);
+}
+
+function plugin_package_snapshot($dir) {
+	global $conf;
+	$dest_dir = APP_PATH."plugin/$dir/";
+	$snapshot = array(
+		'dir'=>$dir,
+		'dest_dir'=>$dest_dir,
+		'backup_dir'=>'',
+		'had_dest'=>is_dir($dest_dir),
+	);
+	if(!$snapshot['had_dest']) return $snapshot;
+	$snapshot['backup_dir'] = $conf['tmp_path'].'plugin_backup_'.$dir.'_'.str_replace('.', '', uniqid('', TRUE)).'/';
+	$error = '';
+	if(!plugin_copy_dir($dest_dir, $snapshot['backup_dir'], $error)) {
+		rmdir_recusive($snapshot['backup_dir'], 0);
+		plugin_message(-1, 'Plugin package snapshot failed: '.htmlspecialchars($error));
+	}
+	return $snapshot;
+}
+
+function plugin_package_restore($snapshot) {
+	if(empty($snapshot) || !is_array($snapshot)) return TRUE;
+	$dest_dir = $snapshot['dest_dir'];
+	$backup_dir = isset($snapshot['backup_dir']) ? $snapshot['backup_dir'] : '';
+	rmdir_recusive($dest_dir, 0);
+	if(!empty($snapshot['had_dest'])) {
+		$error = '';
+		if(!is_dir($backup_dir) || !plugin_copy_dir($backup_dir, $dest_dir, $error)) {
+			plugin_message(-1, 'Plugin package rollback failed: '.htmlspecialchars($error));
+		}
+	}
+	plugin_package_snapshot_delete($snapshot);
+	plugin_clear_tmp_dir();
+	return TRUE;
+}
+
+function plugin_package_snapshot_delete($snapshot) {
+	if(empty($snapshot) || !is_array($snapshot) || empty($snapshot['backup_dir'])) return TRUE;
+	rmdir_recusive($snapshot['backup_dir'], 0);
+	return TRUE;
 }
 
 function plugin_zip_validate_package($zip, $dir, &$error = '') {
@@ -530,7 +588,7 @@ function plugin_copy_dir($src, $dst, &$error = '') {
 		$error = 'Cannot create directory: '.$dst;
 		return FALSE;
 	}
-	$items = glob($src.'*');
+	$items = plugin_dir_items($src);
 	if(empty($items)) return TRUE;
 	foreach($items as $item) {
 		$item = str_replace('\\', '/', $item);
@@ -545,6 +603,20 @@ function plugin_copy_dir($src, $dst, &$error = '') {
 		}
 	}
 	return TRUE;
+}
+
+function plugin_dir_items($dir) {
+	$items = glob($dir.'*');
+	$dotitems = glob($dir.'.*');
+	$items = is_array($items) ? $items : array();
+	if(is_array($dotitems)) {
+		foreach($dotitems as $item) {
+			$name = basename($item);
+			if($name == '.' || $name == '..') continue;
+			$items[] = $item;
+		}
+	}
+	return $items;
 }
 
 function plugin_mkdir_recursive($dir) {
@@ -597,9 +669,10 @@ function plugin_is_local($dir) {
 	return isset($plugins[$dir]) ? TRUE : FALSE;
 }
 
-function plugin_check_php_syntax($dir) {
+function plugin_check_php_syntax($dir, $package_snapshot = NULL) {
 	$errors = plugin_php_syntax_errors($dir);
 	if(!empty($errors)) {
+		if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
 		$error = $errors[0];
 		plugin_message(-1, 'Plugin PHP syntax check failed: '.htmlspecialchars($error['file']).' '.htmlspecialchars($error['detail']));
 	}
