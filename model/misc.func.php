@@ -318,6 +318,16 @@ function api_output($code, $message, $data = array()) {
 	exit;
 }
 
+function api_method_required($required) {
+	global $method;
+	$methods = (array)$required;
+	$current = strtoupper($method);
+	foreach($methods as $_method) {
+		if($current == strtoupper($_method)) return TRUE;
+	}
+	api_output(-1, 'Method Not Allowed');
+}
+
 function api_request_token() {
 	$token = param('token', '', FALSE);
 	empty($token) AND $token = param('bbs_token', '', FALSE);

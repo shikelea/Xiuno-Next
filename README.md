@@ -175,7 +175,7 @@ bin\benchmark.bat
 
 更多详情请参考 [route/api/](route/api/) 目录下的源码。
 
-API 鉴权：登录接口返回的 `token` 可以通过 `token` 参数、`bbs_token` 参数，或 `Authorization: Bearer <token>` 请求头传递。需要登录的 API 应统一使用 `api_login_required()` / `api_auth_uid()`，避免各接口重复处理 token。
+API 鉴权：登录接口返回的 `token` 可以通过 `token` 参数、`bbs_token` 参数，或 `Authorization: Bearer <token>` 请求头传递。需要登录的 API 应统一使用 `api_login_required()` / `api_auth_uid()`，写入类接口应统一使用 `api_method_required()` 约束请求方法，避免各接口重复处理 token 与方法校验。
 
 ## 插件体系状态
 

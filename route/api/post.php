@@ -7,7 +7,7 @@ $action = param(2);
 // 回帖
 if($action == 'create') {
 	
-	if($method != 'POST') api_output(-1, 'Method Not Allowed');
+	api_method_required('POST');
 	api_login_required();
 	
 	$tid = param('tid', 0);
