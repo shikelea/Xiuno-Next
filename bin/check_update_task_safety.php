@@ -54,12 +54,21 @@ strpos($rollback_locked, 'AND message(') === FALSE
 
 strpos($download, 'file_put_contents($zipfile, $zipdata) !== strlen($zipdata)') !== FALSE
 	|| fail('Downloaded ZIP writes must be checked for short writes.');
+strpos($download, 'if (!$zip->extractTo($extract_dir))') !== FALSE
+	|| fail('ZIP extraction failures must stop the update before source selection.');
 strpos($download, '$copy_error =') !== FALSE
 	|| fail('Update copy errors must be captured.');
 strpos($download, 'if ($result === FALSE)') !== FALSE
 	|| fail('Update copy failures must stop the update.');
 strpos($download, 'if (!update_conf_version($latest_version))') !== FALSE
 	|| fail('conf.php version write failures must stop the update.');
+
+$copy_failure = section_between($download, 'if ($result === FALSE)', '$result[\'backed_up\']');
+strpos($copy_failure, 'update_restore_backup($backup_dir, $app_root, $restore_error)') !== FALSE
+	|| fail('Update copy failures must attempt to restore the backup before reporting failure.');
+$version_failure = section_between($download, 'if (!update_conf_version($latest_version))', '// 清理临时文件');
+strpos($version_failure, 'update_restore_backup($backup_dir, $app_root, $restore_error)') !== FALSE
+	|| fail('conf.php version write failures must attempt to restore the backup before reporting failure.');
 
 strpos($update_route, 'function update_copy_files($src, $dst, $protected = array(), &$error =') !== FALSE
 	|| fail('update_copy_files() must expose a failure error string.');
