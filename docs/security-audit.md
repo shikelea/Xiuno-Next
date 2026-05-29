@@ -82,4 +82,5 @@ rg -n "simplexml_load_string|simplexml_load_file|DOMDocument|LIBXML_NOENT|xml_pa
 
 - `bs4-compat.js` now limits automatic CSRF header injection to same-origin jQuery/fetch POST requests. Cross-origin requests no longer receive `X-CSRF-TOKEN`.
 - Plugin upgrade now reloads the new package metadata after replacement and re-checks dependencies before install. A new missing dependency restores the old package directory and previous plugin state.
+- Install/upgrade dependency checks now also reject target plugin metadata errors, so malformed self `conf.json` data cannot be silently marked installed/enabled.
 - `bin/check_frontend_security.php` and `bin/check_plugin_package_rollback.php` guard these contracts in CI.
