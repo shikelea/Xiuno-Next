@@ -305,7 +305,7 @@ function thread_find_by_keyword($keyword) {
 
 function thread_search_by_subject($keyword, $gid, $page = 1, $pagesize = 20, $candidate_limit = 200) {
 	// hook model_thread_search_by_subject_start.php
-	$candidate_pagesize = min($candidate_limit, max($pagesize, $page * $pagesize));
+	$candidate_pagesize = min($candidate_limit, max(100, $pagesize, $page * $pagesize));
 	$threadlist = db_find('thread', array('subject'=>array('LIKE'=>$keyword)), array('tid'=>-1), 1, $candidate_pagesize, 'tid');
 	if($threadlist) {
 		foreach ($threadlist as &$thread) {
