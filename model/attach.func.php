@@ -67,7 +67,8 @@ function attach_delete($aid) {
 	// hook model_attach_delete_start.php
 	global $conf;
 	$attach = attach_read($aid);
-	$path = $conf['upload_path'].'attach/'.$attach['filename'];
+	if(empty($attach)) return FALSE;
+	$path = attach_path($attach);
 	file_exists($path) AND unlink($path);
 	
 	$r = attach__delete($aid);
@@ -80,7 +81,7 @@ function attach_delete_by_pid($pid) {
 	list($attachlist, $imagelist, $filelist) = attach_find_by_pid($pid);
 	// hook model_attach_delete_by_pid_start.php
 	foreach($attachlist as $attach) {
-		$path = $conf['upload_path'].'attach/'.$attach['filename'];
+		$path = attach_path($attach);
 		file_exists($path) AND unlink($path);
 		attach__delete($attach['aid']);
 	}
@@ -93,7 +94,7 @@ function attach_delete_by_uid($uid) {
 	// hook model_attach_delete_by_uid_start.php
 	$attachlist = db_find('attach', array('uid'=>$uid), array(), 1, 9000);
 	foreach ($attachlist as $attach) {
-		$path = $conf['upload_path'].'attach/'.$attach['filename'];
+		$path = attach_path($attach);
 		file_exists($path) AND unlink($path);
 		attach__delete($attach['aid']);
 	}
@@ -129,8 +130,9 @@ function attach_format(&$attach) {
 	global $conf;
 	if(empty($attach)) return;
 	// hook model_attach_format_start.php
+	$filename = isset($attach['filename']) ? $attach['filename'] : '';
 	$attach['create_date_fmt'] = date('Y-n-j', $attach['create_date']);
-	$attach['url'] = $conf['upload_url'].'attach/'.$attach['filename'];
+	$attach['url'] = attach_filename_safe($filename) ? $conf['upload_url'].'attach/'.$filename : '';
 	// hook model_attach_format_end.php
 }
 
@@ -159,6 +161,20 @@ function attach_download_filename($filename) {
 	$filename = preg_replace('/[\x00-\x1F\x7F]+/', '', (string)$filename);
 	$filename = str_replace(array('"', '\\'), array("'", '_'), $filename);
 	return $filename === '' ? 'download' : $filename;
+}
+
+function attach_filename_safe($filename) {
+	$filename = str_replace('\\', '/', (string)$filename);
+	if($filename === '' || strpos($filename, "\0") !== FALSE) return FALSE;
+	if(strpos($filename, '../') !== FALSE || substr($filename, 0, 1) == '/') return FALSE;
+	if(strpos($filename, ':') !== FALSE) return FALSE;
+	return preg_match('#^[0-9]{4,8}/[A-Za-z0-9_]+\.[A-Za-z0-9_]+$#', $filename) === 1;
+}
+
+function attach_path($attach) {
+	global $conf;
+	if(empty($attach['filename']) || !attach_filename_safe($attach['filename'])) return '';
+	return $conf['upload_path'].'attach/'.$attach['filename'];
 }
 
 // 扫描垃圾的附件，每日清理一次

@@ -5,6 +5,7 @@ define('APP_PATH', realpath(dirname(__FILE__).'/../').'/');
 define('INSTALL_PATH', dirname(__FILE__).'/');
 
 define('MESSAGE_HTM_PATH', INSTALL_PATH.'view/htm/message.htm');
+define('INSTALL_LOCK_FILE', APP_PATH.'conf/.installed.lock');
 
 // 切换到上一级目录，操作很方便。
 
@@ -31,8 +32,12 @@ include INSTALL_PATH.'install.func.php';
 
 $action = param('action');
 
-// 安装初始化检测,放这里
-is_file(APP_PATH.'conf/conf.php') AND message(0, jump(lang('installed_tips'), '../'));
+if(!in_array($method, array('GET', 'POST'), TRUE)) {
+	message(-1, 'Method Not Allowed');
+}
+
+// Already installed: never expose the installer flow directly.
+(is_file(APP_PATH.'conf/conf.php') || is_file(INSTALL_LOCK_FILE)) AND message(0, jump(lang('installed_tips'), '../'));
 
 // 从 cookie 中获取数据，默认为中文
 $_lang = param('lang', 'zh-cn');
@@ -199,6 +204,7 @@ if(empty($action)) {
 		$replace['auth_key'] = xn_rand(64);
 		$replace['installed'] = 1;
 		file_replace_var(APP_PATH.'conf/conf.php', $replace);
+		file_put_contents(INSTALL_LOCK_FILE, date('c')."\n", LOCK_EX) === FALSE AND message(-1, lang('write_to_file_failed'));
 		
 		// 处理语言包
 		group_update(0, array('name'=>lang('group_0')));

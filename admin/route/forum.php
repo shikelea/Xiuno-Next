@@ -206,6 +206,8 @@ if(empty($action) || $action == 'list') {
 	
 } elseif($action == 'delete') {
 	
+	$method != 'POST' AND message(-1, 'Method Not Allowed');
+
 	$_fid = param(2, 0);
 	$_forum = forum_read($_fid);
 	empty($_forum) AND message(-1, lang('forum_not_exists'));

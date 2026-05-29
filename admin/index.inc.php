@@ -23,6 +23,10 @@ if(DEBUG < 3) {
 
 $route = param(0, 'index');
 
+if(!in_array($method, array('GET', 'POST'), TRUE)) {
+	message(-1, 'Method Not Allowed');
+}
+
 if ($method == 'POST') {
 	csrf_check();
 }

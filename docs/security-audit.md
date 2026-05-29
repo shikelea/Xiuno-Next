@@ -59,3 +59,14 @@ rg -n "simplexml_load_string|simplexml_load_file|DOMDocument|LIBXML_NOENT|xml_pa
 - 后台站点名 XSS：确认存在并已修复。修复采取“保存端收窄 + 输出端转义 + CI smoke 守护”的方式，避免历史配置值或未来模板回退再次触发。
 - 编辑器/帖子 XSS：普通用户路径未见原 CVE 直接残留；`gid == 1` HTML 帖直通、历史 `message_fmt` 和插件 hook 后处理属于高权限/历史数据/生态边界风险，后续在阶段六结合插件与主题兼容矩阵继续收敛。
 - XML/XXE：核心无对应 XML 输入解析面；插件和主题开发规范后续需要明确禁止对用户输入使用 `simplexml_load_string()`、`DOMDocument::loadXML()`、`LIBXML_NOENT`，解析 HTML/XML 片段时应禁止 DOCTYPE/ENTITY 并使用 `LIBXML_NONET`。
+
+## 2026-05-29 路由写操作方法加固
+
+- 附件上传/删除路由已强制 POST：`route/attach.php` 的 `create` 与 `delete` 继续受全局 CSRF 保护。
+- 后台批量主题操作与论坛删除已强制 POST：覆盖 `admin/route/thread.php?action=operation` 与 `admin/route/forum.php?action=delete`。
+- 前台、后台与安装入口加入 GET/POST 白名单，避免旧式 `if(GET) ... else ...` 分支把未知 HTTP 方法误判为写提交。
+- 后台主题队列写入已收紧：`thread-scan` 强制 POST，`thread-operation-*` 先校验操作类型再消费队列，队列耗尽后主动销毁。
+- 移除后台首页旧版 `custom.xiuno.com` 明文远程版本脚本，后台退出改为 POST。
+- 安装完成后写入 `conf/.installed.lock`，让已安装状态在 `conf/conf.php` 之外再有一层阻断。
+- 附件读删加入统一文件名/路径校验，头像上传改为验证真实图片并重编码为 PNG。
+- 新增 `bin/check_route_method_safety.php` 并纳入 CI，作为阶段六前置硬化闸门的回归守卫。
