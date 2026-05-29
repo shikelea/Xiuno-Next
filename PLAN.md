@@ -222,6 +222,8 @@
   - [x] 统一鉴权机制（基础完成）：新增 `api_auth_uid()` / `api_login_required()`，统一支持 `token`、`bbs_token` 和 `Authorization: Bearer`；发帖/回帖 API 已改为走统一 helper，CI smoke 防止回退。
   - [x] 写入方法约束（基础完成）：新增 `api_method_required()`，登录、发帖、回帖 API 已统一复用，减少后续写入接口遗漏 POST 限制的风险。
   - [x] 分页参数约束（基础完成）：新增 `api_page_params()`，帖子列表和帖子详情回复分页已统一钳制 `page` / `pagesize`，避免大页码或无效页大小在 API 中散落处理。
+  - [x] API 文档拆分：新增 `docs/api.md`，README 只保留入口链接；文档记录 URL 兼容形式、响应 envelope、Token/CSRF、分页、权限过滤和候选窗口语义。
+  - [x] API 安全边界补强：全站帖子列表限制到当前用户可读版块，帖子读取统一走 `forum_access_user()`，回帖引用校验同主题；API POST 在浏览器 session 且无显式 token 时要求 CSRF。
   - 请求频率限制（Rate Limiting）：防止 API 滥用，保护服务器性能。
   - 自动生成 API 文档：基于代码注释或约定生成接口文档，降低对接成本。
   

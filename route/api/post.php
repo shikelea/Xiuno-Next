@@ -33,6 +33,11 @@ if($action == 'create') {
 	if($thread['closed'] > 0) {
 		api_output(-1, lang('thread_has_closed'));
 	}
+
+	if(!empty($quotepid)) {
+		$quotepost = post__read($quotepid);
+		if(empty($quotepost) || $quotepost['tid'] != $tid) $quotepid = 0;
+	}
 	
 	$post = array(
 		'tid' => $tid,

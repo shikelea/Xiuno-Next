@@ -18,9 +18,20 @@ if($action == 'list') {
 		if(empty($forum)) api_output(-1, lang('forum_not_exists'));
 		
 		// 权限判断
-		if($forum['accesson'] && !forum_access_user($fid, $gid, 'allowread')) {
+		if(!forum_access_user($fid, $gid, 'allowread')) {
 			api_output(-1, lang('insufficient_privilege'));
 		}
+	} else {
+		$allowfids = empty($forumlist_show) ? array() : array_keys($forumlist_show);
+		if(empty($allowfids)) {
+			api_output(0, 'OK', array(
+				'page' => $page,
+				'pagesize' => $pagesize,
+				'total' => 0,
+				'list' => array(),
+			));
+		}
+		$cond['fid'] = $allowfids;
 	}
 	
 	// 排序：默认按最后回复时间倒序
@@ -61,7 +72,7 @@ if($action == 'list') {
 	$forum = forum_read($fid);
 	
 	// 权限判断
-	if($forum['accesson'] && !forum_access_user($fid, $gid, 'allowread')) {
+	if(!forum_access_user($fid, $gid, 'allowread')) {
 		api_output(-1, lang('insufficient_privilege'));
 	}
 	
