@@ -46,6 +46,10 @@ strpos($plugin_route, "lang('save_conf_failed'") !== FALSE
 	|| fail('Plugin config write failures must use the existing save_conf_failed message.');
 
 $lifecycle = section_between($plugin_route, 'function plugin_run_lifecycle', 'function plugin_dependency_arr_to_links');
+strpos($lifecycle, 'plugin_lifecycle_guard_start($dir, $action, $snapshot, $package_snapshot, $extra_state_restore);') !== FALSE
+	|| fail('Plugin lifecycle execution must arm a shutdown rollback guard before including third-party code.');
+strpos($lifecycle, 'plugin_lifecycle_guard_clear();') !== FALSE
+	|| fail('Plugin lifecycle execution must clear the shutdown rollback guard after normal return or catch.');
 strpos($lifecycle, 'catch(Throwable $e)') !== FALSE
 	|| fail('Plugin lifecycle files must be wrapped in a Throwable catch.');
 strpos($lifecycle, 'plugin_state_restore($dir, $snapshot);') !== FALSE
@@ -58,6 +62,12 @@ strpos($lifecycle, 'plugin_message(-1') !== FALSE
 	|| fail('Plugin lifecycle failures must release the task lock before exiting.');
 strpos($plugin_route, 'function plugin_restore_extra_states($states)') !== FALSE
 	|| fail('Related plugin state restore helper is missing.');
+strpos($plugin_route, 'function plugin_lifecycle_guard_restore()') !== FALSE
+	|| fail('Plugin lifecycle shutdown restore helper is missing.');
+strpos($plugin_route, 'plugin_package_restore($guard[\'package_snapshot\'])') !== FALSE
+	|| fail('Plugin lifecycle shutdown restore must restore package snapshots.');
+strpos($plugin_route, "plugin_state_restore(\$guard['dir'], \$guard['snapshot'])") !== FALSE
+	|| fail('Plugin lifecycle shutdown restore must restore plugin state snapshots.');
 
 foreach(array('install'=>'unstall', 'unstall'=>'enable', 'upgrade'=>'setting') as $action=>$next) {
 	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "} elseif(\$action == '$next')");

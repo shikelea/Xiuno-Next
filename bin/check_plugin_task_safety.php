@@ -31,6 +31,12 @@ strpos($plugin_route, "return 'plugin_task';") !== FALSE
 	|| fail('Plugin writes must share one global plugin_task lock.');
 strpos($plugin_route, "!xn_lock_start(plugin_lock_name(), 300)") !== FALSE
 	|| fail('Plugin task lock must use the shared key with an extended TTL.');
+strpos($plugin_route, "register_shutdown_function('plugin_shutdown_guard')") !== FALSE
+	|| fail('Plugin task lock must register a shutdown guard for direct lifecycle exits.');
+strpos($plugin_route, 'function plugin_shutdown_guard()') !== FALSE
+	|| fail('Plugin shutdown guard helper is missing.');
+strpos($plugin_route, "plugin_lifecycle_guard_restore();\n\tplugin_lock_end();") !== FALSE
+	|| fail('Plugin shutdown guard must restore pending lifecycle state and release the task lock.');
 strpos($plugin_route, 'function plugin_require_post()') !== FALSE
 	|| fail('Plugin write actions must have a POST guard.');
 strpos($plugin_route, 'function plugin_require_action_state($dir, $action, $plugin = NULL)') !== FALSE
