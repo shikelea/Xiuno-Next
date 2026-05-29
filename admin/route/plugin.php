@@ -170,12 +170,9 @@ if($action == 'local') {
 	plugin_check_php_syntax($dir);
 	
 	// 安装插件 / install plugin
-	plugin_install($dir);
-	
-	$installfile = APP_PATH."plugin/$dir/install.php";
-	if(is_file($installfile)) {
-		include _include($installfile);
-	}
+	$plugin_snapshot = plugin_state_snapshot($dir);
+	plugin_require_state_write(plugin_install($dir), $dir, $plugin_snapshot);
+	plugin_run_lifecycle($dir, 'install', $plugin_snapshot);
 	
 	// 卸载同类插件，防止安装类似插件。
 	// 自动卸载掉其他已经安装的主题 / automatically unstall other theme plugin.
@@ -183,7 +180,7 @@ if($action == 'local') {
 		foreach($plugins as $_dir => $_plugin) {
 			if($dir == $_dir) continue;
 			if(strpos($_dir, '_theme_') !== FALSE) {
-				plugin_unstall($_dir);
+				plugin_require_state_write(plugin_unstall($_dir), $_dir);
 			}
 		}
 	} else {
@@ -193,7 +190,7 @@ if($action == 'local') {
 			if($dir == $_dir) continue;
 			$_suffix = substr($_dir, strpos($_dir, '_'));
 			if($suffix == $_suffix) {
-				plugin_unstall($_dir);
+				plugin_require_state_write(plugin_unstall($_dir), $_dir);
 			}
 		}
 	}
@@ -220,12 +217,9 @@ if($action == 'local') {
 	
 	// 卸载插件
 	plugin_check_dependency($dir, 'unstall');
-	plugin_unstall($dir);
-	
-	$unstallfile = APP_PATH."plugin/$dir/unstall.php";
-	if(is_file($unstallfile)) {
-		include _include($unstallfile);
-	}
+	$plugin_snapshot = plugin_state_snapshot($dir);
+	plugin_require_state_write(plugin_unstall($dir), $dir, $plugin_snapshot);
+	plugin_run_lifecycle($dir, 'unstall', $plugin_snapshot);
 	
 	// 删除插件
 	//!DEBUG && rmdir_recusive("../plugin/$dir");
@@ -253,7 +247,7 @@ if($action == 'local') {
 	// 启用插件
 	plugin_check_dependency($dir, 'install');
 	plugin_check_php_syntax($dir);
-	plugin_enable($dir);
+	plugin_require_state_write(plugin_enable($dir), $dir);
 	
 	plugin_lock_end();
 	
@@ -277,7 +271,7 @@ if($action == 'local') {
 	
 	// 禁用插件
 	plugin_check_dependency($dir, 'unstall');
-	plugin_disable($dir);
+	plugin_require_state_write(plugin_disable($dir), $dir);
 	
 	plugin_lock_end();
 	
@@ -315,12 +309,9 @@ if($action == 'local') {
 	plugin_check_php_syntax($dir);
 	
 	// 安装插件
-	plugin_install($dir);
-
-	$upgradefile = APP_PATH."plugin/$dir/upgrade.php";
-	if(is_file($upgradefile)) {
-		include _include($upgradefile);
-	}
+	$plugin_snapshot = plugin_state_snapshot($dir);
+	plugin_require_state_write(plugin_install($dir), $dir, $plugin_snapshot);
+	plugin_run_lifecycle($dir, 'upgrade', $plugin_snapshot);
 	
 	plugin_lock_end();
 	
@@ -382,6 +373,28 @@ function plugin_check_dependency($dir, $action = 'install') {
 			plugin_message(-1, $msg);
 		}
 	}
+}
+
+function plugin_require_state_write($ok, $dir, $snapshot = NULL) {
+	if($ok) return TRUE;
+	if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
+	plugin_message(-1, lang('save_conf_failed', array('file'=>"plugin/$dir/conf.json")));
+}
+
+function plugin_run_lifecycle($dir, $action, $snapshot = NULL) {
+	$file = APP_PATH."plugin/$dir/$action.php";
+	if(!is_file($file)) return TRUE;
+	try {
+		$result = include _include($file);
+		if($result === FALSE) {
+			if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
+			plugin_message(-1, 'Plugin '.$action.' failed: '.htmlspecialchars($dir));
+		}
+	} catch(Throwable $e) {
+		if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
+		plugin_message(-1, 'Plugin '.$action.' failed: '.htmlspecialchars($e->getMessage()));
+	}
+	return TRUE;
 }
 
 function plugin_dependency_arr_to_links($arr) {

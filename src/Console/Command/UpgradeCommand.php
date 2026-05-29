@@ -2,17 +2,16 @@
 
 namespace Xiuno\Console\Command;
 
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+#[AsCommand(name: 'upgrade', description: '从旧版 Xiuno BBS 升级到 Xiuno Next')]
 class UpgradeCommand extends Command
 {
-    protected static $defaultName = 'upgrade';
-    protected static $defaultDescription = '从旧版 Xiuno BBS 升级到 Xiuno Next';
-
     private const TARGET_VERSION = '4.4.5';
 
     // 旧版可能缺失的配置项及其默认值

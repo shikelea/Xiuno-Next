@@ -57,7 +57,8 @@ if($action == 'base') {
 		$replace['user_resetpw_on'] = $user_resetpw_on;
 		$replace['lang'] = $_lang;
 		
-		file_replace_var(APP_PATH.'conf/conf.php', $replace);
+		$r = file_replace_var(APP_PATH.'conf/conf.php', $replace);
+		$r === FALSE AND message(-1, lang('save_conf_failed', array('file'=>'conf/conf.php')));
 	
 		// hook admin_setting_base_post_end.php
 		

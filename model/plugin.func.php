@@ -226,12 +226,17 @@ function plugin_enable($dir) {
 		return FALSE;
 	}
 	
+	$old = plugin_state_snapshot($dir);
 	$plugins[$dir]['enable'] = 1;
 	
 	//plugin_overwrite($dir, 'install');
 	//plugin_hook($dir, 'install');
 	
-	file_replace_var(APP_PATH."plugin/$dir/conf.json", array('enable'=>1), TRUE);
+	$r = file_replace_var(APP_PATH."plugin/$dir/conf.json", array('enable'=>1), TRUE);
+	if($r === FALSE) {
+		plugin_state_restore($dir, $old);
+		return FALSE;
+	}
 	
 	plugin_clear_tmp_dir();
 	
@@ -252,12 +257,17 @@ function plugin_disable($dir) {
 		return FALSE;
 	}
 	
+	$old = plugin_state_snapshot($dir);
 	$plugins[$dir]['enable'] = 0;
 	
 	//plugin_overwrite($dir, 'unstall');
 	//plugin_hook($dir, 'unstall');
 	
-	file_replace_var(APP_PATH."plugin/$dir/conf.json", array('enable'=>0), TRUE);
+	$r = file_replace_var(APP_PATH."plugin/$dir/conf.json", array('enable'=>0), TRUE);
+	if($r === FALSE) {
+		plugin_state_restore($dir, $old);
+		return FALSE;
+	}
 	
 	plugin_clear_tmp_dir();
 	
@@ -295,6 +305,7 @@ function plugin_install($dir) {
 		return FALSE;
 	}
 	
+	$old = plugin_state_snapshot($dir);
 	$plugins[$dir]['installed'] = 1;
 	$plugins[$dir]['enable'] = 1;
 	
@@ -305,7 +316,11 @@ function plugin_install($dir) {
 	//plugin_hook($dir, 'install');
 	
 	// 写入配置文件
-	file_replace_var(APP_PATH."plugin/$dir/conf.json", array('installed'=>1, 'enable'=>1), TRUE);
+	$r = file_replace_var(APP_PATH."plugin/$dir/conf.json", array('installed'=>1, 'enable'=>1), TRUE);
+	if($r === FALSE) {
+		plugin_state_restore($dir, $old);
+		return FALSE;
+	}
 	
 	plugin_clear_tmp_dir();
 	
@@ -320,6 +335,7 @@ function plugin_unstall($dir) {
 		return TRUE;
 	}
 	
+	$old = plugin_state_snapshot($dir);
 	$plugins[$dir]['installed'] = 0;
 	$plugins[$dir]['enable'] = 0;
 	
@@ -330,10 +346,35 @@ function plugin_unstall($dir) {
 	//plugin_hook($dir, 'unstall');
 	
 	// 写入配置文件
-	file_replace_var(APP_PATH."plugin/$dir/conf.json", array('installed'=>0, 'enable'=>0), TRUE);
+	$r = file_replace_var(APP_PATH."plugin/$dir/conf.json", array('installed'=>0, 'enable'=>0), TRUE);
+	if($r === FALSE) {
+		plugin_state_restore($dir, $old);
+		return FALSE;
+	}
 	
 	plugin_clear_tmp_dir();
 	
+	return TRUE;
+}
+
+function plugin_state_snapshot($dir) {
+	global $plugins;
+	return isset($plugins[$dir]) ? $plugins[$dir] : NULL;
+}
+
+function plugin_state_restore($dir, $snapshot) {
+	global $plugins;
+	if($snapshot === NULL) return FALSE;
+	$plugins[$dir] = $snapshot;
+	$replace = array();
+	foreach(array('installed', 'enable') as $key) {
+		if(isset($snapshot[$key])) $replace[$key] = empty($snapshot[$key]) ? 0 : 1;
+	}
+	if(!empty($replace)) {
+		$r = file_replace_var(APP_PATH."plugin/$dir/conf.json", $replace, TRUE);
+		if($r === FALSE) return FALSE;
+	}
+	plugin_clear_tmp_dir();
 	return TRUE;
 }
 

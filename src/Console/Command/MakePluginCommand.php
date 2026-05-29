@@ -2,17 +2,16 @@
 
 namespace Xiuno\Console\Command;
 
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+#[AsCommand(name: 'make:plugin', description: '创建一个新的插件结构')]
 class MakePluginCommand extends Command
 {
-    protected static $defaultName = 'make:plugin';
-    protected static $defaultDescription = '创建一个新的插件结构';
-
     protected function configure(): void
     {
         $this

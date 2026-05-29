@@ -2,17 +2,16 @@
 
 namespace Xiuno\Console\Command;
 
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+#[AsCommand(name: 'migrate', description: '执行数据库迁移')]
 class MigrateCommand extends Command
 {
-    protected static $defaultName = 'migrate';
-    protected static $defaultDescription = '执行数据库迁移';
-
     protected function configure(): void
     {
         $this->addOption('check', null, InputOption::VALUE_NONE, '只检查迁移文件是否可加载，不连接数据库或写入状态');
