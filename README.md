@@ -156,19 +156,19 @@ bin\benchmark.bat
 
 本项目提供了一套标准的 RESTful API，方便开发移动端或单页应用。
 
-**基础 URL**: `http://your-domain.com/?api-{controller}-{action}` (伪静态) 或 `http://your-domain.com/?route=api/{controller}/{action}`
+**基础 URL**: `http://your-domain.com/?api-v1-{controller}-{action}.htm`；开启路径模式时可使用 `/api/v1/{controller}/{action}`。旧版 `?api-{controller}-{action}.htm` 仍保留兼容。
 
 **可用接口**:
 
 *   **用户 (User)**
-    *   `POST /api/user/login`: 用户登录 (参数: `email`, `password`)
-    *   `GET /api/user/read`: 获取用户信息 (参数: `uid` 或 `token`)
+    *   `POST /api/v1/user/login`: 用户登录 (参数: `email`, `password`)
+    *   `GET /api/v1/user/read`: 获取用户信息 (参数: `uid` 或 `token`)
 *   **帖子 (Thread)**
-    *   `GET /api/thread/list`: 获取帖子列表 (参数: `fid`, `page`)
-    *   `GET /api/thread/read`: 获取帖子详情及回复 (参数: `tid`, `page`)
-    *   `POST /api/thread/create`: 发布新帖 (参数: `fid`, `subject`, `message`, `doctype`)
+    *   `GET /api/v1/thread/list`: 获取帖子列表 (参数: `fid`, `page`)
+    *   `GET /api/v1/thread/read`: 获取帖子详情及回复 (参数: `tid`, `page`)
+    *   `POST /api/v1/thread/create`: 发布新帖 (参数: `fid`, `subject`, `message`, `doctype`)
 *   **回复 (Post)**
-    *   `POST /api/post/create`: 发布回复 (参数: `tid`, `message`, `doctype`)
+    *   `POST /api/v1/post/create`: 发布回复 (参数: `tid`, `message`, `doctype`)
 
 更多详情请参考 [route/api/](route/api/) 目录下的源码。
 

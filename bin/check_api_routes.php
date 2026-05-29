@@ -27,10 +27,12 @@ function api_output($code, $message, $data = array()) {
 	));
 }
 
-function api_smoke_run($action) {
+function api_smoke_run($request) {
 	global $conf;
 	$_REQUEST = array();
-	if($action !== NULL) $_REQUEST[1] = $action;
+	foreach((array)$request as $key => $value) {
+		$_REQUEST[$key] = $value;
+	}
 	try {
 		include APP_PATH . 'route/api.php';
 	} catch (ApiSmokeOutput $e) {
@@ -39,19 +41,29 @@ function api_smoke_run($action) {
 	return NULL;
 }
 
-$response = api_smoke_run(NULL);
-if(!is_array($response) || $response['code'] !== 0 || $response['data']['version'] !== 'smoke') {
+$response = api_smoke_run(array());
+if(!is_array($response) || $response['code'] !== 0 || $response['data']['version'] !== 'smoke' || $response['data']['api_version'] !== 'legacy') {
 	$errors[] = 'default API route did not return index response';
 }
 
-$response = api_smoke_run('missing');
+$response = api_smoke_run(array(1 => 'v1'));
+if(!is_array($response) || $response['code'] !== 0 || $response['data']['api_version'] !== 'v1') {
+	$errors[] = 'versioned API route did not return v1 index response';
+}
+
+$response = api_smoke_run(array(1 => 'missing'));
 if(!is_array($response) || $response['code'] !== 404) {
 	$errors[] = 'missing API route did not return 404';
 }
 
-$response = api_smoke_run('../user');
+$response = api_smoke_run(array(1 => '../user'));
 if(!is_array($response) || $response['code'] !== 404) {
 	$errors[] = 'unsafe API route action did not return 404';
+}
+
+$response = api_smoke_run(array(1 => 'v1', 2 => 'thread', 3 => '../list'));
+if(!is_array($response) || $response['code'] !== 404) {
+	$errors[] = 'unsafe versioned API action did not return 404';
 }
 
 if(!empty($errors)) {
