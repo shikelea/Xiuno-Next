@@ -10,6 +10,7 @@
 		<div class="card">
 			<div class="card-body">
 				<form action="<?php echo url('group-list');?>" method="post" id="form">
+					<div class="delete-inputs"></div>
 					<!--
 					<h5 class="card-title"><?php echo lang('group_list');?></h5>
 					-->
@@ -95,6 +96,9 @@ jarrlist.on('click', 'a.row_delete', function() {
 	var jthis = $(this);
 	var jtr = jthis.parents('tr');
 	var rowid = jtr.attr('rowid');
+	if(!jform.find('input[name="delete_gid['+rowid+']"]').length) {
+		jform.find('.delete-inputs').append('<input type="hidden" name="delete_gid['+rowid+']" value="1" />');
+	}
 	jtr.remove();
 	return false;
 });

@@ -7,6 +7,7 @@
 		<div class="card">
 			<div class="card-body">
 				<form action="<?php echo url('forum-list');?>" method="post" id="form">
+					<div class="delete-inputs"></div>
 					<div class="table-responsive arrlist">
 						<table class="table" style="min-width: 800px">
 							<thead>
@@ -105,6 +106,9 @@ jarrlist.on('click', 'a.row_delete', function() {
 	if(rowid == 1) {
 		$.alert('<?php echo lang('forum_cant_delete_system_reserved');?>');
 		return;
+	}
+	if(!jform.find('input[name="delete_fid['+rowid+']"]').length) {
+		jform.find('.delete-inputs').append('<input type="hidden" name="delete_fid['+rowid+']" value="1" />');
 	}
 	jtr.remove();
 	return false;
