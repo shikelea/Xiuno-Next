@@ -40,7 +40,7 @@ strpos($plugin_model, 'function plugin_state_snapshot($dir)') !== FALSE
 strpos($plugin_model, 'function plugin_state_restore($dir, $snapshot)') !== FALSE
 	|| fail('plugin_state_restore() helper is missing.');
 
-strpos($plugin_route, 'function plugin_require_state_write($ok, $dir, $snapshot = NULL)') !== FALSE
+strpos($plugin_route, 'function plugin_require_state_write($ok, $dir, $snapshot = NULL, $package_snapshot = NULL)') !== FALSE
 	|| fail('plugin_require_state_write() helper is missing.');
 strpos($plugin_route, "lang('save_conf_failed'") !== FALSE
 	|| fail('Plugin config write failures must use the existing save_conf_failed message.');
@@ -50,6 +50,8 @@ strpos($lifecycle, 'catch(Throwable $e)') !== FALSE
 	|| fail('Plugin lifecycle files must be wrapped in a Throwable catch.');
 strpos($lifecycle, 'plugin_state_restore($dir, $snapshot);') !== FALSE
 	|| fail('Plugin lifecycle failures must restore the previous state.');
+strpos($lifecycle, 'plugin_package_restore($package_snapshot);') !== FALSE
+	|| fail('Plugin lifecycle failures must restore downloaded package files when available.');
 strpos($lifecycle, 'plugin_message(-1') !== FALSE
 	|| fail('Plugin lifecycle failures must release the task lock before exiting.');
 
@@ -59,7 +61,10 @@ foreach(array('install'=>'unstall', 'unstall'=>'enable', 'upgrade'=>'setting') a
 		|| fail("Plugin $action action must snapshot state before lifecycle work.");
 	strpos($branch, 'plugin_require_state_write(') !== FALSE
 		|| fail("Plugin $action action must hard-fail on config write errors.");
-	strpos($branch, "plugin_run_lifecycle(\$dir, '$action', \$plugin_snapshot);") !== FALSE
+	(
+		strpos($branch, "plugin_run_lifecycle(\$dir, '$action', \$plugin_snapshot);") !== FALSE ||
+		strpos($branch, "plugin_run_lifecycle(\$dir, '$action', \$plugin_snapshot, \$package_snapshot);") !== FALSE
+	)
 		|| fail("Plugin $action action must run lifecycle files through the rollback wrapper.");
 }
 

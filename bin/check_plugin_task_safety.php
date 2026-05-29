@@ -88,7 +88,7 @@ foreach (array('install', 'enable', 'upgrade') as $action) {
 	$code = preg_replace('#//[^\n]*#', '', $branch);
 	strpos($code, "plugin_check_dependency(\$dir, 'install');") !== FALSE
 		|| fail("Plugin $action action must check install dependencies in executable code.");
-	strpos($code, 'plugin_check_php_syntax($dir);') !== FALSE
+	(strpos($code, 'plugin_check_php_syntax($dir);') !== FALSE || strpos($code, 'plugin_check_php_syntax($dir, $package_snapshot);') !== FALSE)
 		|| fail("Plugin $action action must run PHP syntax checks before enabling code.");
 }
 

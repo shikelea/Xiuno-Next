@@ -65,6 +65,9 @@ jobs:
       - name: Smoke test plugin lifecycle safety
         run: php bin/check_plugin_lifecycle_safety.php
 
+      - name: Smoke test plugin package rollback
+        run: php bin/check_plugin_package_rollback.php
+
       - name: Smoke test update task safety
         run: php bin/check_update_task_safety.php
 
