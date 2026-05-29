@@ -10,6 +10,7 @@ if(empty($action) || $action == 'create') {
 	
 	$user = user_read($uid);
 	user_login_check();
+	$method != 'POST' AND message(-1, lang('method_error'));
 	
 	$width = param('width', 0);
 	$height = param('height', 0);
@@ -80,6 +81,7 @@ if(empty($action) || $action == 'create') {
 	
 	$user = user_read($uid);
 	user_login_check();
+	$method != 'POST' AND message(-1, lang('method_error'));
 
 	$aid = param(2);
 	
@@ -104,7 +106,7 @@ if(empty($action) || $action == 'create') {
 		$fid = $thread['fid'];
 		
 		$allowdelete = forum_access_mod($fid, $gid, 'allowdelete');
-		$attach['uid'] != $uid AND !$allowdelete AND message(0, lang('insufficient_privilege'));
+		$attach['uid'] != $uid AND !$allowdelete AND message(-1, lang('insufficient_privilege'));
 		
 		$r = attach_delete($aid);
 		$r ===  FALSE AND message(-1, lang('delete_failed'));
@@ -124,13 +126,14 @@ if(empty($action) || $action == 'create') {
 	empty($attach) AND message(-1, lang('attach_not_exists'));
 	$tid = $attach['tid'];
 	$thread = thread_read($tid);
+	empty($thread) AND message(-1, lang('thread_not_exists'));
 	$fid = $thread['fid'];
 	$allowdown = forum_access_user($fid, $gid, 'allowdown');
 	empty($allowdown) AND message(-1, lang('insufficient_privilege_to_download'));	
 	
-	$attachpath = $conf['upload_path'].'attach/'.$attach['filename'];
+	$attachpath = attach_path($attach);
 	$attachurl = $conf['upload_url'].'attach/'.$attach['filename'];
-	!is_file($attachpath)AND message(-1, lang('attach_not_exists'));
+	(empty($attachpath) || !is_file($attachpath)) AND message(-1, lang('attach_not_exists'));
 	
 	$type = 'php';
 	

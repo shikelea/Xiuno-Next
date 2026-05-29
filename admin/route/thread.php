@@ -52,6 +52,8 @@ if(empty($action) || $action == 'list') {
 */
 } elseif($action == 'scan') {
 	
+	$method != 'POST' AND message(-1, 'Method Not Allowed');
+
 	$queueid = _SESSION('thread_find_queueid');
 	empty($queueid) AND message(-1, lang('thread_queue_not_exists'));
 	
@@ -102,17 +104,20 @@ if(empty($action) || $action == 'list') {
 // 操作
 } elseif($action == 'operation') {
 		
+	$method != 'POST' AND message(-1, 'Method Not Allowed');
+
 	$queueid = _SESSION('thread_find_queueid');
 	empty($queueid) AND message(-1, lang('thread_queue_not_exists'));
 	
 	$op = param(2);
+	!in_array($op, array('delete', 'close', 'open'), TRUE) AND message(-1, 'Operation Not Allowed');
 	$tids = array();
 	// hook admin_thread_operation_start.php
 	for($i = 0; $i <= $pagesize; $i++) {
 		$tid = queue_pop($queueid);
 		if(!$tid) {
-			//queue_destory($queueid);
-			//unset($_SESSION['thread_find_queueid']);
+			queue_destory($queueid);
+			unset($_SESSION['thread_find_queueid']);
 			break;
 			//message(0, '删除全部完成');
 		}

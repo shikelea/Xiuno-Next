@@ -47,6 +47,9 @@ jobs:
       - name: Smoke test plugin task safety
         run: php bin/check_plugin_task_safety.php
 
+      - name: Smoke test route method safety
+        run: php bin/check_route_method_safety.php
+
       - name: Check generated frontend assets
         run: php bin/build_frontend_assets.php --check
 

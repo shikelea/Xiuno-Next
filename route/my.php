@@ -90,7 +90,7 @@ if(empty($action)) {
 		
 		include _include(APP_PATH.'view/htm/my_avatar.htm');
 	
-	} else {
+	} elseif($method == 'POST') {
 		
 		// hook my_avatar_post_start.php
 		
@@ -102,6 +102,20 @@ if(empty($action)) {
 		$data = base64_decode_file_data($data);
 		$size = strlen($data);
 		$size > 2048000 AND message(-1, lang('filesize_too_large', array('maxsize'=>'2M', 'size'=>$size)));
+		!function_exists('getimagesizefromstring') AND message(-1, 'Image library unavailable');
+		$info = getimagesizefromstring($data);
+		empty($info) AND message(-1, lang('doc_type_not_supported'));
+		!function_exists('imagecreatefromstring') AND message(-1, 'Image library unavailable');
+		$image = imagecreatefromstring($data);
+		empty($image) AND message(-1, lang('doc_type_not_supported'));
+		imagealphablending($image, FALSE);
+		imagesavealpha($image, TRUE);
+		ob_start();
+		$r = imagepng($image);
+		$data = ob_get_clean();
+		imagedestroy($image);
+		(!$r || empty($data)) AND message(-1, lang('doc_type_not_supported'));
+		strlen($data) > 2048000 AND message(-1, lang('filesize_too_large', array('maxsize'=>'2M', 'size'=>strlen($data))));
 		
 		$filename = "$uid.png";
 		$dir = substr(sprintf("%09d", $uid), 0, 3).'/';

@@ -49,6 +49,9 @@ register_shutdown_function(function () {
 
 //ob_start('ob_gzhandler');
 $conf = (@include APP_PATH . 'conf/conf.php') or exit('<script>window.location="install/"</script>');
+if (!is_file(APP_PATH . 'conf/.installed.lock')) {
+	@file_put_contents(APP_PATH . 'conf/.installed.lock', date('c') . "\n", LOCK_EX);
+}
 
 // 兼容 4.0.3 的配置文件	
 !isset($conf['user_create_on']) and $conf['user_create_on'] = 1;

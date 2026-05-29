@@ -41,6 +41,8 @@ if($action == 'login') {
 
 } elseif ($action == 'logout') {
 
+	$method != 'POST' AND message(-1, 'Method Not Allowed');
+
 	// hook admin_index_logout_start.php
 	
 	admin_token_clean();
@@ -101,17 +103,7 @@ if($action == 'login') {
 // hook admin_index_end.php
 
 function get_last_version($stat) {
-	global $conf, $time;
-	$last_version = kv_get('last_version');
-	if($time - $last_version > 86400) {
-		kv_set('last_version', $time);
-		$sitename = urlencode($conf['sitename']);
-		$sitedomain = urlencode(http_url_path());
-		$version = urlencode($conf['version']);
-		return '<script src="http://custom.xiuno.com/version.htm?sitename='.$sitename.'&sitedomain='.$sitedomain.'&users='.$stat['users'].'&threads='.$stat['threads'].'&posts='.$stat['posts'].'&version='.$version.'"></script>';
-	} else {
-		return '';
-	}
+	return '';
 }
 
 ?>
