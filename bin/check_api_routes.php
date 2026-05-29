@@ -93,6 +93,9 @@ if(strpos($userRoute, 'api_auth_uid(FALSE)') === FALSE) {
 if(strpos($userRoute, 'api_method_required(\'POST\');') === FALSE) {
 	$errors[] = 'user login API must require POST through api_method_required()';
 }
+if(strpos($userRoute, 'mythread_find_visible_by_uid($_uid, $gid, $page, $pagesize)') === FALSE) {
+	$errors[] = 'user threads API must use visible mythread helper';
+}
 
 $miscModel = api_route_source('model/misc.func.php');
 if(strpos($miscModel, 'function api_method_required') === FALSE) {
@@ -134,6 +137,17 @@ if(strpos($threadModel, 'forum_access_user($thread[\'fid\'], $gid, \'allowread\'
 }
 if(strpos($threadModel, 'thread_safe_info($thread)') === FALSE) {
 	$errors[] = 'thread search helper must return thread_safe_info() output';
+}
+
+$mythreadModel = api_route_source('model/mythread.func.php');
+if(strpos($mythreadModel, 'function mythread_find_visible_by_uid') === FALSE) {
+	$errors[] = 'mythread model must define mythread_find_visible_by_uid()';
+}
+if(strpos($mythreadModel, 'forum_access_user($thread[\'fid\'], $gid, \'allowread\')') === FALSE) {
+	$errors[] = 'visible mythread helper must filter by forum read permission';
+}
+if(strpos($mythreadModel, 'thread_safe_info($thread)') === FALSE) {
+	$errors[] = 'visible mythread helper must return thread_safe_info() output';
 }
 
 if(!empty($errors)) {

@@ -163,6 +163,7 @@ bin\benchmark.bat
 *   **用户 (User)**
     *   `POST /api/v1/user/login`: 用户登录 (参数: `email`, `password`)
     *   `GET /api/v1/user/read`: 获取用户信息 (参数: `uid` 或 `token`)
+    *   `GET /api/v1/user/threads`: 获取用户可读帖子列表 (参数: `uid` 或 `token`, `page`, `pagesize`)
 *   **帖子 (Thread)**
     *   `GET /api/v1/thread/list`: 获取帖子列表 (参数: `fid`, `page`, `pagesize`)
     *   `GET /api/v1/thread/read`: 获取帖子详情及回复 (参数: `tid`, `page`, `pagesize`)

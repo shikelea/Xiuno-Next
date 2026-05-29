@@ -58,6 +58,27 @@ if($action == 'login') {
 	
 	api_output(0, 'OK', user_safe_info($user));
 
+} elseif($action == 'threads') {
+
+	$_uid = param('uid', 0);
+	if(empty($_uid)) $_uid = api_auth_uid(FALSE);
+
+	if(empty($_uid)) api_output(-1, lang('user_not_exists'));
+
+	$_user = user_read($_uid);
+	if(empty($_user)) api_output(-1, lang('user_not_exists'));
+
+	list($page, $pagesize) = api_page_params();
+	$result = mythread_find_visible_by_uid($_uid, $gid, $page, $pagesize);
+
+	api_output(0, 'OK', array(
+		'user' => user_safe_info($_user),
+		'page' => $page,
+		'pagesize' => $pagesize,
+		'total' => $result['total'],
+		'list' => $result['list'],
+	));
+
 } else {
 	api_output(-1, 'Unknown Action');
 }

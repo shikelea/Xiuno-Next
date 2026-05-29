@@ -217,7 +217,7 @@
   - **阶段五收尾**：继续观察帖子列表分页试点与 `xiuno:fragment-ready` 生命周期约定；稳定后再评估帖子详情页分页是否能拆出安全的只读 postlist 区域。
 - [ ] **API 持续开发（后续增强项）**（阶段三完成了基础接口，此处扩展和完善）：
   - [x] API 路由最小 smoke test：覆盖默认入口、缺失 action 和非法 action，防止路径拼接边界回退。
-  - 扩展 API 覆盖面：已补只读版块 `forum/list`、`forum/read` 与只读标题搜索 `search/thread`；后续继续推进用户资料修改、附件上传、通知、版块管理等。
+  - 扩展 API 覆盖面：已补只读版块 `forum/list`、`forum/read`、只读标题搜索 `search/thread` 与用户可读帖子列表 `user/threads`；后续继续推进用户资料修改、附件上传、通知、版块管理等。
   - [x] API 版本管理：已引入 `/api/v1/` 路径前缀并保留旧 `/api/` 兼容入口，CI 覆盖默认入口、v1 入口和不安全 action 拦截。
   - [x] 统一鉴权机制（基础完成）：新增 `api_auth_uid()` / `api_login_required()`，统一支持 `token`、`bbs_token` 和 `Authorization: Bearer`；发帖/回帖 API 已改为走统一 helper，CI smoke 防止回退。
   - [x] 写入方法约束（基础完成）：新增 `api_method_required()`，登录、发帖、回帖 API 已统一复用，减少后续写入接口遗漏 POST 限制的风险。
