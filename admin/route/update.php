@@ -94,6 +94,7 @@ if ($action == 'check') {
 	$method != 'POST' AND message(-1, 'Method Not Allowed');
 
 	set_time_limit(120);
+	update_lock_start();
 
 	// 读取代理设置
 	$proxy = isset($conf['github_proxy']) ? $conf['github_proxy'] : '';
@@ -106,12 +107,12 @@ if ($action == 'check') {
 			$latest = update_github_latest_release('');
 			$proxy_fallback_used = ($latest !== FALSE);
 		}
-		if ($latest === FALSE) message(-1, lang('update_check_failed'));
+		if ($latest === FALSE) update_message(-1, lang('update_check_failed'));
 	}
 
 	$latest_version = ltrim($latest['tag_name'], 'vV');
 	if (version_compare($latest_version, $conf['version']) <= 0) {
-		message(0, lang('update_already_latest'));
+		update_message(0, lang('update_already_latest'));
 	}
 
 	// 使用 github.com/archive 直接下载链接（不走 API，无速率限制，代理兼容性更好）
@@ -134,7 +135,7 @@ if ($action == 'check') {
 		}
 		if ($zipdata === FALSE || strlen($zipdata) < 100) {
 			$detail = $dl_error ? ' (' . $dl_error . ')' : '';
-			message(-1, lang('update_download_failed') . $detail);
+			update_message(-1, lang('update_download_failed') . $detail);
 		}
 	}
 
@@ -142,7 +143,7 @@ if ($action == 'check') {
 	if (substr($zipdata, 0, 2) !== 'PK') {
 		// 下载到的不是 ZIP，可能是代理返回的 HTML/JSON 错误页
 		$hint = substr($zipdata, 0, 200);
-		message(-1, lang('update_not_zip') . ' (' . htmlspecialchars($hint) . ')');
+		update_message(-1, lang('update_not_zip') . ' (' . htmlspecialchars($hint) . ')');
 	}
 
 	$zip_sha256 = hash('sha256', $zipdata);
@@ -151,17 +152,19 @@ if ($action == 'check') {
 	$checksum_verified = FALSE;
 	if ($expected_sha256 !== '') {
 		if (!hash_equals(strtolower($expected_sha256), strtolower($zip_sha256))) {
-			message(-1, lang('update_checksum_mismatch') . " (expected {$expected_sha256}, got {$zip_sha256})");
+			update_message(-1, lang('update_checksum_mismatch') . " (expected {$expected_sha256}, got {$zip_sha256})");
 		}
 		$checksum_verified = TRUE;
 	}
 
-	file_put_contents($zipfile, $zipdata);
+	if (file_put_contents($zipfile, $zipdata) !== strlen($zipdata)) {
+		update_message(-1, lang('update_download_failed'));
+	}
 
 	// 检查 ZipArchive 扩展
 	if (!class_exists('ZipArchive')) {
 		@unlink($zipfile);
-		message(-1, lang('update_no_ziparchive'));
+		update_message(-1, lang('update_no_ziparchive'));
 	}
 
 	// 解压到临时目录
@@ -176,14 +179,14 @@ if ($action == 'check') {
 	$open_result = $zip->open($zipfile);
 	if ($open_result !== TRUE) {
 		@unlink($zipfile);
-		message(-1, lang('update_extract_failed') . ' (ZipArchive error: ' . $open_result . ')');
+		update_message(-1, lang('update_extract_failed') . ' (ZipArchive error: ' . $open_result . ')');
 	}
 	$zip_error = '';
 	if (!update_zip_validate($zip, $zip_error)) {
 		$zip->close();
 		@unlink($zipfile);
 		rmdir_recusive($extract_dir, 1);
-		message(-1, lang('update_not_zip') . ' (' . htmlspecialchars($zip_error) . ')');
+		update_message(-1, lang('update_not_zip') . ' (' . htmlspecialchars($zip_error) . ')');
 	}
 	$zip->extractTo($extract_dir);
 	$zip->close();
@@ -193,7 +196,7 @@ if ($action == 'check') {
 	if ($source_dir === FALSE) {
 		@unlink($zipfile);
 		rmdir_recusive($extract_dir, 1);
-		message(-1, lang('update_extract_failed'));
+		update_message(-1, lang('update_extract_failed'));
 	}
 
 	// 受保护的目录和文件（不覆盖）
@@ -208,22 +211,28 @@ if ($action == 'check') {
 	if ($backup_result === FALSE) {
 		@unlink($zipfile);
 		rmdir_recusive($extract_dir, 1);
-		message(-1, lang('update_backup_failed') . ' (' . htmlspecialchars($backup_error) . ')');
+		update_message(-1, lang('update_backup_failed') . ' (' . htmlspecialchars($backup_error) . ')');
 	}
 	// 备份 conf.php 后再写版本号，确保回滚时版本状态也能恢复。
 	$conf_backup_error = '';
 	if (is_file(APP_PATH . 'conf/conf.php') && !update_backup_file(APP_PATH . 'conf/conf.php', $backup_dir . 'conf/conf.php', $conf_backup_error)) {
 		@unlink($zipfile);
 		rmdir_recusive($extract_dir, 1);
-		message(-1, lang('update_backup_failed') . ' (' . htmlspecialchars($conf_backup_error) . ')');
+		update_message(-1, lang('update_backup_failed') . ' (' . htmlspecialchars($conf_backup_error) . ')');
 	}
-	$result = update_copy_files($source_dir, $app_root, $protected);
+	$copy_error = '';
+	$result = update_copy_files($source_dir, $app_root, $protected, $copy_error);
+	if ($result === FALSE) {
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		update_message(-1, lang('update_failed') . ' (' . htmlspecialchars($copy_error) . ')');
+	}
 	$result['backed_up'] = $backup_result['backed_up'] + (is_file($backup_dir . 'conf/conf.php') ? 1 : 0);
 	$checksum_log = $checksum_verified ? "checksum_verified=1, checksum_source={$checksum_source}" : 'checksum_verified=0';
 	@file_put_contents(APP_PATH . 'log/update.log', date('Y-m-d H:i:s') . " updated to v{$latest_version}, copied={$result['copied']}, backed_up={$result['backed_up']}, zip_sha256={$zip_sha256}, {$checksum_log}, backup={$backup_dir}\n", FILE_APPEND);
-
-	// 更新 conf.php 中的版本号
-	update_conf_version($latest_version);
+	if (!update_conf_version($latest_version)) {
+		update_message(-1, lang('update_failed') . ' (Cannot update conf/conf.php version)');
+	}
 
 	// 清理临时文件
 	@unlink($zipfile);
@@ -240,23 +249,24 @@ if ($action == 'check') {
 	$msg .= ' ' . ($checksum_verified ? lang('update_checksum_verified') : lang('update_checksum_unverified'));
 	if (!empty($proxy_fallback_used)) $msg .= ' ' . lang('update_proxy_fallback_used');
 	if (!empty($result['backed_up'])) $msg .= ' Backup: ' . str_replace(APP_PATH, '', $backup_dir);
-	message(0, $msg);
+	update_message(0, $msg);
 
 // ==================== 回滚到最近备份 ====================
 } elseif ($action == 'rollback') {
 
 	$method != 'POST' AND message(-1, 'Method Not Allowed');
+	update_lock_start();
 
 	$backup = trim(param('backup', '', 'POST'));
 	$backup_dir = update_resolve_backup($backup);
 	if ($backup_dir === FALSE) {
-		message(-1, lang('update_rollback_no_backup'));
+		update_message(-1, lang('update_rollback_no_backup'));
 	}
 
 	$restore_error = '';
 	$result = update_restore_backup($backup_dir, APP_PATH, $restore_error);
 	if ($result === FALSE) {
-		message(-1, lang('update_rollback_failed') . ' (' . htmlspecialchars($restore_error) . ')');
+		update_message(-1, lang('update_rollback_failed') . ' (' . htmlspecialchars($restore_error) . ')');
 	}
 
 	// 清理缓存
@@ -266,7 +276,7 @@ if ($action == 'check') {
 	}
 
 	@file_put_contents(APP_PATH . 'log/update.log', date('Y-m-d H:i:s') . " rollback from {$backup_dir}, restored={$result['restored']}\n", FILE_APPEND);
-	message(0, lang('update_rollback_success', array('count' => $result['restored'])));
+	update_message(0, lang('update_rollback_success', array('count' => $result['restored'])));
 
 }
 
@@ -275,6 +285,28 @@ if ($action == 'check') {
 /**
  * 调用 GitHub API 获取最新 Release
  */
+function update_lock_start() {
+	global $update_task_locked;
+	!xn_lock_start(update_lock_name(), 600) AND message(-1, 'Another update task is being executed, current task is locked.');
+	$update_task_locked = TRUE;
+}
+
+function update_lock_end() {
+	global $update_task_locked;
+	if (empty($update_task_locked)) return;
+	xn_lock_end(update_lock_name());
+	$update_task_locked = FALSE;
+}
+
+function update_message($code, $message) {
+	update_lock_end();
+	message($code, $message);
+}
+
+function update_lock_name() {
+	return 'update_task';
+}
+
 function update_github_latest_release($proxy = '') {
 	$url = update_proxied_url(GITHUB_API_URL . '/releases/latest', $proxy);
 	$s = update_http_get_json($url);
@@ -524,7 +556,7 @@ function update_zip_validate($zip, &$error = '') {
 /**
  * 递归复制文件，跳过受保护的目录
  */
-function update_copy_files($src, $dst, $protected = array(), $relative = '') {
+function update_copy_files($src, $dst, $protected = array(), &$error = '', $relative = '') {
 	$result = array('copied' => 0, 'backed_up' => 0);
 	$src = rtrim(str_replace('\\', '/', $src), '/') . '/';
 	$dst = rtrim(str_replace('\\', '/', $dst), '/') . '/';
@@ -544,14 +576,21 @@ function update_copy_files($src, $dst, $protected = array(), $relative = '') {
 
 		if (is_dir($item)) {
 			if (!is_dir($dst . $name)) {
-				xn_mkdir($dst . $name);
+				if (!update_mkdir_recursive($dst . $name)) {
+					$error = 'Cannot create directory: ' . $rel;
+					return FALSE;
+				}
 			}
-			$child = update_copy_files($item . '/', $dst . $name . '/', $protected, $rel);
+			$child = update_copy_files($item . '/', $dst . $name . '/', $protected, $error, $rel);
+			if ($child === FALSE) return FALSE;
 			$result['copied'] += $child['copied'];
 			$result['backed_up'] += $child['backed_up'];
 		} else {
 			if (@copy($item, $dst . $name)) {
 				$result['copied']++;
+			} else {
+				$error = 'Cannot copy file: ' . $rel;
+				return FALSE;
 			}
 		}
 	}
@@ -643,12 +682,18 @@ function update_restore_backup($backup_dir, $dst_root, &$error = '', $relative =
 		}
 		$target = $dst_root . $rel;
 		if (is_dir($item)) {
-			update_mkdir_recursive($target);
+			if (!update_mkdir_recursive($target)) {
+				$error = 'Cannot create restore directory: ' . $rel;
+				return FALSE;
+			}
 			$child = update_restore_backup($backup_dir, $dst_root, $error, $rel);
 			if ($child === FALSE) return FALSE;
 			$result['restored'] += $child['restored'];
 		} else {
-			update_mkdir_recursive(dirname($target));
+			if (!update_mkdir_recursive(dirname($target))) {
+				$error = 'Cannot create restore directory: ' . dirname($rel);
+				return FALSE;
+			}
 			if (!@copy($item, $target)) {
 				$error = 'Cannot restore file: ' . $rel;
 				return FALSE;
@@ -687,8 +732,10 @@ function update_conf_version($new_version) {
 	if (!is_file($conffile)) return FALSE;
 	$s = file_get_contents($conffile);
 	if ($s === FALSE) return FALSE;
-	$s = preg_replace("/'version'\s*=>\s*'[^']*'/", "'version' => '$new_version'", $s);
-	return file_put_contents($conffile, $s);
+	$count = 0;
+	$s = preg_replace("/'version'\s*=>\s*'[^']*'/", "'version' => '" . addslashes($new_version) . "'", $s, 1, $count);
+	if ($count < 1) return FALSE;
+	return file_put_contents($conffile, $s) === strlen($s);
 }
 
 /**

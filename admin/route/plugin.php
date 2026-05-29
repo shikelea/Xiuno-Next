@@ -380,11 +380,13 @@ function plugin_check_dependency($dir, $action = 'install') {
 function plugin_dependency_arr_to_links($arr) {
 	global $plugins;
 	$s = '';
-	foreach($arr as $dir=>$version) {
+	foreach($arr as $dir=>$dependency) {
 		//if(!isset($plugins[$dir])) continue;
-		$name = isset($plugins[$dir]['name']) ? $plugins[$dir]['name'] : $dir;
+		$name = is_array($dependency) && !empty($dependency['name']) ? $dependency['name'] : (isset($plugins[$dir]['name']) ? $plugins[$dir]['name'] : $dir);
+		$status = plugin_dependency_status_text($dependency);
+		$status_html = $status !== '' ? ' <span class="text-muted small">(' . htmlspecialchars($status) . ')</span>' : '';
 		$url = url("plugin-read-$dir");
-		$s .= " <a href=\"$url\">【{$name}】</a> ";
+		$s .= ' <a href="' . $url . '">[' . htmlspecialchars($name) . ']</a>' . $status_html . ' ';
 	}
 	return $s;
 }
