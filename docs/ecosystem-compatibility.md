@@ -103,6 +103,8 @@ The same dependency gate now rejects target plugin metadata errors before instal
 
 Plugin write actions now enforce backend state preconditions before lifecycle work: install requires not-installed, unstall requires installed, enable requires installed and disabled, disable requires installed and enabled, and upgrade requires a real available upgrade. This prevents stale tabs or manual POSTs from replaying lifecycle scripts in the wrong state.
 
+The install flow now preflights reverse dependencies before auto-uninstalling same-type plugins/themes. Auto-uninstall candidates are limited to already installed packages, run through the normal `unstall.php` lifecycle, and carry the newly installed plugin snapshot as rollback context so lifecycle failure does not leave the replacement marked installed.
+
 ## 2026-05-29 BS4 Compatibility Guard Delta
 
 The high-count BS4 signals from the local sample matrix now have a dedicated repository guard. `bin/check_bs4_compat_layer.php` asserts that `bs4-compat.css` keeps the common legacy selectors (`form-group`, `btn-block`, `custom-file`, `custom-control`, `input-group-prepend/append`, legacy spacing, badges, dropdown alignment, and button groups), and that `bs4-compat.js` keeps BS4 data-attribute conversion, jQuery Modal/Tooltip/Popover/Button proxies, Xiuno helper fallbacks, custom-file labels, dropdown alignment, close-button handling, tab href migration, and same-origin CSRF boundaries. This does not replace real browser smoke, but it prevents accidental deletion of the compatibility surface that the 58 local samples currently depend on.

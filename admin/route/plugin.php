@@ -170,6 +170,7 @@ if($action == 'local') {
 	
 	// 插件依赖检查 / check plugin dependency
 	plugin_check_dependency($dir, 'install');
+	plugin_check_auto_unstall_dependencies($dir);
 	plugin_check_php_syntax($dir);
 	
 	// 安装插件 / install plugin
@@ -177,26 +178,7 @@ if($action == 'local') {
 	plugin_require_state_write(plugin_install($dir), $dir, $plugin_snapshot);
 	plugin_run_lifecycle($dir, 'install', $plugin_snapshot);
 	
-	// 卸载同类插件，防止安装类似插件。
-	// 自动卸载掉其他已经安装的主题 / automatically unstall other theme plugin.
-	if(strpos($dir, '_theme_') !== FALSE) {
-		foreach($plugins as $_dir => $_plugin) {
-			if($dir == $_dir) continue;
-			if(strpos($_dir, '_theme_') !== FALSE) {
-				plugin_require_state_write(plugin_unstall($_dir), $_dir);
-			}
-		}
-	} else {
-		// 卸载掉同类插件
-		$suffix = substr($dir, strpos($dir, '_'));
-		foreach($plugins as $_dir => $_plugin) {
-			if($dir == $_dir) continue;
-			$_suffix = substr($_dir, strpos($_dir, '_'));
-			if($suffix == $_suffix) {
-				plugin_require_state_write(plugin_unstall($_dir), $_dir);
-			}
-		}
-	}
+	plugin_auto_unstall_same_type($dir, $plugin_snapshot);
 
 	plugin_lock_end();
 
@@ -376,6 +358,42 @@ function plugin_require_action_state($dir, $action, $plugin = NULL) {
 	if($action == 'upgrade' && (empty($plugin) || empty($plugin['have_upgrade']))) plugin_message(-1, lang('plugin_not_need_update'));
 }
 
+function plugin_auto_unstall_candidates($dir) {
+	global $plugins;
+	$arr = array();
+	$is_theme = strpos($dir, '_theme_') !== FALSE;
+	$pos = strpos($dir, '_');
+	$suffix = $pos === FALSE ? '' : substr($dir, $pos);
+	foreach($plugins as $_dir => $_plugin) {
+		if($dir == $_dir || empty($_plugin['installed'])) continue;
+		if($is_theme) {
+			if(strpos($_dir, '_theme_') !== FALSE) $arr[] = $_dir;
+		} elseif($suffix !== '') {
+			$_pos = strpos($_dir, '_');
+			$_suffix = $_pos === FALSE ? '' : substr($_dir, $_pos);
+			if($_suffix === $suffix) $arr[] = $_dir;
+		}
+	}
+	return $arr;
+}
+
+function plugin_check_auto_unstall_dependencies($dir) {
+	foreach(plugin_auto_unstall_candidates($dir) as $_dir) {
+		plugin_check_dependency($_dir, 'unstall');
+	}
+}
+
+function plugin_auto_unstall_same_type($dir, $primary_snapshot = NULL) {
+	foreach(plugin_auto_unstall_candidates($dir) as $_dir) {
+		$snapshot = plugin_state_snapshot($_dir);
+		if(!plugin_unstall($_dir)) {
+			if($primary_snapshot !== NULL) plugin_state_restore($dir, $primary_snapshot);
+			plugin_require_state_write(FALSE, $_dir, $snapshot);
+		}
+		plugin_run_lifecycle($_dir, 'unstall', $snapshot, NULL, array($dir=>$primary_snapshot));
+	}
+}
+
 function plugin_check_dependency($dir, $action = 'install', $snapshot = NULL, $package_snapshot = NULL, $check_self_metadata = TRUE) {
 	global $plugins;
 	$name = $plugins[$dir]['name'];
@@ -439,7 +457,7 @@ function plugin_require_state_write($ok, $dir, $snapshot = NULL, $package_snapsh
 	plugin_message(-1, lang('save_conf_failed', array('file'=>"plugin/$dir/conf.json")));
 }
 
-function plugin_run_lifecycle($dir, $action, $snapshot = NULL, $package_snapshot = NULL) {
+function plugin_run_lifecycle($dir, $action, $snapshot = NULL, $package_snapshot = NULL, $extra_state_restore = array()) {
 	$file = APP_PATH."plugin/$dir/$action.php";
 	if(!is_file($file)) return TRUE;
 	try {
@@ -447,14 +465,23 @@ function plugin_run_lifecycle($dir, $action, $snapshot = NULL, $package_snapshot
 		if($result === FALSE) {
 			if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
 			if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
+			plugin_restore_extra_states($extra_state_restore);
 			plugin_message(-1, 'Plugin '.$action.' failed: '.htmlspecialchars($dir));
 		}
 	} catch(Throwable $e) {
 		if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
 		if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
+		plugin_restore_extra_states($extra_state_restore);
 		plugin_message(-1, 'Plugin '.$action.' failed: '.htmlspecialchars($e->getMessage()));
 	}
 	return TRUE;
+}
+
+function plugin_restore_extra_states($states) {
+	if(empty($states) || !is_array($states)) return;
+	foreach($states as $dir=>$snapshot) {
+		if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
+	}
 }
 
 function plugin_dependency_arr_to_links($arr) {
