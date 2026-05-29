@@ -130,6 +130,7 @@ if($action == 'local') {
 // 下载官方插件。 / download official plugin
 } elseif($action == 'download') {
 	
+	plugin_require_post();
 	plugin_lock_start();
 	
 	$dir = param_word(2);
@@ -154,6 +155,7 @@ if($action == 'local') {
 	
 } elseif($action == 'install') {
 	
+	plugin_require_post();
 	plugin_lock_start();
 	
 	$dir = param_word(2);
@@ -202,6 +204,7 @@ if($action == 'local') {
 	
 } elseif($action == 'unstall') {
 	
+	plugin_require_post();
 	plugin_lock_start();
 	
 	$dir = param_word(2);
@@ -232,6 +235,7 @@ if($action == 'local') {
 	
 } elseif($action == 'enable') {
 	
+	plugin_require_post();
 	plugin_lock_start();
 	
 	$dir = param_word(2);
@@ -254,6 +258,7 @@ if($action == 'local') {
 	
 } elseif($action == 'disable') {
 	
+	plugin_require_post();
 	plugin_lock_start();
 	
 	$dir = param_word(2);
@@ -276,6 +281,7 @@ if($action == 'local') {
 	
 } elseif($action == 'upgrade') {
 	
+	plugin_require_post();
 	plugin_lock_start();
 	
 	$dir = param_word(2);
@@ -519,6 +525,11 @@ function plugin_message($code, $message) {
 
 function plugin_lock_name() {
 	return 'plugin_task';
+}
+
+function plugin_require_post() {
+	global $method;
+	$method != 'POST' AND message(-1, 'Method Not Allowed');
 }
 
 // 依赖
