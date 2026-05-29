@@ -172,6 +172,8 @@ bin\benchmark.bat
     *   `GET /api/v1/forum/read`: 获取单个版块信息 (参数: `fid`)
 *   **回复 (Post)**
     *   `POST /api/v1/post/create`: 发布回复 (参数: `tid`, `message`, `doctype`)
+*   **搜索 (Search)**
+    *   `GET /api/v1/search/thread`: 搜索可读帖子标题 (参数: `keyword` 或 `q`, `page`, `pagesize`；关键词至少 2 个字符)
 
 更多详情请参考 [route/api/](route/api/) 目录下的源码。
 
