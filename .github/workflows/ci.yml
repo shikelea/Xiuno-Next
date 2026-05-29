@@ -44,6 +44,9 @@ jobs:
       - name: Smoke test frontend security guards
         run: php bin/check_frontend_security.php
 
+      - name: Smoke test plugin task safety
+        run: php bin/check_plugin_task_safety.php
+
       - name: Check generated frontend assets
         run: php bin/build_frontend_assets.php --check
 

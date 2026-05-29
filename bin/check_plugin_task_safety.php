@@ -1,0 +1,55 @@
+<?php
+
+$root = dirname(__DIR__);
+$plugin_route = file_get_contents($root.'/admin/route/plugin.php');
+$misc = file_get_contents($root.'/model/misc.func.php');
+
+function fail($message) {
+	fwrite(STDERR, "FAIL: $message\n");
+	exit(1);
+}
+
+function section_between($source, $start, $end) {
+	$start_pos = strpos($source, $start);
+	if($start_pos === FALSE) fail("Missing section start: $start");
+	$end_pos = strpos($source, $end, $start_pos + strlen($start));
+	if($end_pos === FALSE) fail("Missing section end after $start: $end");
+	return substr($source, $start_pos, $end_pos - $start_pos);
+}
+
+strpos($plugin_route, "function plugin_message(\$code, \$message)") !== FALSE
+	|| fail('plugin_message() helper is missing.');
+strpos($plugin_route, "plugin_lock_end();\n\tmessage(\$code, \$message);") !== FALSE
+	|| fail('plugin_message() must release the plugin task lock before exiting.');
+
+strpos($plugin_route, "function plugin_lock_name()") !== FALSE
+	|| fail('plugin_lock_name() helper is missing.');
+strpos($plugin_route, "return 'plugin_task';") !== FALSE
+	|| fail('Plugin writes must share one global plugin_task lock.');
+strpos($plugin_route, "!xn_lock_start(plugin_lock_name(), 300)") !== FALSE
+	|| fail('Plugin task lock must use the shared key with an extended TTL.');
+
+$dependency = section_between($plugin_route, 'function plugin_check_dependency', 'function plugin_dependency_arr_to_links');
+substr_count($dependency, 'plugin_message(-1, $msg);') === 2
+	|| fail('Dependency checks must release the lock before reporting errors.');
+$dependency_direct = str_replace('plugin_message(-1, $msg)', '', $dependency);
+strpos($dependency_direct, 'message(-1, $msg)') === FALSE
+	|| fail('Dependency checks must not call message() directly.');
+
+$download = section_between($plugin_route, 'function plugin_download_unzip', 'function plugin_is_bought');
+substr_count($download, 'plugin_message(') >= 6
+	|| fail('Download/unzip error exits must release the plugin task lock.');
+$download_code = preg_replace('#//[^\n]*#', '', $download);
+strpos($download_code, 'AND message(') === FALSE
+	|| fail('Download/unzip guards must not call message() directly.');
+
+$install = section_between($plugin_route, "} elseif(\$action == 'install')", "} elseif(\$action == 'unstall')");
+$last_unstall = strrpos($install, 'plugin_unstall($_dir);');
+$lock_end = strpos($install, 'plugin_lock_end();');
+($last_unstall !== FALSE && $lock_end !== FALSE && $lock_end > $last_unstall)
+	|| fail('Install flow must keep auto-uninstall writes inside the plugin task lock.');
+
+strpos($misc, "fopen(\$lockfile, 'x')") !== FALSE
+	|| fail('xn_lock_start() should create lock files atomically.');
+
+echo "OK: plugin task lock safety checks passed\n";

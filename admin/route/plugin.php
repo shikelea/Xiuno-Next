@@ -137,16 +137,16 @@ if($action == 'local') {
 	$plugin = plugin_read_by_dir($dir);
 	
 	$official = plugin_official_read($dir);
-	empty($official) AND message(-1, lang('plugin_not_exists'));
+	empty($official) AND plugin_message(-1, lang('plugin_not_exists'));
 	
 	// 检查版本  / check version match
 	if(version_compare($conf['version'], $official['bbs_version']) == -1) {
-		message(-1, lang('plugin_versio_not_match', array('bbs_version'=>$official['bbs_version'], 'version'=>$conf['version'])));
+		plugin_message(-1, lang('plugin_versio_not_match', array('bbs_version'=>$official['bbs_version'], 'version'=>$conf['version'])));
 	}
 	
 	// 下载，解压 / download and zip
 	plugin_download_unzip($dir);
-	
+
 	plugin_lock_end();
 	
 	// 检查解压是否成功 / check the zip if sucess
@@ -174,8 +174,6 @@ if($action == 'local') {
 		include _include($installfile);
 	}
 	
-	plugin_lock_end();
-
 	// 卸载同类插件，防止安装类似插件。
 	// 自动卸载掉其他已经安装的主题 / automatically unstall other theme plugin.
 	if(strpos($dir, '_theme_') !== FALSE) {
@@ -196,7 +194,9 @@ if($action == 'local') {
 			}
 		}
 	}
-	
+
+	plugin_lock_end();
+
 	$msg = lang('plugin_install_sucessfully', array('name'=>$name));
 	message(0, jump($msg, http_referer(), 3));
 	
@@ -295,7 +295,7 @@ if($action == 'local') {
 	
 	// 检查版本  / check version match
 	if(version_compare($conf['version'], $official['bbs_version']) == -1) {
-		message(-1, lang('plugin_versio_not_match', array('bbs_version'=>$official['bbs_version'], 'version'=>$conf['version'])));
+		plugin_message(-1, lang('plugin_versio_not_match', array('bbs_version'=>$official['bbs_version'], 'version'=>$conf['version'])));
 	}
 	
 	// 下载，解压 / download and zip
@@ -359,14 +359,14 @@ function plugin_check_dependency($dir, $action = 'install') {
 		if(!empty($arr)) {
 			$s = plugin_dependency_arr_to_links($arr);
 			$msg = lang('plugin_dependency_following', array('name'=>$name, 's'=>$s));
-			message(-1, $msg);
+			plugin_message(-1, $msg);
 		}
 	} else {
 		$arr = plugin_by_dependencies($dir);
 		if(!empty($arr)) {
 			$s = plugin_dependency_arr_to_links($arr);
 			$msg = lang('plugin_being_dependent_cant_delete', array('name'=>$name, 's'=>$s));
-			message(-1, $msg);
+			plugin_message(-1, $msg);
 		}
 	}
 }
@@ -395,15 +395,15 @@ function plugin_download_unzip($dir) {
 	// 服务端开始下载
 	// set_time_limit(0); // 设置超时
 	$s = http_get($url);
-	empty($s) AND message(-1, $url.lang('plugin_return_data_error').lang('server_response_empty')); 
+	empty($s) AND plugin_message(-1, $url.lang('plugin_return_data_error').lang('server_response_empty'));
 	if(substr($s, 0, 2) != 'PK') {
 		$arr = xn_json_decode($s);
 		
-		empty($arr) AND  message(-1, $url.lang('plugin_return_data_error').$s); 
+		empty($arr) AND  plugin_message(-1, $url.lang('plugin_return_data_error').$s);
 		if($arr['code'] == -2) {
-			message(-2, jump(lang('plugin_is_not_free'), url("plugin-read-$dir")));
+			plugin_message(-2, jump(lang('plugin_is_not_free'), url("plugin-read-$dir")));
 		}
-		message($arr['code'], $url.lang('plugin_return_data_error').$arr['message']);  //lang('server_response_error').':'
+		plugin_message($arr['code'], $url.lang('plugin_return_data_error').$arr['message']);  //lang('server_response_error').':'
 	}
 	//$arr = xn_json_decode($s);
 	//empty($arr['message']) AND message(-1, '服务端返回数据错误：'.$s);
@@ -426,11 +426,11 @@ function plugin_download_unzip($dir) {
 	
 	// 检查配置文件
 	$conffile = "../plugin/$dir/conf.json";
-	!is_file($conffile) AND message(-1, 'conf.json '.lang('not_exists'));
+	!is_file($conffile) AND plugin_message(-1, 'conf.json '.lang('not_exists'));
 	$arr = xn_json_decode(file_get_contents($conffile));
-	empty($arr['name']) AND message(-1, 'conf.json '.lang('format_maybe_error'));
+	empty($arr['name']) AND plugin_message(-1, 'conf.json '.lang('format_maybe_error'));
 	
-	!is_dir("../plugin/$dir") AND message(-1, lang('plugin_maybe_download_failed')." plugin/$dir");
+	!is_dir("../plugin/$dir") AND plugin_message(-1, lang('plugin_maybe_download_failed')." plugin/$dir");
 }
 
 function plugin_is_bought($dir) {
@@ -481,11 +481,11 @@ function plugin_is_local($dir) {
 
 function plugin_check_exists($dir, $local = TRUE) {
 	global $plugins, $official_plugins;
-	!is_word($dir) AND message(-1, lang('plugin_name_error'));
+	!is_word($dir) AND plugin_message(-1, lang('plugin_name_error'));
 	if($local) {
-		!isset($plugins[$dir]) AND message(-1, lang('plugin_not_exists'));
+		!isset($plugins[$dir]) AND plugin_message(-1, lang('plugin_not_exists'));
 	} else {
-		!isset($official_plugins[$dir]) AND message(-1, lang('plugin_not_exists'));
+		!isset($official_plugins[$dir]) AND plugin_message(-1, lang('plugin_not_exists'));
 	}
 }
 
@@ -500,13 +500,25 @@ function plugin_cate_active($action, $plugin_cate, $cateid, $page) {
 }
 
 function plugin_lock_start() {
-	global $route, $action;
-	!xn_lock_start($route.'_'.$action) AND message(-1, lang('plugin_task_locked'));
+	global $plugin_task_locked;
+	!xn_lock_start(plugin_lock_name(), 300) AND message(-1, lang('plugin_task_locked'));
+	$plugin_task_locked = TRUE;
 }
 
 function plugin_lock_end() {
-	global $route, $action;
-	xn_lock_end($route.'_'.$action);
+	global $plugin_task_locked;
+	if(empty($plugin_task_locked)) return;
+	xn_lock_end(plugin_lock_name());
+	$plugin_task_locked = FALSE;
+}
+
+function plugin_message($code, $message) {
+	plugin_lock_end();
+	message($code, $message);
+}
+
+function plugin_lock_name() {
+	return 'plugin_task';
 }
 
 // 依赖
