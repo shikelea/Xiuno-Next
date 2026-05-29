@@ -105,6 +105,8 @@ Plugin write actions now enforce backend state preconditions before lifecycle wo
 
 The install flow now preflights reverse dependencies before auto-uninstalling same-type plugins/themes. Auto-uninstall candidates are limited to already installed packages, run through the normal `unstall.php` lifecycle, and carry the newly installed plugin snapshot as rollback context so lifecycle failure does not leave the replacement marked installed.
 
+Plugin lifecycle files are now protected by a shutdown rollback guard. If a legacy `install.php`, `unstall.php`, or `upgrade.php` calls `message()` / `exit` instead of returning, the pending state and package snapshots are restored and the shared plugin task lock is released during shutdown.
+
 ## 2026-05-29 BS4 Compatibility Guard Delta
 
 The high-count BS4 signals from the local sample matrix now have a dedicated repository guard. `bin/check_bs4_compat_layer.php` asserts that `bs4-compat.css` keeps the common legacy selectors (`form-group`, `btn-block`, `custom-file`, `custom-control`, `input-group-prepend/append`, legacy spacing, badges, dropdown alignment, and button groups), and that `bs4-compat.js` keeps BS4 data-attribute conversion, jQuery Modal/Tooltip/Popover/Button proxies, Xiuno helper fallbacks, custom-file labels, dropdown alignment, close-button handling, tab href migration, and same-origin CSRF boundaries. This does not replace real browser smoke, but it prevents accidental deletion of the compatibility surface that the 58 local samples currently depend on.

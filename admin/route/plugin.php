@@ -460,8 +460,10 @@ function plugin_require_state_write($ok, $dir, $snapshot = NULL, $package_snapsh
 function plugin_run_lifecycle($dir, $action, $snapshot = NULL, $package_snapshot = NULL, $extra_state_restore = array()) {
 	$file = APP_PATH."plugin/$dir/$action.php";
 	if(!is_file($file)) return TRUE;
+	plugin_lifecycle_guard_start($dir, $action, $snapshot, $package_snapshot, $extra_state_restore);
 	try {
 		$result = include _include($file);
+		plugin_lifecycle_guard_clear();
 		if($result === FALSE) {
 			if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
 			if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
@@ -469,12 +471,39 @@ function plugin_run_lifecycle($dir, $action, $snapshot = NULL, $package_snapshot
 			plugin_message(-1, 'Plugin '.$action.' failed: '.htmlspecialchars($dir));
 		}
 	} catch(Throwable $e) {
+		plugin_lifecycle_guard_clear();
 		if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
 		if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
 		plugin_restore_extra_states($extra_state_restore);
 		plugin_message(-1, 'Plugin '.$action.' failed: '.htmlspecialchars($e->getMessage()));
 	}
 	return TRUE;
+}
+
+function plugin_lifecycle_guard_start($dir, $action, $snapshot = NULL, $package_snapshot = NULL, $extra_state_restore = array()) {
+	global $plugin_lifecycle_guard;
+	$plugin_lifecycle_guard = array(
+		'dir'=>$dir,
+		'action'=>$action,
+		'snapshot'=>$snapshot,
+		'package_snapshot'=>$package_snapshot,
+		'extra_state_restore'=>$extra_state_restore,
+	);
+}
+
+function plugin_lifecycle_guard_clear() {
+	global $plugin_lifecycle_guard;
+	$plugin_lifecycle_guard = NULL;
+}
+
+function plugin_lifecycle_guard_restore() {
+	global $plugin_lifecycle_guard;
+	if(empty($plugin_lifecycle_guard) || !is_array($plugin_lifecycle_guard)) return;
+	$guard = $plugin_lifecycle_guard;
+	$plugin_lifecycle_guard = NULL;
+	if(!empty($guard['package_snapshot'])) plugin_package_restore($guard['package_snapshot']);
+	if(isset($guard['snapshot'])) plugin_state_restore($guard['dir'], $guard['snapshot']);
+	plugin_restore_extra_states(array_value($guard, 'extra_state_restore', array()));
 }
 
 function plugin_restore_extra_states($states) {
@@ -780,9 +809,13 @@ function plugin_cate_active($action, $plugin_cate, $cateid, $page) {
 }
 
 function plugin_lock_start() {
-	global $plugin_task_locked;
+	global $plugin_task_locked, $plugin_shutdown_registered;
 	!xn_lock_start(plugin_lock_name(), 300) AND message(-1, lang('plugin_task_locked'));
 	$plugin_task_locked = TRUE;
+	if(empty($plugin_shutdown_registered)) {
+		register_shutdown_function('plugin_shutdown_guard');
+		$plugin_shutdown_registered = TRUE;
+	}
 }
 
 function plugin_lock_end() {
@@ -799,6 +832,11 @@ function plugin_message($code, $message) {
 
 function plugin_lock_name() {
 	return 'plugin_task';
+}
+
+function plugin_shutdown_guard() {
+	plugin_lifecycle_guard_restore();
+	plugin_lock_end();
 }
 
 function plugin_require_post() {
