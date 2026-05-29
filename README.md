@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Bootstrap](https://img.shields.io/badge/bootstrap-5.0-purple)
 
-> **"不破不立，在保持轻量的基础上拥抱未来。"**
+> **不破不立，在保持轻量的基础上拥抱未来。**
 
 ## 🚀 项目介绍
 
@@ -167,8 +167,6 @@ bin\benchmark.bat
 ## 🤝 参与贡献
 
 Xiuno Next 是一个社区驱动的项目，我们需要你的帮助！无论是提交 Bug、修复代码还是完善文档，都非常欢迎。
-
-请查看 [PLAN.md](PLAN.md) 了解我们的详细复兴计划。
 
 ## 📄 许可证
 
