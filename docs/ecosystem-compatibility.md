@@ -75,3 +75,16 @@ A follow-up local scan over the same 58 ignored samples refined the earlier raw 
 - Dependency edges in the sample set should remain first-class matrix data. Known examples include `abs_themeacp_stately -> abs_theme_stately`, `ax_notice_sx/ob_feedback/till_quick_at -> huux_notice`, and several `tt_* -> tt_credits` packages. Dependency checks are now guarded as executable backend logic, not comment-only scanner matches.
 
 Local scan scripts and generated reports remain ignored. Only stable conclusions, field contracts, and CI guards should be committed.
+
+## 2026-05-29 Lifecycle Hardening Delta
+
+The plugin manager now treats lifecycle state changes as a guarded path rather than a best-effort write:
+
+- `plugin_install()`, `plugin_unstall()`, `plugin_enable()`, and `plugin_disable()` snapshot plugin state before mutating globals and return `FALSE` if `conf.json` cannot be written.
+- Admin install, unstall, and upgrade flows execute `install.php`, `unstall.php`, and `upgrade.php` through a lifecycle wrapper. Runtime `Throwable` failures restore the previous installed/enabled state and release the shared plugin task lock before reporting failure.
+- Auto-unstall writes for mutually exclusive themes or same-suffix plugins now check write results while still staying inside the shared plugin task lock.
+- `bin/check_plugin_lifecycle_safety.php` is part of CI so config write checks, lifecycle rollback, and lock-safe failure reporting cannot silently regress.
+
+This does not claim full package rollback for every possible third-party upgrade failure. The remaining stage-six input is package-directory rollback around downloaded upgrade files and runtime smoke for representative real samples.
+
+The same review also hardened adjacent admin configuration paths: base settings and GitHub proxy settings now fail when `conf/conf.php` cannot be written, and custom update proxies are constrained to public HTTPS URLs before test/save/download paths use them. `bin/check_admin_config_safety.php` guards those contracts in CI.

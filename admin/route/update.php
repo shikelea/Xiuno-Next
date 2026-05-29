@@ -57,11 +57,11 @@ if ($action == 'check') {
 
 	$method != 'POST' AND message(-1, 'Method Not Allowed');
 
-	$proxy_url = trim(param('proxy_url', '', 'POST'));
+	$proxy_url = update_proxy_normalize(_POST('proxy_url', ''));
+	$proxy_url === FALSE AND message(-1, 'Invalid proxy URL');
 	// 测试目标：GitHub API（小请求，快速响应）
 	$test_url = GITHUB_API_URL . '/releases/latest';
 	if (!empty($proxy_url)) {
-		$proxy_url = rtrim($proxy_url, '/');
 		$test_url = $proxy_url . '/' . $test_url;
 	}
 
@@ -84,8 +84,9 @@ if ($action == 'check') {
 
 	$method != 'POST' AND message(-1, 'Method Not Allowed');
 
-	$proxy_url = trim(param('proxy_url', '', 'POST'));
-	update_conf_setting('github_proxy', $proxy_url);
+	$proxy_url = update_proxy_normalize(_POST('proxy_url', ''));
+	$proxy_url === FALSE AND message(-1, 'Invalid proxy URL');
+	!update_conf_setting('github_proxy', $proxy_url) AND message(-1, lang('save_conf_failed', array('file'=>'conf/conf.php')));
 	message(0, lang('update_proxy_saved'));
 
 // ==================== 执行更新 ====================
@@ -330,9 +331,31 @@ function update_github_latest_release($proxy = '') {
  * 将 GitHub URL 通过代理加速
  */
 function update_proxied_url($url, $proxy = '') {
+	$proxy = update_proxy_normalize($proxy);
 	if (empty($proxy)) return $url;
-	$proxy = rtrim($proxy, '/');
 	return $proxy . '/' . $url;
+}
+
+function update_proxy_normalize($proxy) {
+	$proxy = trim((string)$proxy);
+	if ($proxy === '') return '';
+	if (preg_match('/[\x00-\x1F\x7F]/', $proxy)) return FALSE;
+	$parts = parse_url($proxy);
+	if (empty($parts['scheme']) || strtolower($parts['scheme']) !== 'https') return FALSE;
+	if (empty($parts['host'])) return FALSE;
+	if (!empty($parts['user']) || !empty($parts['pass']) || !empty($parts['query']) || !empty($parts['fragment'])) return FALSE;
+	$host = strtolower($parts['host']);
+	if (!update_proxy_public_host($host)) return FALSE;
+	return rtrim($proxy, '/');
+}
+
+function update_proxy_public_host($host) {
+	if ($host === 'localhost' || substr($host, -10) === '.localhost' || substr($host, -6) === '.local') return FALSE;
+	if (filter_var($host, FILTER_VALIDATE_IP)) {
+		$flags = FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE;
+		return filter_var($host, FILTER_VALIDATE_IP, $flags) !== FALSE;
+	}
+	return strpos($host, '.') !== FALSE;
 }
 
 /**
@@ -352,6 +375,7 @@ function update_http_get_json($url) {
  * HTTPS GET 请求（带 User-Agent，GitHub API 必须）
  */
 function update_http_get($url, $timeout = 10) {
+	if (!xn_http_url_allowed($url)) return FALSE;
 	// 优先使用 cURL
 	if (function_exists('curl_init')) {
 		$ch = curl_init();
@@ -363,6 +387,7 @@ function update_http_get($url, $timeout = 10) {
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Xiuno-Next-Updater');
+		function_exists('xn_http_curl_protocols') AND xn_http_curl_protocols($ch);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 			'Accept: application/vnd.github.v3+json',
 		));
@@ -402,6 +427,10 @@ function update_github_download($url) {
  * 下载二进制文件（不发送 JSON Accept 头，避免代理返回非 ZIP 内容）
  */
 function update_github_download_binary($url, $timeout = 120, &$error = '') {
+	if (!xn_http_url_allowed($url)) {
+		$error = 'URL scheme is not allowed';
+		return FALSE;
+	}
 	if (function_exists('curl_init')) {
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
@@ -413,6 +442,7 @@ function update_github_download_binary($url, $timeout = 120, &$error = '') {
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Xiuno-Next-Updater');
+		function_exists('xn_http_curl_protocols') AND xn_http_curl_protocols($ch);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 			'Accept: */*',
 		));
@@ -754,7 +784,7 @@ function update_conf_setting($key, $value) {
 		// 不存在则追加到数组末尾 ); 前面
 		$s = preg_replace('/\);\s*\?>\s*$/', "\t'$key' => '$escaped',\n);\n?>", $s);
 	}
-	return file_put_contents($conffile, $s);
+	return file_put_contents($conffile, $s) === strlen($s);
 }
 
 ?>

@@ -71,7 +71,7 @@ strpos($copy_dir, 'return FALSE;') !== FALSE
 	|| fail('Plugin package copy must return FALSE on write failures.');
 
 $install = section_between($plugin_route, "} elseif(\$action == 'install')", "} elseif(\$action == 'unstall')");
-$last_unstall = strrpos($install, 'plugin_unstall($_dir);');
+$last_unstall = strrpos($install, 'plugin_require_state_write(plugin_unstall($_dir), $_dir);');
 $lock_end = strpos($install, 'plugin_lock_end();');
 ($last_unstall !== FALSE && $lock_end !== FALSE && $lock_end > $last_unstall)
 	|| fail('Install flow must keep auto-uninstall writes inside the plugin task lock.');
