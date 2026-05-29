@@ -98,3 +98,11 @@ The first committed theme smoke target focuses on the core resource API rather t
 The BS4 compatibility CSRF bridge now attaches `X-CSRF-TOKEN` only to same-origin jQuery/fetch POST requests. This keeps legacy plugin/theme forms working while avoiding token leakage to cross-origin requests made by custom themes or third-party widgets. `bin/check_frontend_security.php` guards the same-origin contract.
 
 Plugin upgrades now reload the replaced package's `conf.json` before install and re-check dependencies inside the same package rollback boundary. If a new plugin version adds a missing dependency, the upgrade fails and restores both the old package directory and the previous installed/enabled state. `bin/check_plugin_package_rollback.php` now guards this sequence.
+
+## 2026-05-29 BS4 Compatibility Guard Delta
+
+The high-count BS4 signals from the local sample matrix now have a dedicated repository guard. `bin/check_bs4_compat_layer.php` asserts that `bs4-compat.css` keeps the common legacy selectors (`form-group`, `btn-block`, `custom-file`, `custom-control`, `input-group-prepend/append`, legacy spacing, badges, dropdown alignment, and button groups), and that `bs4-compat.js` keeps BS4 data-attribute conversion, jQuery Modal/Tooltip/Popover/Button proxies, Xiuno helper fallbacks, custom-file labels, dropdown alignment, close-button handling, tab href migration, and same-origin CSRF boundaries. This does not replace real browser smoke, but it prevents accidental deletion of the compatibility surface that the 58 local samples currently depend on.
+
+## 2026-05-29 High-Frequency Hook Triage
+
+A focused review of the highest-count remaining hook names found no new low-risk core hook to restore. `notice_route_menu_array_end.php` belongs to the `huux_notice` notification menu model; `menu_magichref_case_end.php` and `menu_magichref_datalist_end.php` belong to the `abs_menu` magic menu renderer/configuration; `my_trade_after.htm` belongs to the `tt_credits` trade page used by related `tt_*` packages. These are plugin-family contracts rather than shared core page anchors. The compatibility path is dependency metadata, package repair, or future native plugin/theme APIs, not adding misleading core hooks without the owning data model.

@@ -388,6 +388,7 @@ if (!function_exists('new_function_name')) {
 | `model/misc.func.php` | PHP | 主题 API 函数定义 |
 | `view/css/bs4-compat.css` | CSS | 前端 CSS 兼容 |
 | `view/js/bs4-compat.js` | JS | 前端 JS 兼容 |
+| `bin/check_bs4_compat_layer.php` | CI | 高频 BS4 兼容层守卫 |
 | `index.php` | PHP | 通用注入器（ob_start 回调） |
 | `view/htm/header.inc.htm` | HTM | 调用 `theme_render_styles()` |
 | `view/htm/footer.inc.htm` | HTM | 调用 `theme_render_scripts()` |
