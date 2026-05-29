@@ -42,6 +42,7 @@
    - 数据库名：`xiunobbs`
    - 用户名：`xiuno`
    - 密码：`xiuno_password_changeme`
+   - 生产环境安装完成后请删除或在 Web 服务器层封禁 `install/`。
 
 ### 方式二：传统部署
 
@@ -49,12 +50,14 @@
 2. 将代码上传至 Web 目录。
 3. 设置 `conf/`, `log/`, `tmp/`, `upload/` 目录为可写权限 (777)。
 4. 访问网站首页进行安装。
+5. 生产环境安装完成后删除或在 Nginx/Apache 中封禁 `install/`，避免配置文件异常时重新开放安装入口。
 
 ## 🛡️ 安全特性 (Security)
 
 - **🔐 密码安全**：渐进式密码哈希迁移（MD5+salt → bcrypt），用户登录时自动升级，无需重置密码。
 - **🛡️ CSRF 防护**：全局 CSRF Token 机制，自动保护所有表单提交和 AJAX 请求。
 - **🔍 XSS 防护**：全面审计模板输出，确保用户输入经过 `htmlspecialchars` 处理。
+- **🧱 安装器防护**：安装完成后以 `conf/conf.php` 作为硬阻断，防止历史重装类漏洞回归。
 - **💉 SQL 注入防护**：修复参数拼接，强制类型转换和参数化查询。
 - **🚦 安全响应头**：`X-Content-Type-Options`、`X-Frame-Options`、`Referrer-Policy` 等标准安全头。
 - **📊 数据库迁移系统**：基于版本号的轻量 Migration 机制，安全升级数据库结构。

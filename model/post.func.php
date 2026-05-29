@@ -292,10 +292,12 @@ function post_file_list_html($filelist, $include_delete = FALSE) {
 	$s .= '<legend>上传的附件：</legend>'."\r\n";
 	$s .= '<ul class="attachlist">'."\r\n";
 	foreach ($filelist as &$attach) {
-		$s .= '<li aid="'.$attach['aid'].'">'."\r\n";
-		$s .= '		<a href="'.url("attach-download-$attach[aid]").'" target="_blank">'."\r\n";
-		$s .= '			<i class="icon filetype '.$attach['filetype'].'"></i>'."\r\n";
-		$s .= '			'.$attach['orgfilename']."\r\n";
+		$aid = intval($attach['aid']);
+		$filetype = preg_replace('#[^\w\-]#', '', $attach['filetype']);
+		$s .= '<li aid="'.$aid.'">'."\r\n";
+		$s .= '		<a href="'.url("attach-download-$aid").'" target="_blank">'."\r\n";
+		$s .= '			<i class="icon filetype '.$filetype.'"></i>'."\r\n";
+		$s .= '			'.xn_html_escape($attach['orgfilename'])."\r\n";
 		$s .= '		</a>'."\r\n";
 		// hook model_post_file_list_html_delete_before.php
 		$include_delete AND $s .= '		<a href="javascript:void(0)" class="delete ms-3"><i class="icon-remove"></i> '.lang('delete').'</a>'."\r\n";

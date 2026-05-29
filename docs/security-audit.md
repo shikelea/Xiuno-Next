@@ -10,6 +10,11 @@
 - `param_base64()` 和 `base64_decode_file_data()` 改为严格 base64 解码，并正确支持无 `data:*;base64,` 前缀的原始 base64。
 - `http_location()` 移除 CR/LF，避免响应头注入。
 - `xn_zip()` / `xn_unzip()` 以及旧 Zip fallback 增加 zip entry 路径校验，拒绝绝对路径、盘符路径、空路径、NUL 字节和 `../` 路径穿越。
+- 2026-05-29 对照 CNVD/NVD 中 Xiuno BBS 4.x 历史漏洞复查：
+  - CVE-2018-8942 / CNVD-2018-07560：后台 `sitename` 保存与前台输出存在同类风险，已修复。`sitename` 保存前转为纯文本并限制长度；前台/后台 `<title>`、meta 文本和首页站点名统一按 HTML 上下文转义；`sitebrief` 保留 HTML 能力但通过 `xn_html_safe()` 白名单清洗。
+  - CNVD-2019-01348 / CNVD-2018-26238 / CNVD-2018-08177：当前安装器已依赖 `conf/conf.php` 阻断重装，本轮移除 `DEBUG == 2` 的调试绕过语义，并在安装数据库 POST 分支增加二次阻断。生产部署仍建议删除或 Web 层封禁 `install/`。
+  - CVE-2018-15559 / CNVD-2018-16946：核心普通用户发帖路径会在入库时生成 `message_fmt`，文本模式转义，HTML 模式普通用户经 `xn_html_safe()`；未发现原版编辑器存储型 XSS 的普通用户路径直接残留。本轮补上服务端附件列表文件名输出转义。管理员组 HTML 帖、历史恶意 `message_fmt` 和插件 hook 改写仍列为后续治理项。
+  - CVE-2019-19998 / CNVD-2020-22683：核心仓库未跟踪原风险描述常见的 `xn_wechat_public` XML 入口，也未发现核心 XML 外部实体解析入口。本地忽略插件样本中存在 `DOMDocument::loadHTML()` 使用，作为生态样本风险记录，不纳入核心发行修复。
 
 ## 继续观察
 
@@ -27,6 +32,11 @@ rg -n "CURLOPT_SSL_VERIFYPEER|eval\s*\(|unserialize\s*\(|create_function\s*\(|ad
 ```powershell
 php bin/check_lightweight_helpers.php
 php bin/check_version.php
+php bin/check_frontend_security.php
+```
+
+```powershell
+rg -n "simplexml_load_string|simplexml_load_file|DOMDocument|LIBXML_NOENT|xml_parser_create" -g "*.php" -g "!vendor/**" -g "!plugin/**"
 ```
 
 ## 2026-05-28 前端 DOM XSS 复查
@@ -42,3 +52,10 @@ php bin/check_version.php
 - 本地审计覆盖 58 个社区插件/主题样本，其中 21 个呈主题型特征；样本库、临时测试脚本和生成报告均不纳入仓库。
 - 本轮发现 983 条兼容/风险信号、22 个 PHP lint 错误。分类统计：BS4→BS5 435 条、缺失旧 Hook 372 条、PHP 8 105 条、主题 header/footer 覆盖 33 条、CSRF/POST 行为 20 条、元数据损坏 18 条。
 - 结论：短期继续增强核心兼容层和兼容矩阵，不对单个第三方插件/主题做仓库内特例；正式插件/主题开发手册仍放到生态重建阶段，在兼容边界稳定后发布。
+
+## 2026-05-29 CNVD 历史漏洞复查
+
+- 重装类漏洞：`install/index.php` 当前在入口和数据库安装 POST 分支均以 `conf/conf.php` 存在为硬阻断，不再保留调试绕过。风险主要转为部署层问题：如果生产环境删除或损坏 `conf/conf.php`，安装器仍可能重新开放；上线文档应继续强调删除或封禁 `install/`。
+- 后台站点名 XSS：确认存在并已修复。修复采取“保存端收窄 + 输出端转义 + CI smoke 守护”的方式，避免历史配置值或未来模板回退再次触发。
+- 编辑器/帖子 XSS：普通用户路径未见原 CVE 直接残留；`gid == 1` HTML 帖直通、历史 `message_fmt` 和插件 hook 后处理属于高权限/历史数据/生态边界风险，后续在阶段六结合插件与主题兼容矩阵继续收敛。
+- XML/XXE：核心无对应 XML 输入解析面；插件和主题开发规范后续需要明确禁止对用户输入使用 `simplexml_load_string()`、`DOMDocument::loadXML()`、`LIBXML_NOENT`，解析 HTML/XML 片段时应禁止 DOCTYPE/ENTITY 并使用 `LIBXML_NONET`。
