@@ -351,7 +351,6 @@ function api_request_token() {
 
 function api_auth_uid($required = FALSE) {
 	global $uid, $user, $gid, $group, $grouplist;
-	if(!empty($uid)) return intval($uid);
 
 	$token = api_request_token();
 	if(!empty($token)) {
@@ -376,13 +375,28 @@ function api_auth_uid($required = FALSE) {
 				return $uid;
 			}
 		}
+
+		if($required) api_output(-1, lang('please_login'));
+		return 0;
 	}
 
+	if(!empty($uid)) return intval($uid);
 	if($required) api_output(-1, lang('please_login'));
 	return 0;
 }
 
+function api_csrf_check() {
+	global $conf;
+	if(isset($conf['csrf_on']) && $conf['csrf_on'] == 0) return;
+	$token = isset($_REQUEST['_token']) ? $_REQUEST['_token'] : (isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : '');
+	if(empty($token) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
+		api_output(-1, 'CSRF token validation failed');
+	}
+}
+
 function api_login_required() {
+	global $method, $uid;
+	if($method == 'POST' && !empty($uid) && api_request_token() === '') api_csrf_check();
 	return api_auth_uid(TRUE);
 }
 

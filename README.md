@@ -152,33 +152,9 @@ bin\benchmark.bat
 
 详细基线数据见 [docs/performance_baseline.md](docs/performance_baseline.md)。
 
-## �🔌 API 文档
+## API 文档
 
-本项目提供了一套标准的 RESTful API，方便开发移动端或单页应用。
-
-**基础 URL**: `http://your-domain.com/?api-v1-{controller}-{action}.htm`；开启路径模式时可使用 `/api/v1/{controller}/{action}`。旧版 `?api-{controller}-{action}.htm` 仍保留兼容。
-
-**可用接口**:
-
-*   **用户 (User)**
-    *   `POST /api/v1/user/login`: 用户登录 (参数: `email`, `password`)
-    *   `GET /api/v1/user/read`: 获取用户信息 (参数: `uid` 或 `token`)
-    *   `GET /api/v1/user/threads`: 获取用户可读帖子列表 (参数: `uid` 或 `token`, `page`, `pagesize`)
-*   **帖子 (Thread)**
-    *   `GET /api/v1/thread/list`: 获取帖子列表 (参数: `fid`, `page`, `pagesize`)
-    *   `GET /api/v1/thread/read`: 获取帖子详情及回复 (参数: `tid`, `page`, `pagesize`)
-    *   `POST /api/v1/thread/create`: 发布新帖 (参数: `fid`, `subject`, `message`, `doctype`)
-*   **版块 (Forum)**
-    *   `GET /api/v1/forum/list`: 获取当前用户可读版块列表
-    *   `GET /api/v1/forum/read`: 获取单个版块信息 (参数: `fid`)
-*   **回复 (Post)**
-    *   `POST /api/v1/post/create`: 发布回复 (参数: `tid`, `message`, `doctype`)
-*   **搜索 (Search)**
-    *   `GET /api/v1/search/thread`: 搜索可读帖子标题 (参数: `keyword` 或 `q`, `page`, `pagesize`；关键词至少 2 个字符)
-
-更多详情请参考 [route/api/](route/api/) 目录下的源码。
-
-API 鉴权：登录接口返回的 `token` 可以通过 `token` 参数、`bbs_token` 参数，或 `Authorization: Bearer <token>` 请求头传递。需要登录的 API 应统一使用 `api_login_required()` / `api_auth_uid()`，写入类接口应统一使用 `api_method_required()` 约束请求方法，分页接口应统一使用 `api_page_params()` 约束页码和每页数量，避免各接口重复处理 token、方法校验与分页边界。
+本项目提供了一套标准的 RESTful API，方便开发移动端或单页应用。基础 URL、响应结构、鉴权方式、分页约定和接口清单见 [docs/api.md](docs/api.md)。
 
 ## 插件体系状态
 

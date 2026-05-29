@@ -77,6 +77,9 @@ if(strpos($postRoute, 'api_login_required();') === FALSE) {
 if(strpos($postRoute, 'api_method_required(\'POST\');') === FALSE) {
 	$errors[] = 'post create API must require POST through api_method_required()';
 }
+if(strpos($postRoute, '$quotepost = post__read($quotepid);') === FALSE || strpos($postRoute, '$quotepost[\'tid\'] != $tid') === FALSE) {
+	$errors[] = 'post create API must validate quotepid belongs to the target thread';
+}
 
 $threadRoute = api_route_source('route/api/thread.php');
 if(strpos($threadRoute, 'api_login_required();') === FALSE) {
@@ -84,6 +87,12 @@ if(strpos($threadRoute, 'api_login_required();') === FALSE) {
 }
 if(strpos($threadRoute, 'api_method_required(\'POST\');') === FALSE) {
 	$errors[] = 'thread create API must require POST through api_method_required()';
+}
+if(strpos($threadRoute, '$cond[\'fid\'] = $allowfids;') === FALSE) {
+	$errors[] = 'thread list API must restrict global listing to readable forums';
+}
+if(strpos($threadRoute, '$forum[\'accesson\'] && !forum_access_user') !== FALSE) {
+	$errors[] = 'thread API must not bypass group allowread when forum accesson is disabled';
 }
 
 $userRoute = api_route_source('route/api/user.php');
@@ -103,6 +112,9 @@ if(strpos($miscModel, 'function api_method_required') === FALSE) {
 }
 if(strpos($miscModel, 'function api_page_params') === FALSE) {
 	$errors[] = 'misc helpers must define api_page_params()';
+}
+if(strpos($miscModel, 'function api_csrf_check') === FALSE || strpos($miscModel, 'api_request_token() === \'\'') === FALSE) {
+	$errors[] = 'API session-backed POST requests must require CSRF when no API token is present';
 }
 
 $forumRoute = api_route_source('route/api/forum.php');
