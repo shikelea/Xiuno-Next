@@ -103,6 +103,19 @@ $('.mod-button button._close').on('click', function() {
 })
 */
 
+$(document).on('click', 'a[data-method="post"]:not(.confirm)', function() {
+	var jthis = $(this);
+	var href = jthis.data('href') || jthis.attr('href');
+	$.xpost(href, function(code, message) {
+		if(code == 0) {
+			window.location.reload();
+		} else {
+			alert(message);
+		}
+	});
+	return false;
+});
+
 // 确定框 / confirm / GET / POST
 // <a href="1.php" data-confirm-text="确定删除？" class="confirm">删除</a>
 // <a href="1.php" data-method="post" data-confirm-text="确定删除？" class="confirm">删除</a>

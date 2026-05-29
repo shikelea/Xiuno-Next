@@ -62,7 +62,7 @@
 								<?php } ?>
 	
 								<?php if($action == 'official_free' && !$plugin['downloaded']) { ?>
-								<a role="button" class="btn btn-primary btn-sm download" href="<?php echo url("plugin-download-$dir"); ?>"><?php echo lang('download');?></a>
+								<a role="button" class="btn btn-primary btn-sm download" data-method="post" href="<?php echo url("plugin-download-$dir"); ?>"><?php echo lang('download');?></a>
 								<?php } ?>
 								
 								<?php if($plugin['setting_url']) { ?>
@@ -70,23 +70,23 @@
 								<?php } ?>
 								
 								<?php if(!$plugin['installed'] && $plugin['downloaded']) { ?>
-								<a role="button" class="btn btn-primary btn-sm install" href="<?php echo url("plugin-install-$dir"); ?>"><?php echo lang('install');?></a>
+								<a role="button" class="btn btn-primary btn-sm install" data-method="post" href="<?php echo url("plugin-install-$dir"); ?>"><?php echo lang('install');?></a>
 								<?php } ?>
 								
 								<?php if($plugin['installed'] && $plugin['enable']) { ?>
-								<a role="button" class="btn btn-secondary btn-sm disable" href="<?php echo url("plugin-disable-$dir"); ?>"><?php echo lang('disable');?></a>
+								<a role="button" class="btn btn-secondary btn-sm disable" data-method="post" href="<?php echo url("plugin-disable-$dir"); ?>"><?php echo lang('disable');?></a>
 								<?php } ?>
 								
 								<?php if($plugin['installed'] && !$plugin['enable']) { ?>
-								<a role="button" class="btn btn-secondary btn-sm enable" href="<?php echo url("plugin-enable-$dir"); ?>"><?php echo lang('enable');?></a>
+								<a role="button" class="btn btn-secondary btn-sm enable" data-method="post" href="<?php echo url("plugin-enable-$dir"); ?>"><?php echo lang('enable');?></a>
 								<?php } ?>
 								
 								<?php if($plugin['installed']) { ?>
-								<a role="button" class="btn btn-danger btn-sm unstall confirm" data-confirm-text="<?php echo lang('plugin_unstall_confirm_tips', array('name'=>$plugin['name']));?>" href="<?php echo url("plugin-unstall-$dir"); ?>"><?php echo lang('unstall');?></a>
+								<a role="button" class="btn btn-danger btn-sm unstall confirm" data-method="post" data-confirm-text="<?php echo lang('plugin_unstall_confirm_tips', array('name'=>$plugin['name']));?>" href="<?php echo url("plugin-unstall-$dir"); ?>"><?php echo lang('unstall');?></a>
 								<?php } ?>
 								
 								<?php if($plugin['have_upgrade']) { ?>
-								<a role="button" class="btn btn-primary btn-sm upgrade" href="<?php echo url("plugin-upgrade-$dir"); ?>"><?php echo lang('update');?></a>
+								<a role="button" class="btn btn-primary btn-sm upgrade" data-method="post" href="<?php echo url("plugin-upgrade-$dir"); ?>"><?php echo lang('update');?></a>
 								<?php } ?>
 								
 							</td>

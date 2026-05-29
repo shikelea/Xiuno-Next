@@ -102,7 +102,7 @@
 				<?php } ?>
 				<p class="text-center">
 					<?php if($download_url && !$islocal) { ?>
-						<a role="button" class="btn btn-primary download" href="<?php echo $download_url; ?>"><?php echo lang('download');?></a>
+						<a role="button" class="btn btn-primary download" data-method="post" href="<?php echo $download_url; ?>"><?php echo lang('download');?></a>
 					<?php } ?>
 					
 					<?php if($plugin['setting_url']) { ?>
@@ -110,23 +110,23 @@
 					<?php } ?>
 					
 					<?php if($islocal && !$plugin['installed']) { ?>
-					<a role="button" class="btn btn-primary install" href="<?php echo url("plugin-install-$dir"); ?>"><?php echo lang('install');?></a>
+					<a role="button" class="btn btn-primary install" data-method="post" href="<?php echo url("plugin-install-$dir"); ?>"><?php echo lang('install');?></a>
 					<?php } ?>
 					
 					<?php if($plugin['installed'] && $plugin['enable']) { ?>
-					<a role="button" class="btn btn-secondary disable" href="<?php echo url("plugin-disable-$dir"); ?>"><?php echo lang('disable');?></a>
+					<a role="button" class="btn btn-secondary disable" data-method="post" href="<?php echo url("plugin-disable-$dir"); ?>"><?php echo lang('disable');?></a>
 					<?php } ?>
 					
 					<?php if($plugin['installed'] && !$plugin['enable']) { ?>
-					<a role="button" class="btn btn-secondary enable" href="<?php echo url("plugin-enable-$dir"); ?>"><?php echo lang('enable');?></a>
+					<a role="button" class="btn btn-secondary enable" data-method="post" href="<?php echo url("plugin-enable-$dir"); ?>"><?php echo lang('enable');?></a>
 					<?php } ?>
 					
 					<?php if($plugin['installed']) { ?>
-					<a role="button" class="btn btn-danger unstall confirm" data-confirm-text="<?php echo lang('plugin_unstall_confirm_tips', array('name'=>$plugin['name']));?>" href="<?php echo url("plugin-unstall-$dir"); ?>"><?php echo lang('unstall');?></a>
+					<a role="button" class="btn btn-danger unstall confirm" data-method="post" data-confirm-text="<?php echo lang('plugin_unstall_confirm_tips', array('name'=>$plugin['name']));?>" href="<?php echo url("plugin-unstall-$dir"); ?>"><?php echo lang('unstall');?></a>
 					<?php } ?>
 					
 					<?php if($plugin['have_upgrade']) { ?>
-					<a role="button" class="btn btn-primary upgrade" href="<?php echo url("plugin-upgrade-$dir"); ?>"><?php echo lang('update');?></a>
+					<a role="button" class="btn btn-primary upgrade" data-method="post" href="<?php echo url("plugin-upgrade-$dir"); ?>"><?php echo lang('update');?></a>
 					<?php } ?>
 					
 				</p>
@@ -153,7 +153,13 @@ var t = setInterval(function() {
 		if(code == 0) {
 			// 支付成功，跳转到下载。
 			clearInterval(t);
-			window.location = xn.url('plugin-download-'+dir);
+			$.xpost(xn.url('plugin-download-'+dir), function(code, message) {
+				if(code == 0) {
+					window.location = xn.url('plugin-read-'+dir);
+				} else {
+					alert(message);
+				}
+			});
 		}
 	});
 }, 5000);
