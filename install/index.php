@@ -32,7 +32,7 @@ include INSTALL_PATH.'install.func.php';
 $action = param('action');
 
 // 安装初始化检测,放这里
-is_file(APP_PATH.'conf/conf.php') AND DEBUG != 2 AND message(0, jump(lang('installed_tips'), '../'));
+is_file(APP_PATH.'conf/conf.php') AND message(0, jump(lang('installed_tips'), '../'));
 
 // 从 cookie 中获取数据，默认为中文
 $_lang = param('lang', 'zh-cn');
@@ -94,6 +94,7 @@ if(empty($action)) {
 		include INSTALL_PATH."view/htm/db.htm";
 		
 	} else {
+		is_file(APP_PATH.'conf/conf.php') AND message(0, jump(lang('installed_tips'), '../'));
 		
 		$type = param('type');	
 		$engine = param('engine');	

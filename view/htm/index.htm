@@ -45,8 +45,8 @@
 		<div class="card card-site-info">
 			<!--{hook index_site_brief_start.htm}-->
 			<div class="m-3">
-				<h5 class="text-center"><?php echo $conf['sitename'];?></h5>
-				<div class="small line-height-2"><?php echo $conf['sitebrief'];?></div>
+				<h5 class="text-center"><?php echo xn_html_escape($conf['sitename']);?></h5>
+				<div class="small line-height-2"><?php echo xn_html_safe($conf['sitebrief']);?></div>
 			</div>
 			<div class="card-footer p-2">
 				<table class="w-100 small">

@@ -34,8 +34,9 @@ if($action == 'base') {
 		
 	} else {
 		
-		$sitebrief = param('sitebrief', '', FALSE);
-		$sitename = param('sitename', '', FALSE);
+		$sitebrief = xn_html_safe(param('sitebrief', '', FALSE));
+		$sitename = trim(strip_tags(param('sitename', '', FALSE)));
+		$sitename = xn_substr($sitename, 0, 80);
 		$runlevel = param('runlevel', 0);
 		$user_create_on = param('user_create_on', 0);
 		$user_create_email_on = param('user_create_email_on', 0);
@@ -45,6 +46,8 @@ if($action == 'base') {
 		
 		// hook admin_setting_base_post_start.php
 		
+		empty($sitename) AND message('sitename', lang('data_is_empty'));
+
 		$replace = array();
 		$replace['sitename'] = $sitename;
 		$replace['sitebrief'] = $sitebrief;

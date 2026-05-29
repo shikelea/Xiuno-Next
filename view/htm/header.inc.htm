@@ -22,15 +22,15 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	
 	<?php if(!empty($header['keywords'])) { ?>
-	<meta name="keywords" content="<?php echo strip_tags($header['keywords']);?>" />
+	<meta name="keywords" content="<?php echo xn_html_escape(strip_tags($header['keywords']));?>" />
 	<?php } ?>
 
-	<meta name="description" content="<?php echo strip_tags($header['description']);?>" />
+	<meta name="description" content="<?php echo xn_html_escape(strip_tags($header['description']));?>" />
 	<meta name="renderer" content="webkit">
 	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" >
 	<meta name="csrf-token" content="<?php echo csrf_token();?>">
 
-	<title><?php echo $header['title'];?></title>
+	<title><?php echo xn_html_escape($header['title']);?></title>
 	
 	<!--{hook header_link_before.htm}-->
 	
