@@ -50,4 +50,13 @@ Remaining missing-hook signals are split before any core change:
 - Review PHP-level runtime hooks separately because execution timing can affect data mutation, permissions, cache state, and security checks.
 - Do not restore hooks whose sample output depends on a different HTML container than core provides. For example, `user_profile_groupname_after.htm` currently emits list items for theme hero layouts, while the default profile page renders the group name inline.
 
+The 2026-05-29 parallel review found 358 remaining missing-hook signals after the low-risk shared anchors were restored. Most of them are not core gaps: 293 are `stately_*` or `widget_*` theme/component slots, 5 are assets stored under `hook/`, and several high-count PHP names belong to package-owned menu, notice, trade, or post-processing contracts. Thread, user, and theme-slot review found no additional low-risk shared template anchors to restore immediately.
+
+Deferred examples:
+
+- `thread_message_before.htm1`, `header_nav_user_start.htm1`, and similar names are malformed or intentionally disabled samples.
+- `post_draft_buttons.htm`, `post_list_inc_message_before.php`, `post_message_after.php`, `user_index_delete_user_button_after.php`, and fox-tags suffixed files are package-private nested hooks when the public `.htm` hook already exists.
+- `notice_route_menu_array_end.php`, `menu_*`, `my_trade_*`, and `plugin_haya_post_like_create_end.php` belong to plugin-owned modules that core does not currently provide.
+- `stately_*`, `widget_*`, legacy sidebar/nav fragments, and theme helper files belong to the future theme API and theme packaging track.
+
 This confirms the stage-six order: build the matrix first, improve shared compatibility layers second, and only then publish formal plugin/theme development manuals.
