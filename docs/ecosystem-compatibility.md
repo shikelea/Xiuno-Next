@@ -92,3 +92,9 @@ The same review also hardened adjacent admin paths: base settings and GitHub pro
 ## 2026-05-29 Theme API Safety Delta
 
 The first committed theme smoke target focuses on the core resource API rather than local third-party samples. `theme_enqueue_style()` and `theme_enqueue_script()` still accept relative and HTTP(S) assets, but renderers now skip whitespace/control-character URLs, protocol-relative URLs, and non-HTTP schemes such as `javascript:` or `data:`. Script attributes are filtered to valid attribute names and skip `on*` event handlers before HTML attribute escaping. `bin/check_theme_api_safety.php` guards capability lookup, resource ordering assumptions, URL filtering, attribute filtering, and attribute escaping in CI.
+
+## 2026-05-29 Frontend and Upgrade Boundary Delta
+
+The BS4 compatibility CSRF bridge now attaches `X-CSRF-TOKEN` only to same-origin jQuery/fetch POST requests. This keeps legacy plugin/theme forms working while avoiding token leakage to cross-origin requests made by custom themes or third-party widgets. `bin/check_frontend_security.php` guards the same-origin contract.
+
+Plugin upgrades now reload the replaced package's `conf.json` before install and re-check dependencies inside the same package rollback boundary. If a new plugin version adds a missing dependency, the upgrade fails and restores both the old package directory and the previous installed/enabled state. `bin/check_plugin_package_rollback.php` now guards this sequence.

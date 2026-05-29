@@ -31,6 +31,10 @@ strpos($upgrade_action, 'plugin_download_unzip($dir, $package_snapshot);') !== F
 	|| fail('Plugin upgrade action must pass the snapshot into download/unzip.');
 strpos($upgrade_action, 'plugin_check_php_syntax($dir, $package_snapshot);') !== FALSE
 	|| fail('Plugin upgrade syntax failures must restore the previous package directory.');
+strpos($upgrade_action, 'plugin_reload_local($dir, $plugin_snapshot, $package_snapshot);') !== FALSE
+	|| fail('Plugin upgrade must reload metadata from the new package before installing.');
+strpos($upgrade_action, "plugin_check_dependency(\$dir, 'install', \$plugin_snapshot, \$package_snapshot);") !== FALSE
+	|| fail('Plugin upgrade must re-check new package dependencies inside the rollback boundary.');
 strpos($upgrade_action, 'plugin_require_state_write(plugin_install($dir), $dir, $plugin_snapshot, $package_snapshot);') !== FALSE
 	|| fail('Plugin upgrade config-write failures must restore the previous package directory.');
 strpos($upgrade_action, "plugin_run_lifecycle(\$dir, 'upgrade', \$plugin_snapshot, \$package_snapshot);") !== FALSE
@@ -52,6 +56,18 @@ foreach(array('plugin_package_snapshot', 'plugin_package_restore', 'plugin_packa
 	strpos($plugin_route, "function $function(") !== FALSE
 		|| fail("$function() helper is missing.");
 }
+
+$dependency = section_between($plugin_route, 'function plugin_check_dependency', 'function plugin_reload_local');
+strpos($dependency, 'plugin_package_restore($package_snapshot);') !== FALSE
+	|| fail('Plugin dependency failures inside upgrade must restore the previous package directory.');
+strpos($dependency, 'plugin_state_restore($dir, $snapshot);') !== FALSE
+	|| fail('Plugin dependency failures inside upgrade must restore the previous plugin state.');
+
+$reload = section_between($plugin_route, 'function plugin_reload_local', 'function plugin_require_state_write');
+strpos($reload, 'file_get_contents($conffile)') !== FALSE
+	|| fail('Plugin metadata reload must read the replaced package conf.json from disk.');
+strpos($reload, '$plugins[$dir] = plugin_read_by_dir($dir);') !== FALSE
+	|| fail('Plugin metadata reload must normalize the refreshed plugin record.');
 
 $restore = section_between($plugin_route, 'function plugin_package_restore', 'function plugin_package_snapshot_delete');
 strpos($restore, 'rmdir_recusive($dest_dir, 0);') !== FALSE

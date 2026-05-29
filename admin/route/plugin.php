@@ -310,9 +310,11 @@ if($action == 'local') {
 	$package_snapshot = plugin_package_snapshot($dir);
 	plugin_download_unzip($dir, $package_snapshot);
 	plugin_check_php_syntax($dir, $package_snapshot);
+	$plugin_snapshot = plugin_state_snapshot($dir);
+	plugin_reload_local($dir, $plugin_snapshot, $package_snapshot);
+	plugin_check_dependency($dir, 'install', $plugin_snapshot, $package_snapshot);
 	
 	// 安装插件
-	$plugin_snapshot = plugin_state_snapshot($dir);
 	plugin_require_state_write(plugin_install($dir), $dir, $plugin_snapshot, $package_snapshot);
 	plugin_run_lifecycle($dir, 'upgrade', $plugin_snapshot, $package_snapshot);
 	plugin_package_snapshot_delete($package_snapshot);
@@ -359,7 +361,7 @@ function plugin_check_dir_is_writable() {
 	!empty($dirarr) AND message(-1, $msg);
 }*/
 
-function plugin_check_dependency($dir, $action = 'install') {
+function plugin_check_dependency($dir, $action = 'install', $snapshot = NULL, $package_snapshot = NULL) {
 	global $plugins;
 	$name = $plugins[$dir]['name'];
 	if($action == 'install') {
@@ -367,6 +369,8 @@ function plugin_check_dependency($dir, $action = 'install') {
 		if(!empty($arr)) {
 			$s = plugin_dependency_arr_to_links($arr);
 			$msg = lang('plugin_dependency_following', array('name'=>$name, 's'=>$s));
+			if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
+			if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
 			plugin_message(-1, $msg);
 		}
 	} else {
@@ -374,9 +378,38 @@ function plugin_check_dependency($dir, $action = 'install') {
 		if(!empty($arr)) {
 			$s = plugin_dependency_arr_to_links($arr);
 			$msg = lang('plugin_being_dependent_cant_delete', array('name'=>$name, 's'=>$s));
+			if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
+			if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
 			plugin_message(-1, $msg);
 		}
 	}
+}
+
+function plugin_reload_local($dir, $snapshot = NULL, $package_snapshot = NULL) {
+	global $plugins;
+	$conffile = APP_PATH."plugin/$dir/conf.json";
+	if(!is_file($conffile)) {
+		if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
+		if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
+		plugin_message(-1, 'conf.json '.lang('not_exists'));
+	}
+	$arr = xn_json_decode(file_get_contents($conffile));
+	if(empty($arr)) {
+		if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
+		if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
+		plugin_message(-1, 'conf.json '.lang('format_maybe_error'));
+	}
+	$plugins[$dir] = $arr;
+	$plugins[$dir]['hooks'] = array();
+	$hookpaths = glob(APP_PATH."plugin/$dir/hook/*.*");
+	if(is_array($hookpaths)) {
+		foreach($hookpaths as $hookpath) {
+			$hookname = file_name($hookpath);
+			$plugins[$dir]['hooks'][$hookname] = $hookpath;
+		}
+	}
+	$plugins[$dir] = plugin_read_by_dir($dir);
+	return TRUE;
 }
 
 function plugin_require_state_write($ok, $dir, $snapshot = NULL, $package_snapshot = NULL) {

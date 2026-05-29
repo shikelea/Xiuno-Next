@@ -88,6 +88,18 @@
 // CSRF 自动设置：确保 csrf_token 变量存在 + jQuery AJAX 全局拦截器
 (function() {
     'use strict';
+    function requestUrl(input) {
+        if (typeof input === 'string') return input;
+        if (input && typeof input.url === 'string') return input.url;
+        return window.location.href;
+    }
+    function isSameOrigin(input) {
+        try {
+            return new URL(requestUrl(input), window.location.href).origin === window.location.origin;
+        } catch(e) {
+            return false;
+        }
+    }
     function setupCsrf() {
         // 1. 确保 csrf_token 变量存在（优先用已有变量，否则从 meta 读取）
         if (typeof window.csrf_token === 'undefined' || !window.csrf_token) {
@@ -98,7 +110,13 @@
 
         // 2. 设置 jQuery AJAX 全局拦截器（如果 jQuery 已加载）
         if (typeof jQuery !== 'undefined' && !window._csrf_ajax_setup_done) {
-            jQuery.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN', window.csrf_token);}});
+            jQuery.ajaxSetup({beforeSend:function(xhr, settings){
+                if (settings && settings.crossDomain) return;
+                var ajaxMethod = settings && (settings.type || settings.method) ? (settings.type || settings.method).toUpperCase() : 'GET';
+                if (ajaxMethod === 'POST' && isSameOrigin(settings && settings.url ? settings.url : window.location.href)) {
+                    xhr.setRequestHeader('X-CSRF-TOKEN', window.csrf_token);
+                }
+            }});
             window._csrf_ajax_setup_done = true;
         }
 
@@ -113,7 +131,7 @@
                 } else if (input && typeof input === 'object' && input.method) {
                     method = input.method.toUpperCase();
                 }
-                if (method === 'POST') {
+                if (method === 'POST' && isSameOrigin(input)) {
                     // Request 对象不可直接修改 headers，需克隆
                     if (input && typeof input === 'object' && typeof input.clone === 'function' && !init) {
                         var newHeaders = new Headers(input.headers);

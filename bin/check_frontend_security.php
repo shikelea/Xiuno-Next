@@ -74,6 +74,24 @@ if ($settingRoute === FALSE) {
 	}
 }
 
+$bs4Compat = file_get_contents($root . 'view/js/bs4-compat.js');
+if ($bs4Compat === FALSE) {
+	$errors[] = 'failed to read view/js/bs4-compat.js';
+} else {
+	if (strpos($bs4Compat, 'function isSameOrigin(input)') === FALSE) {
+		$errors[] = 'bs4 compatibility CSRF injector must define same-origin checks';
+	}
+	if (strpos($bs4Compat, 'settings && settings.crossDomain') === FALSE) {
+		$errors[] = 'jQuery CSRF injector must skip cross-domain requests';
+	}
+	if (strpos($bs4Compat, "ajaxMethod === 'POST' && isSameOrigin") === FALSE) {
+		$errors[] = 'jQuery CSRF injector must only attach tokens to same-origin POST requests';
+	}
+	if (strpos($bs4Compat, "method === 'POST' && isSameOrigin(input)") === FALSE) {
+		$errors[] = 'fetch CSRF injector must only attach tokens to same-origin POST requests';
+	}
+}
+
 $postModel = file_get_contents($root . 'model/post.func.php');
 if ($postModel === FALSE) {
 	$errors[] = 'failed to read model/post.func.php';

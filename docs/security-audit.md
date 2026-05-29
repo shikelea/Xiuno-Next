@@ -77,3 +77,9 @@ rg -n "simplexml_load_string|simplexml_load_file|DOMDocument|LIBXML_NOENT|xml_pa
 - `thread-scan`, `thread-operation-*`, and `thread-found-*` validate that the submitted queue id belongs to the current admin session before reading, writing, or consuming queue rows.
 - Opening a second admin thread search page no longer destroys or overwrites the first page's queue. Completed operations destroy only their own queue id.
 - `bin/check_admin_thread_queue_safety.php` is part of CI so this multi-tab/duplicate-click boundary cannot silently regress.
+
+## 2026-05-29 Compatibility Boundary Hardening
+
+- `bs4-compat.js` now limits automatic CSRF header injection to same-origin jQuery/fetch POST requests. Cross-origin requests no longer receive `X-CSRF-TOKEN`.
+- Plugin upgrade now reloads the new package metadata after replacement and re-checks dependencies before install. A new missing dependency restores the old package directory and previous plugin state.
+- `bin/check_frontend_security.php` and `bin/check_plugin_package_rollback.php` guard these contracts in CI.
