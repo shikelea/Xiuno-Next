@@ -328,6 +328,14 @@ function api_method_required($required) {
 	api_output(-1, 'Method Not Allowed');
 }
 
+function api_page_params($default_pagesize = 20, $max_pagesize = 100) {
+	$page = max(1, intval(param('page', 1)));
+	$pagesize = intval(param('pagesize', $default_pagesize));
+	if($pagesize < 1) $pagesize = $default_pagesize;
+	if($pagesize > $max_pagesize) $pagesize = $max_pagesize;
+	return array($page, $pagesize);
+}
+
 function api_request_token() {
 	$token = param('token', '', FALSE);
 	empty($token) AND $token = param('bbs_token', '', FALSE);

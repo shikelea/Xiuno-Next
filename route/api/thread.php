@@ -8,11 +8,7 @@ $action = param(2);
 if($action == 'list') {
 	
 	$fid = param('fid', 0);
-	$page = param('page', 1);
-	$pagesize = param('pagesize', 20);
-	
-	// 参数校验
-	if($pagesize > 100) $pagesize = 100;
+	list($page, $pagesize) = api_page_params();
 	
 	// 构建查询条件
 	$cond = array();
@@ -54,8 +50,7 @@ if($action == 'list') {
 } elseif($action == 'read') {
 	
 	$tid = param('tid', 0);
-	$page = param('page', 1);
-	$pagesize = param('pagesize', 20);
+	list($page, $pagesize) = api_page_params();
 	
 	if(empty($tid)) api_output(-1, lang('thread_not_exists'));
 	
