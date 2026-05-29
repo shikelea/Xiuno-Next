@@ -50,10 +50,14 @@ strpos($lifecycle, 'catch(Throwable $e)') !== FALSE
 	|| fail('Plugin lifecycle files must be wrapped in a Throwable catch.');
 strpos($lifecycle, 'plugin_state_restore($dir, $snapshot);') !== FALSE
 	|| fail('Plugin lifecycle failures must restore the previous state.');
+strpos($lifecycle, 'plugin_restore_extra_states($extra_state_restore);') !== FALSE
+	|| fail('Plugin lifecycle failures must restore related state snapshots when provided.');
 strpos($lifecycle, 'plugin_package_restore($package_snapshot);') !== FALSE
 	|| fail('Plugin lifecycle failures must restore downloaded package files when available.');
 strpos($lifecycle, 'plugin_message(-1') !== FALSE
 	|| fail('Plugin lifecycle failures must release the task lock before exiting.');
+strpos($plugin_route, 'function plugin_restore_extra_states($states)') !== FALSE
+	|| fail('Related plugin state restore helper is missing.');
 
 foreach(array('install'=>'unstall', 'unstall'=>'enable', 'upgrade'=>'setting') as $action=>$next) {
 	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "} elseif(\$action == '$next')");

@@ -75,10 +75,26 @@ strpos($copy_dir, 'return FALSE;') !== FALSE
 	|| fail('Plugin package copy must return FALSE on write failures.');
 
 $install = section_between($plugin_route, "} elseif(\$action == 'install')", "} elseif(\$action == 'unstall')");
+strpos($install, 'plugin_check_auto_unstall_dependencies($dir);') !== FALSE
+	|| fail('Install flow must preflight reverse dependencies before auto-uninstalling same-type plugins.');
+strpos($install, 'plugin_auto_unstall_same_type($dir, $plugin_snapshot);') !== FALSE
+	|| fail('Install flow must route same-type plugin cleanup through the guarded auto-uninstall helper.');
 $last_unstall = strrpos($install, 'plugin_require_state_write(plugin_unstall($_dir), $_dir);');
 $lock_end = strpos($install, 'plugin_lock_end();');
-($last_unstall !== FALSE && $lock_end !== FALSE && $lock_end > $last_unstall)
-	|| fail('Install flow must keep auto-uninstall writes inside the plugin task lock.');
+($last_unstall === FALSE && $lock_end !== FALSE)
+	|| fail('Install flow must not directly unstall same-type plugins without dependency/lifecycle guards.');
+
+$auto_candidates = section_between($plugin_route, 'function plugin_auto_unstall_candidates', 'function plugin_check_auto_unstall_dependencies');
+strpos($auto_candidates, "empty(\$_plugin['installed'])") !== FALSE
+	|| fail('Auto-uninstall candidates must be limited to installed plugins.');
+$auto_dependency = section_between($plugin_route, 'function plugin_check_auto_unstall_dependencies', 'function plugin_auto_unstall_same_type');
+strpos($auto_dependency, "plugin_check_dependency(\$_dir, 'unstall');") !== FALSE
+	|| fail('Auto-uninstall must check reverse dependencies before installing the replacement.');
+$auto_unstall = section_between($plugin_route, 'function plugin_auto_unstall_same_type', 'function plugin_check_dependency');
+strpos($auto_unstall, "plugin_run_lifecycle(\$_dir, 'unstall', \$snapshot, NULL, array(\$dir=>\$primary_snapshot));") !== FALSE
+	|| fail('Auto-uninstall must run the old plugin unstall lifecycle with replacement rollback context.');
+strpos($auto_unstall, 'plugin_state_restore($dir, $primary_snapshot);') !== FALSE
+	|| fail('Auto-uninstall write failures must restore the newly installed plugin state.');
 
 foreach (array('download', 'install', 'unstall', 'enable', 'disable', 'upgrade') as $action) {
 	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "\n\tplugin_lock_start();");
