@@ -99,7 +99,7 @@ The BS4 compatibility CSRF bridge now attaches `X-CSRF-TOKEN` only to same-origi
 
 Plugin upgrades now reload the replaced package's `conf.json` before install and re-check dependencies inside the same package rollback boundary. If a new plugin version adds a missing dependency, the upgrade fails and restores both the old package directory and the previous installed/enabled state. `bin/check_plugin_package_rollback.php` now guards this sequence.
 
-The same dependency gate now rejects target plugin metadata errors before install/upgrade writes state. This covers malformed self metadata such as a non-array `dependencies` field after `plugin_read_by_dir()` normalization. The upgrade path uses the existing package and state rollback boundary before reporting the `conf.json` format error.
+The same dependency gate now rejects target plugin metadata errors before install/upgrade writes state. This covers malformed self metadata such as a non-array `dependencies` field after `plugin_read_by_dir()` normalization. Upgrade preflight intentionally allows the old package metadata to be repaired by the replacement package, but the upgrade path reloads the new `conf.json` and then applies the strict metadata/dependency gate inside the existing package and state rollback boundary before writing installed/enabled state.
 
 ## 2026-05-29 BS4 Compatibility Guard Delta
 
