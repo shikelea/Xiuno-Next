@@ -73,7 +73,7 @@ function mythread_find_by_uid($uid, $page = 1, $pagesize = 20) {
 
 function mythread_find_visible_by_uid($uid, $gid, $page = 1, $pagesize = 20, $candidate_limit = 200) {
 	// hook model_mythread_find_visible_by_uid_start.php
-	$candidate_pagesize = min($candidate_limit, max($pagesize, $page * $pagesize));
+	$candidate_pagesize = min($candidate_limit, max(100, $pagesize, $page * $pagesize));
 	$threadlist = mythread_find_by_uid($uid, 1, $candidate_pagesize);
 	$threadlist_allow = array();
 	if($threadlist) {
