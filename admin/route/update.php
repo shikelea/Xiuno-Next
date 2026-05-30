@@ -571,16 +571,31 @@ function update_parse_sha256_text($text, $zip_name = '', $tag_name = '') {
  * 找到解压后的源码目录（GitHub zip 有一层包裹）
  */
 function update_find_source_dir($extract_dir) {
-	$dirs = glob($extract_dir . '*', GLOB_ONLYDIR);
-	if (empty($dirs)) return FALSE;
-	// 通常只有一个目录
-	$dir = $dirs[0] . '/';
-	$dir = str_replace('\\', '/', $dir);
-	// 验证是否包含关键文件
-	if (is_file($dir . 'index.php') || is_dir($dir . 'model')) {
-		return $dir;
+	$extract_dir = rtrim(str_replace('\\', '/', $extract_dir), '/') . '/';
+	$items = scandir($extract_dir);
+	if ($items === FALSE) return FALSE;
+	$top = array();
+	foreach ($items as $item) {
+		if ($item === '.' || $item === '..') continue;
+		$top[] = $item;
 	}
-	return FALSE;
+	if (count($top) !== 1) return FALSE;
+	$dir = $extract_dir . $top[0] . '/';
+	if (!is_dir($dir) || !update_source_dir_valid($dir)) return FALSE;
+	return $dir;
+}
+
+function update_source_dir_valid($dir) {
+	$dir = rtrim(str_replace('\\', '/', $dir), '/') . '/';
+	$required_files = array('index.php', 'conf/conf.default.php');
+	$required_dirs = array('admin', 'model', 'view', 'xiunophp');
+	foreach ($required_files as $file) {
+		if (!is_file($dir . $file)) return FALSE;
+	}
+	foreach ($required_dirs as $subdir) {
+		if (!is_dir($dir . $subdir)) return FALSE;
+	}
+	return TRUE;
 }
 
 /**

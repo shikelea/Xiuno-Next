@@ -60,6 +60,17 @@ strpos($download, 'file_put_contents($zipfile, $zipdata) !== strlen($zipdata)') 
 	|| fail('Downloaded ZIP writes must be checked for short writes.');
 strpos($download, 'if (!$zip->extractTo($extract_dir))') !== FALSE
 	|| fail('ZIP extraction failures must stop the update before source selection.');
+$source = section_between($update_route, 'function update_find_source_dir', 'function update_zip_validate');
+strpos($source, 'count($top) !== 1') !== FALSE
+	|| fail('Update source selection must require exactly one top-level package directory.');
+strpos($source, 'function update_source_dir_valid($dir)') !== FALSE
+	|| fail('Update source selection must use a dedicated source root sentinel validator.');
+strpos($source, "array('index.php', 'conf/conf.default.php')") !== FALSE
+	|| fail('Update source validation must require core sentinel files.');
+strpos($source, "array('admin', 'model', 'view', 'xiunophp')") !== FALSE
+	|| fail('Update source validation must require core sentinel directories.');
+strpos($source, "is_file(\$dir . 'index.php') || is_dir(\$dir . 'model')") === FALSE
+	|| fail('Update source selection must not accept loose index.php-or-model matches.');
 strpos($download, '$copy_error =') !== FALSE
 	|| fail('Update copy errors must be captured.');
 strpos($download, 'if ($result === FALSE)') !== FALSE
