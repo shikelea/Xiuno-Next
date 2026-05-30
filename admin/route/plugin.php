@@ -687,6 +687,10 @@ function plugin_zip_validate_package($zip, $dir, &$error = '') {
 			$error = 'Unsafe path in zip: '.$name;
 			return FALSE;
 		}
+		if(plugin_zip_entry_is_symlink($zip, $i)) {
+			$error = 'Symlink entry is not allowed in zip: '.$name;
+			return FALSE;
+		}
 		$name = ltrim($name, './');
 		if($name === '') continue;
 		if(strpos($name, $dir.'/') !== 0 && $name !== $dir) {
@@ -695,6 +699,15 @@ function plugin_zip_validate_package($zip, $dir, &$error = '') {
 		}
 	}
 	return TRUE;
+}
+
+function plugin_zip_entry_is_symlink($zip, $index) {
+	if(!method_exists($zip, 'getExternalAttributesIndex')) return FALSE;
+	$opsys = 0;
+	$attr = 0;
+	if(!$zip->getExternalAttributesIndex($index, $opsys, $attr)) return FALSE;
+	$mode = ($attr >> 16) & 0170000;
+	return $mode === 0120000;
 }
 
 function plugin_copy_dir($src, $dst, &$error = '') {
@@ -713,13 +726,19 @@ function plugin_copy_dir($src, $dst, &$error = '') {
 	foreach($items as $item) {
 		$item = str_replace('\\', '/', $item);
 		$name = basename($item);
-		if(is_dir($item)) {
+		if(is_link($item)) {
+			$error = 'Symlink is not allowed: '.$name;
+			return FALSE;
+		} elseif(is_dir($item)) {
 			if(!plugin_copy_dir($item.'/', $dst.$name.'/', $error)) return FALSE;
-		} else {
+		} elseif(is_file($item)) {
 			if(!@copy($item, $dst.$name)) {
 				$error = 'Cannot copy file: '.$name;
 				return FALSE;
 			}
+		} else {
+			$error = 'Unsupported file type: '.$name;
+			return FALSE;
 		}
 	}
 	return TRUE;

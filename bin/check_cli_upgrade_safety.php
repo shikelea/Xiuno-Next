@@ -61,6 +61,12 @@ function run_cli_from($cwd, $args, &$output = '') {
 }
 
 $makePlugin = read_file_checked($root . '/src/Console/Command/MakePluginCommand.php');
+$launcher = read_file_checked($root . '/bin/xiuno');
+strpos($launcher, "defined('APP_PATH') || define('APP_PATH', \$root . DIRECTORY_SEPARATOR);") !== false
+    || fail('bin/xiuno must define APP_PATH before Composer autoload loads xiunophp.php.');
+strpos($launcher, "require APP_PATH . 'vendor/autoload.php';") !== false
+    || fail('bin/xiuno must load Composer from APP_PATH.');
+
 strpos($makePlugin, "realpath(dirname(__DIR__, 3))") !== false
     || fail('make:plugin must resolve the project root from the command class, not from the current working directory.');
 strpos($makePlugin, 'private function writeFile(string $path, string $content): void') !== false
@@ -87,8 +93,12 @@ strpos($migrate, 'private function recordMigration(string $name): bool') !== fal
     || fail('migrate must expose a checked migration record result.');
 strpos($migrate, 'return kv_set(\'xn_migrations\', $executed) !== false') !== false
     || fail('migrate must fail when migration record writing fails.');
+strpos($migrate, "preg_match('/^[A-Za-z0-9_]{0,32}$/', \$tablepre)") !== false
+    || fail('migrate must validate table prefixes before building migration SQL.');
 strpos($upgrade, 'kv_set(\'xn_migrations\', $executed) === false') !== false
     || fail('upgrade must fail when migration record writing fails.');
+strpos($upgrade, "preg_match('/^[A-Za-z0-9_]{0,32}$/', \$tablepre)") !== false
+    || fail('upgrade must validate table prefixes before building migration SQL.');
 strpos($upgrade, "file_replace_var(APP_PATH . 'conf/conf.php', ['version' => self::TARGET_VERSION]) === false") !== false
     || fail('upgrade must fail when the target version cannot be written.');
 strpos($upgrade, "Upgrade metadata could not be recorded.") !== false

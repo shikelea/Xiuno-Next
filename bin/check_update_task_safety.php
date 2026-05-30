@@ -97,6 +97,14 @@ strpos($update_route, 'function update_copy_files($src, $dst, $protected = array
 $copy = section_between($update_route, 'function update_copy_files', 'function update_backup_existing_files');
 strpos($copy, 'return FALSE;') !== FALSE
 	|| fail('update_copy_files() must return FALSE on write failures.');
+strpos($update_route, 'function update_zip_entry_is_symlink($zip, $index)') !== FALSE
+	|| fail('Update ZIP validation must detect symlink entries.');
+strpos($update_route, 'update_zip_entry_is_symlink($zip, $i)') !== FALSE
+	|| fail('Update ZIP validation must reject symlink entries before extraction.');
+strpos($copy, 'is_link($item)') !== FALSE
+	|| fail('update_copy_files() must reject symlinks before copying.');
+strpos($copy, 'Unsupported file type') !== FALSE
+	|| fail('update_copy_files() must reject unsupported filesystem entries.');
 
 $restore = section_between($update_route, 'function update_restore_backup', 'function update_count_files');
 strpos($restore, 'Cannot create restore directory') !== FALSE

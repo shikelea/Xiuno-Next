@@ -73,12 +73,20 @@ strpos($download_code, 'xn_unzip(') === FALSE
 $zip_validate = section_between($plugin_route, 'function plugin_zip_validate_package', 'function plugin_copy_dir');
 strpos($zip_validate, 'xn_zip_safe_name($name)') !== FALSE
 	|| fail('Plugin ZIP validation must reject unsafe archive paths.');
+strpos($zip_validate, 'plugin_zip_entry_is_symlink($zip, $i)') !== FALSE
+	|| fail('Plugin ZIP validation must reject symlink entries.');
 strpos($zip_validate, "strpos(\$name, \$dir.'/') !== 0") !== FALSE
 	|| fail('Plugin ZIP validation must constrain entries to the expected plugin directory.');
+strpos($plugin_route, 'function plugin_zip_entry_is_symlink($zip, $index)') !== FALSE
+	|| fail('Plugin ZIP symlink detector helper is missing.');
 
 $copy_dir = section_between($plugin_route, 'function plugin_copy_dir', 'function plugin_mkdir_recursive');
 strpos($copy_dir, 'return FALSE;') !== FALSE
 	|| fail('Plugin package copy must return FALSE on write failures.');
+strpos($copy_dir, 'is_link($item)') !== FALSE
+	|| fail('Plugin package copy must reject symlinks before copying.');
+strpos($copy_dir, 'Unsupported file type') !== FALSE
+	|| fail('Plugin package copy must reject unsupported filesystem entries.');
 
 $install = section_between($plugin_route, "} elseif(\$action == 'install')", "} elseif(\$action == 'unstall')");
 strpos($install, 'plugin_check_auto_unstall_dependencies($dir);') !== FALSE
