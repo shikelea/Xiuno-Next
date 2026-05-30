@@ -172,6 +172,9 @@ jobs:
           extensions: pdo, pdo_mysql
           coverage: none
 
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
       - name: Smoke test install schema
         env:
           XIUNO_DB_HOST: 127.0.0.1
