@@ -11,6 +11,7 @@ $port = getenv('XIUNO_DB_PORT') ?: '3306';
 $dbname = getenv('XIUNO_DB_NAME') ?: 'xiuno_test';
 $user = getenv('XIUNO_DB_USER') ?: 'root';
 $password = getenv('XIUNO_DB_PASSWORD') ?: 'root';
+$expected_mysql_major = getenv('XIUNO_EXPECT_MYSQL_MAJOR') ?: '';
 
 $dsn = "mysql:host=$host;port=$port;charset=utf8mb4";
 
@@ -20,8 +21,12 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 
-    $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbname` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    $pdo->exec("USE `$dbname`");
+    $mysql_version = (string) $pdo->query('SELECT VERSION()')->fetchColumn();
+    assert_mysql_major_version($mysql_version, $expected_mysql_major);
+
+    $database = quote_mysql_identifier($dbname);
+    $pdo->exec("CREATE DATABASE IF NOT EXISTS $database CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    $pdo->exec("USE $database");
 
     $sql = file_get_contents($root . '/install/install.sql');
     if ($sql === false) {
@@ -36,10 +41,34 @@ try {
     assert_column_type($pdo, 'bbs_forum', 'rank', 'tinyint unsigned');
     assert_table_exists($pdo, 'bbs_kv');
 
-    echo "Install schema smoke OK.\n";
+    echo "Install schema smoke OK on MySQL $mysql_version.\n";
 } catch (Throwable $e) {
     fwrite(STDERR, "Install schema smoke failed: " . $e->getMessage() . "\n");
     exit(1);
+}
+
+function quote_mysql_identifier(string $identifier): string
+{
+    if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $identifier)) {
+        throw new RuntimeException("Unsafe MySQL identifier: $identifier");
+    }
+
+    return "`$identifier`";
+}
+
+function assert_mysql_major_version(string $version, string $expected): void
+{
+    if ($expected === '') {
+        return;
+    }
+
+    if (!preg_match('/^(\d+)\./', $version, $matches)) {
+        throw new RuntimeException("Unable to parse MySQL version: $version");
+    }
+
+    if ($matches[1] !== $expected) {
+        throw new RuntimeException("MySQL major version is {$matches[1]}, expected $expected ($version)");
+    }
 }
 
 function split_sql(string $sql): array
