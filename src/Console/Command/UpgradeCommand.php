@@ -81,15 +81,18 @@ class UpgradeCommand extends Command
         $errors = [];
 
         $this->stepConfigUpgrade($io, $errors);
-        $this->stepSchemaUpgrade($io, $errors);
-        $this->stepRunMigrations($io, $errors);
-        $this->stepCleanup($io);
-
         if (!empty($errors)) {
-            $io->error('升级过程中出现以下错误:');
-            $io->listing($errors);
-            return Command::FAILURE;
+            return $this->reportErrors($io, $errors);
         }
+        $this->stepSchemaUpgrade($io, $errors);
+        if (!empty($errors)) {
+            return $this->reportErrors($io, $errors);
+        }
+        $this->stepRunMigrations($io, $errors);
+        if (!empty($errors)) {
+            return $this->reportErrors($io, $errors);
+        }
+        $this->stepCleanup($io);
 
         if (kv_set('xn_upgraded_from', $currentVersion) === false || kv_set('xn_upgraded_date', date('Y-m-d H:i:s')) === false) {
             $io->error('Upgrade metadata could not be recorded.');
@@ -116,6 +119,13 @@ class UpgradeCommand extends Command
         ]);
 
         return Command::SUCCESS;
+    }
+
+    private function reportErrors(SymfonyStyle $io, array $errors): int
+    {
+        $io->error('升级过程中出现以下错误:');
+        $io->listing($errors);
+        return Command::FAILURE;
     }
 
     private function checkUpgradeMetadata(SymfonyStyle $io, string $appPath): int

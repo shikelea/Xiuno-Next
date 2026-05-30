@@ -118,6 +118,13 @@ strpos($upgrade, "Upgrade metadata could not be recorded.") !== false
     || fail('upgrade must fail when upgrade metadata cannot be recorded.');
 strpos($upgrade, "'allow_unverified_update' => 0") !== false
     || fail('upgrade must add the default online-update integrity setting for older conf.php files.');
+strpos($upgrade, 'private function reportErrors(SymfonyStyle $io, array $errors): int') !== false
+    || fail('upgrade must centralize failure reporting for staged upgrade errors.');
+$executeSection = substr($upgrade, strpos($upgrade, 'protected function execute'));
+strpos($executeSection, '$this->stepConfigUpgrade($io, $errors);' . "\n" . '        if (!empty($errors)) {' . "\n" . '            return $this->reportErrors($io, $errors);') !== false
+    || fail('upgrade must stop before schema/migration work when config upgrade fails.');
+strpos($executeSection, '$this->stepRunMigrations($io, $errors);' . "\n" . '        if (!empty($errors)) {' . "\n" . '            return $this->reportErrors($io, $errors);' . "\n" . '        }' . "\n" . '        $this->stepCleanup($io);') !== false
+    || fail('upgrade must stop before cleanup/metadata/version writes when migrations fail.');
 
 $migration = read_file_checked($root . '/database/migrations/0001_alter_user_password_field.php');
 strpos($migration, '$ok = db_exec(') !== false
