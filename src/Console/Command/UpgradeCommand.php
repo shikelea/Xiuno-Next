@@ -24,6 +24,7 @@ class UpgradeCommand extends Command
         'admin_bind_ip' => 0,
         'cdn_on' => 0,
         'url_rewrite_on' => 0,
+        'allow_unverified_update' => 0,
         'static_version' => '?v=4.4.5',
     ];
 
@@ -348,6 +349,10 @@ class UpgradeCommand extends Command
             $name = basename($file, '.php');
             try {
                 $migration = require $file;
+                if (!$this->isValidMigration($migration)) {
+                    $errors[] = basename($file) . ' 必须返回带 up(string $tablepre): void 方法的对象。';
+                    return;
+                }
                 $migration->up($tablepre);
                 if (!in_array($name, $executed, true)) {
                     $executed[] = $name;

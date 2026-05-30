@@ -11,17 +11,17 @@
 				<div class="row mb-3">
 					<div class="col-md-6">
 						<span class="text-muted"><?php echo lang('update_current_version');?>：</span>
-						<b><?php echo $current_version;?></b>
+						<b><?php echo htmlspecialchars($current_version);?></b>
 					</div>
 					<div class="col-md-6">
 						<span class="text-muted"><?php echo lang('update_latest_version');?>：</span>
 						<?php if(!empty($error)) { ?>
 							<span class="text-danger"><?php echo $error;?></span>
 						<?php } elseif($has_update) { ?>
-							<b class="text-success"><?php echo $latest_version;?></b>
+							<b class="text-success"><?php echo htmlspecialchars($latest_version);?></b>
 							<span class="badge bg-success"><?php echo lang('update_new_available');?></span>
 						<?php } else { ?>
-							<b><?php echo $latest_version;?></b>
+							<b><?php echo htmlspecialchars($latest_version);?></b>
 							<span class="badge bg-secondary"><?php echo lang('update_already_latest');?></span>
 						<?php } ?>
 					</div>

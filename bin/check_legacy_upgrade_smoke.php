@@ -16,6 +16,14 @@ if ($host === '' || $baseName === '' || $user === '') {
     echo "SKIP: database environment is not configured.\n";
     exit(0);
 }
+if (getenv('XIUNO_ALLOW_DESTRUCTIVE_SMOKE') !== '1') {
+    echo "SKIP: destructive database smoke is not explicitly enabled.\n";
+    exit(0);
+}
+if (!preg_match('/(^|_)test($|_)/i', $baseName)) {
+    fwrite(STDERR, "FAIL: XIUNO_DB_NAME must look like a test database before destructive smoke can run.\n");
+    exit(1);
+}
 
 $confFile = $root . '/conf/conf.php';
 $confBackup = is_file($confFile) ? file_get_contents($confFile) : null;

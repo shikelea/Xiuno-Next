@@ -19,7 +19,7 @@
 ## 继续观察
 
 - 旧 Zip fallback 仍是兼容兜底代码，已补路径校验，但长期建议要求 PHP ZipArchive 扩展作为更新/插件包处理的硬依赖。
-- 在线更新已具备 TLS、ZIP 魔数、ZIP 路径校验、覆盖前备份、回滚和 SHA-256 元数据校验；发布约定见 `docs/update-integrity.md`。发布包签名和“缺少 SHA-256 即阻断更新”的严格策略仍待发布流程稳定后启用。
+- 在线更新已具备 TLS、ZIP 魔数、ZIP 路径校验、覆盖前备份、回滚和 SHA-256 元数据校验；发布约定见 `docs/update-integrity.md`。缺少 SHA-256 元数据时默认阻断更新；过渡期必须显式设置 `allow_unverified_update` 才能继续，且仍会写入未验证日志。发布包签名仍待发布流程稳定后启用。
 - DB helper 仍以 `addslashes()` 拼 SQL。短期继续收敛直接 SQL 拼接点；长期应设计兼容旧插件的预处理语句迁移层。
 - 旧迁移工具位于 `tool/`，包含大量一次性导入 SQL 拼接。默认不进入 Web 请求路径，后续需要单独标注为离线维护工具，并补充使用风险说明。
 
@@ -93,5 +93,9 @@ rg -n "simplexml_load_string|simplexml_load_file|DOMDocument|LIBXML_NOENT|xml_pa
 - Online update now hard-fails ZIP extraction errors, restores the backup if core file copy or `conf/conf.php` version writes fail, and records newly added files so rollback can remove them instead of leaving stale files behind.
 - Online update source package selection now requires exactly one top-level directory plus core sentinel files/directories (`index.php`, `conf/conf.default.php`, `admin/`, `model/`, `view/`, `xiunophp/`), avoiding loose partial-package matches.
 - Online update rollback now reads the selected backup from POST only, avoiding the old `param(..., 'POST')` confusion where the third argument controlled escaping rather than request source.
+- Online update now fails closed when no release SHA-256 metadata is available. Administrators can explicitly enable the legacy permissive path with `allow_unverified_update`, but the update log still records `checksum_verified=0` and the local package hash.
+- Online update now validates Release tags before building archive URLs, escapes version strings in the admin page, explicitly enables TLS host-name verification in stream fallbacks, rejects oversized update packages, and verifies that `conf.php` setting writes actually replaced or appended a key.
 - Installer DB setup now uses an `install_task` lock with shutdown release, validates database names before `CREATE DATABASE`, and stops when `conf/conf.php` copy or replacement fails.
+- Installer POST setup now uses an installer CSRF token and POST-only field reads for language/database/admin fields. Database driver, engine, host, port, and database name are validated before the PDO DSN or `CREATE DATABASE` path can consume them.
+- CLI migration execution now revalidates migration object signatures immediately before calling `up()`, not only during `--check`. Destructive legacy upgrade smoke requires explicit `XIUNO_ALLOW_DESTRUCTIVE_SMOKE=1` and a test-looking database name.
 - `bin/check_frontend_security.php`, `bin/check_plugin_dependency_status.php`, `bin/check_plugin_task_safety.php`, `bin/check_plugin_package_rollback.php`, `bin/check_update_task_safety.php`, and `bin/check_install_safety.php` guard these contracts in CI.

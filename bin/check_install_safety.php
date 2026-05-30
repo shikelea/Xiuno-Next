@@ -26,6 +26,18 @@ strpos($install, "register_shutdown_function('install_lock_end')") !== FALSE
 	|| fail('Installer lock must be released by shutdown for direct message()/exit paths.');
 strpos($install, "function install_lock_end()") !== FALSE
 	|| fail('Installer must have an install lock release helper.');
+strpos($install, 'install_session_start();') !== FALSE
+	|| fail('Installer must start a session before rendering CSRF-protected forms.');
+strpos($install, 'function install_csrf_token()') !== FALSE
+	|| fail('Installer must expose a CSRF token helper for POST forms.');
+strpos($install, 'function install_csrf_check()') !== FALSE
+	|| fail('Installer must verify CSRF tokens on POST branches.');
+strpos($install, "hash_equals(\$_SESSION['install_csrf_token'], \$token)") !== FALSE
+	|| fail('Installer CSRF check must compare tokens with hash_equals().');
+strpos($install, "function install_post(\$key") !== FALSE
+	|| fail('Installer must use a POST-only helper for submitted setup fields.');
+strpos($install, "\$_lang = install_post('lang')") !== FALSE
+	|| fail('Installer language POST branch must not read from merged request data.');
 
 strpos($db_post, "install_db_name_safe(\$name)") !== FALSE
 	|| fail('Installer must validate the database name before connecting or creating databases.');
@@ -33,6 +45,22 @@ strpos($install, "function install_db_name_safe(\$name)") !== FALSE
 	|| fail('Installer database-name validation helper is missing.');
 strpos($install, "preg_match('/^[A-Za-z0-9_]{1,64}$/'") !== FALSE
 	|| fail('Installer database names must be constrained to a safe identifier whitelist.');
+strpos($install, "function install_db_host_port(&\$host, &\$port)") !== FALSE
+	|| fail('Installer must validate database host and port before building a PDO DSN.');
+strpos($db_post, "!install_db_host_port(\$host, \$port)") !== FALSE
+	|| fail('Installer DB POST flow must validate database host and port.');
+strpos($db_post, '$db_host = $port == 3306 ? $host : $host . \':\' . $port;') !== FALSE
+	|| fail('Installer DB POST flow must preserve non-default ports in saved database configuration.');
+strpos($db_post, "\$type !== 'pdo_mysql'") !== FALSE
+	|| fail('Installer DB POST flow must reject unsupported database drivers.');
+strpos($db_post, "!in_array(\$engine, array('innodb', 'myisam'), TRUE)") !== FALSE
+	|| fail('Installer DB POST flow must whitelist database engines.');
+foreach (array('type', 'engine', 'host', 'name', 'user', 'password', 'force', 'adminemail', 'adminuser', 'adminpass') as $field) {
+	strpos($db_post, "param('$field") === FALSE
+		|| fail("Installer DB POST flow must not read $field from merged request data.");
+	strpos($db_post, "install_post('$field") !== FALSE
+		|| fail("Installer DB POST flow must read $field from POST only.");
+}
 
 $create_pos = strpos($db_post, 'CREATE DATABASE `$name`');
 $validate_pos = strpos($db_post, 'install_db_name_safe($name)');

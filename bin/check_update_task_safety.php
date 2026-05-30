@@ -37,6 +37,10 @@ strpos($update_route, "update_lock_end();\n\tmessage(\$code, \$message);") !== F
 $download = section_between($update_route, "} elseif (\$action == 'download')", "} elseif (\$action == 'rollback')");
 strpos($download, 'update_lock_start();') !== FALSE
 	|| fail('Download/update action must acquire the update task lock.');
+strpos($download, 'update_tag_valid($tag_name)') !== FALSE
+	|| fail('Download/update action must validate release tags before building archive URLs.');
+strpos($download, 'rawurlencode($tag_name)') !== FALSE
+	|| fail('Download/update action must URL-encode release tags in archive URLs.');
 $download_locked = section_after($download, 'update_lock_start();');
 strpos($download_locked, "\tmessage(") === FALSE
 	|| fail('Download/update locked paths must call update_message(), not message().');
@@ -58,6 +62,18 @@ strpos($rollback_locked, "param('backup', '', 'POST')") === FALSE
 
 strpos($download, 'file_put_contents($zipfile, $zipdata) !== strlen($zipdata)') !== FALSE
 	|| fail('Downloaded ZIP writes must be checked for short writes.');
+strpos($update_route, "define('UPDATE_MAX_ZIP_BYTES'") !== FALSE
+	|| fail('Online update must define a maximum update ZIP size.');
+strpos($update_route, 'strlen($response) > UPDATE_MAX_ZIP_BYTES') !== FALSE
+	|| fail('cURL update downloads must reject oversized packages.');
+strpos($update_route, 'strlen($s) > UPDATE_MAX_ZIP_BYTES') !== FALSE
+	|| fail('stream update downloads must reject oversized packages.');
+strpos($download, "empty(\$conf['allow_unverified_update'])") !== FALSE
+	|| fail('Online update must fail closed when release SHA256 metadata is missing unless allow_unverified_update is explicitly enabled.');
+strpos($download, "lang('update_checksum_missing_blocked')") !== FALSE
+	|| fail('Missing release SHA256 metadata must return a dedicated blocked-update error.');
+strpos($download, 'checksum_verified=0') !== FALSE
+	|| fail('Explicitly allowed unverified updates must keep logging checksum_verified=0.');
 strpos($download, 'if (!$zip->extractTo($extract_dir))') !== FALSE
 	|| fail('ZIP extraction failures must stop the update before source selection.');
 $source = section_between($update_route, 'function update_find_source_dir', 'function update_zip_validate');
@@ -71,6 +87,10 @@ strpos($source, "array('admin', 'model', 'view', 'xiunophp')") !== FALSE
 	|| fail('Update source validation must require core sentinel directories.');
 strpos($source, "is_file(\$dir . 'index.php') || is_dir(\$dir . 'model')") === FALSE
 	|| fail('Update source selection must not accept loose index.php-or-model matches.');
+strpos($update_route, 'function update_tag_valid($tag)') !== FALSE
+	|| fail('Online update must expose a release tag validator.');
+strpos($update_route, "preg_match('/^v?\d+\.\d+\.\d+") !== FALSE
+	|| fail('Release tag validation must constrain tags to version-shaped values.');
 strpos($download, '$copy_error =') !== FALSE
 	|| fail('Update copy errors must be captured.');
 strpos($download, 'if ($result === FALSE)') !== FALSE

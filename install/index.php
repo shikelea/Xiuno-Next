@@ -35,6 +35,7 @@ $action = param('action');
 if(!in_array($method, array('GET', 'POST'), TRUE)) {
 	message(-1, 'Method Not Allowed');
 }
+install_session_start();
 
 // Already installed: never expose the installer flow directly.
 (is_file(APP_PATH.'conf/conf.php') || is_file(INSTALL_LOCK_FILE)) AND message(0, jump(lang('installed_tips'), '../'));
@@ -54,7 +55,8 @@ if(empty($action)) {
 		// 修改 conf.php
 		include INSTALL_PATH."view/htm/index.htm";
 	} else {
-		$_lang = param('lang');
+		install_csrf_check();
+		$_lang = install_post('lang');
 		!in_array($_lang, array('zh-cn', 'zh-tw', 'en-us', 'ru-ru', 'th-th')) AND $_lang = 'zh-cn';
 		setcookie('lang', $_lang);
 		
@@ -100,23 +102,28 @@ if(empty($action)) {
 		
 	} else {
 		is_file(APP_PATH.'conf/conf.php') AND message(0, jump(lang('installed_tips'), '../'));
+		install_csrf_check();
 		
-		$type = param('type');	
-		$engine = param('engine');	
-		$host = param('host');	
-		$name = param('name');	
-		$user = param('user');
-		$password = param('password');
-		$force = param('force');
+		$type = install_post('type');
+		$engine = install_post('engine');
+		$host = install_post('host');
+		$name = install_post('name');
+		$user = install_post('user');
+		$password = install_post('password');
+		$force = install_post('force');
 		
-		$adminemail = param('adminemail');
-		$adminuser = param('adminuser');
-		$adminpass = param('adminpass');
+		$adminemail = install_post('adminemail');
+		$adminuser = install_post('adminuser');
+		$adminpass = install_post('adminpass');
 		
 		// 强制使用 pdo_mysql，防止意外
 		if($type == 'mysql') $type = 'pdo_mysql';
 		
 		empty($host) AND message('host', lang('dbhost_is_empty'));
+		!install_db_host_port($host, $port) AND message('host', 'Database host must be a hostname/IP with an optional numeric port.');
+		$db_host = $port == 3306 ? $host : $host . ':' . $port;
+		$type !== 'pdo_mysql' AND message('type', 'Only pdo_mysql is supported.');
+		!in_array($engine, array('innodb', 'myisam'), TRUE) AND message('engine', 'Database engine must be innodb or myisam.');
 		empty($name) AND message('name', lang('dbname_is_empty'));
 		!install_db_name_safe($name) AND message('name', 'Database name may only contain letters, numbers and underscores.');
 		empty($user) AND message('user', lang('dbuser_is_empty'));
@@ -131,12 +138,12 @@ if(empty($action)) {
 		ini_set('default_socket_timeout', 5); 
 
 		$conf['db']['type'] = $type;	
-		$conf['db']['mysql']['master']['host'] = $host;
+		$conf['db']['mysql']['master']['host'] = $db_host;
 		$conf['db']['mysql']['master']['name'] = $name;
 		$conf['db']['mysql']['master']['user'] = $user;
 		$conf['db']['mysql']['master']['password'] = $password;
 		$conf['db']['mysql']['master']['engine'] = $engine;
-		$conf['db']['pdo_mysql']['master']['host'] = $host;
+		$conf['db']['pdo_mysql']['master']['host'] = $db_host;
 		$conf['db']['pdo_mysql']['master']['name'] = $name;
 		$conf['db']['pdo_mysql']['master']['user'] = $user;
 		$conf['db']['pdo_mysql']['master']['password'] = $password;
@@ -150,14 +157,6 @@ if(empty($action)) {
 		if($r === FALSE) {
 			if($errno == 1049 || $errno == 1045) {
 				if($type == 'pdo_mysql') {
-					if(strpos($host, ':') !== FALSE) {
-						$arr = explode(':', $host);
-						$host = $arr[0];
-						$port = $arr[1];
-					} else {
-						//$host = $host;
-						$port = 3306;
-					}
 					try {
 						$attr = array(
 							PDO::ATTR_TIMEOUT => 5,
@@ -253,5 +252,47 @@ function install_db_name_safe($name) {
 	return is_string($name) && preg_match('/^[A-Za-z0-9_]{1,64}$/', $name);
 }
 
+function install_post($key, $defval = '', $htmlspecialchars = TRUE) {
+	$val = _POST($key, $defval);
+	return param_force($val, $defval, $htmlspecialchars, FALSE);
+}
+
+function install_session_start() {
+	if(session_status() !== PHP_SESSION_ACTIVE) {
+		session_start();
+	}
+}
+
+function install_csrf_token() {
+	install_session_start();
+	if(empty($_SESSION['install_csrf_token'])) {
+		$_SESSION['install_csrf_token'] = bin2hex(random_bytes(32));
+	}
+	return $_SESSION['install_csrf_token'];
+}
+
+function install_csrf_check() {
+	install_session_start();
+	$token = _POST('_token', '');
+	if(empty($token) || empty($_SESSION['install_csrf_token']) || !hash_equals($_SESSION['install_csrf_token'], $token)) {
+		message(-1, 'Bad install CSRF token.');
+	}
+}
+
+function install_db_host_port(&$host, &$port) {
+	$host = trim((string)$host);
+	$port = 3306;
+	if($host === '' || strlen($host) > 255 || preg_match('/[\x00-\x1F\x7F;]/', $host)) return FALSE;
+	if(strpos($host, ':') !== FALSE) {
+		$arr = explode(':', $host);
+		if(count($arr) !== 2) return FALSE;
+		$host = $arr[0];
+		$port = $arr[1];
+	}
+	if($host === '' || !preg_match('/^[A-Za-z0-9._-]+$/', $host)) return FALSE;
+	if(!preg_match('/^\d{1,5}$/', (string)$port)) return FALSE;
+	$port = intval($port);
+	return $port >= 1 && $port <= 65535;
+}
 
 ?>

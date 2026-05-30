@@ -97,6 +97,7 @@ return array (
 	'attach_dir_save_rule' => 'Ym',	// 附件存放规则，附件多用：Ymd，附件少：Ym
 	
 	'update_views_on' => 1,
+	'allow_unverified_update' => 0,	// 允许缺少 SHA-256 校验信息的在线更新；默认关闭，降低供应链风险
 	'user_create_email_on' => 0,
 	'user_create_on' => 1,
 	'user_resetpw_on' => 0,

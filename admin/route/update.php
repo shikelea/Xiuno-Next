@@ -5,6 +5,7 @@
 // GitHub 仓库配置
 define('GITHUB_REPO', 'shikelea/Xiuno-Next');
 define('GITHUB_API_URL', 'https://api.github.com/repos/' . GITHUB_REPO);
+define('UPDATE_MAX_ZIP_BYTES', 52428800);
 
 // 内置 GitHub 加速代理列表
 $github_proxies = array(
@@ -43,10 +44,15 @@ if ($action == 'check') {
 	if ($latest === FALSE) {
 		$error = lang('update_check_failed');
 	} else {
-		$latest_version = ltrim($latest['tag_name'], 'vV');
-		$has_update = version_compare($latest_version, $current_version) > 0;
-		$changelog = isset($latest['body']) ? $latest['body'] : '';
-		$download_url = 'https://github.com/' . GITHUB_REPO . '/archive/refs/tags/' . $latest['tag_name'] . '.zip';
+		$tag_name = isset($latest['tag_name']) ? trim($latest['tag_name']) : '';
+		if (!update_tag_valid($tag_name)) {
+			$error = lang('update_invalid_release');
+		} else {
+			$latest_version = ltrim($tag_name, 'vV');
+			$has_update = version_compare($latest_version, $current_version) > 0;
+			$changelog = isset($latest['body']) ? $latest['body'] : '';
+			$download_url = 'https://github.com/' . GITHUB_REPO . '/archive/refs/tags/' . rawurlencode($tag_name) . '.zip';
+		}
 	}
 
 	include _include(ADMIN_PATH . "view/htm/update.htm");
@@ -111,14 +117,17 @@ if ($action == 'check') {
 		if ($latest === FALSE) update_message(-1, lang('update_check_failed'));
 	}
 
-	$latest_version = ltrim($latest['tag_name'], 'vV');
+	$tag_name = isset($latest['tag_name']) ? trim($latest['tag_name']) : '';
+	if (!update_tag_valid($tag_name)) {
+		update_message(-1, lang('update_invalid_release'));
+	}
+	$latest_version = ltrim($tag_name, 'vV');
 	if (version_compare($latest_version, $conf['version']) <= 0) {
 		update_message(0, lang('update_already_latest'));
 	}
 
 	// 使用 github.com/archive 直接下载链接（不走 API，无速率限制，代理兼容性更好）
-	$tag_name = $latest['tag_name'];
-	$download_url = 'https://github.com/' . GITHUB_REPO . '/archive/refs/tags/' . $tag_name . '.zip';
+	$download_url = 'https://github.com/' . GITHUB_REPO . '/archive/refs/tags/' . rawurlencode($tag_name) . '.zip';
 
 	// 通过代理下载
 	$actual_url = update_proxied_url($download_url, $proxy);
@@ -156,6 +165,8 @@ if ($action == 'check') {
 			update_message(-1, lang('update_checksum_mismatch') . " (expected {$expected_sha256}, got {$zip_sha256})");
 		}
 		$checksum_verified = TRUE;
+	} elseif (empty($conf['allow_unverified_update'])) {
+		update_message(-1, lang('update_checksum_missing_blocked') . " (zip_sha256={$zip_sha256})");
 	}
 
 	if (file_put_contents($zipfile, $zipdata) !== strlen($zipdata)) {
@@ -429,6 +440,7 @@ function update_http_get($url, $timeout = 10) {
 		),
 		'ssl' => array(
 			'verify_peer' => true,
+			'verify_peer_name' => true,
 		),
 	);
 	$ctx = stream_context_create($opts);
@@ -473,6 +485,10 @@ function update_github_download_binary($url, $timeout = 120, &$error = '') {
 		$final_url = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
 		curl_close($ch);
 		if ($httpcode >= 200 && $httpcode < 400 && $response !== FALSE) {
+			if (strlen($response) > UPDATE_MAX_ZIP_BYTES) {
+				$error = 'download exceeds size limit';
+				return FALSE;
+			}
 			return $response;
 		}
 		$error = "HTTP $httpcode";
@@ -490,12 +506,22 @@ function update_github_download_binary($url, $timeout = 120, &$error = '') {
 		),
 		'ssl' => array(
 			'verify_peer' => true,
+			'verify_peer_name' => true,
 		),
 	);
 	$ctx = stream_context_create($opts);
 	$s = @file_get_contents($url, false, $ctx);
+	if ($s !== FALSE && strlen($s) > UPDATE_MAX_ZIP_BYTES) {
+		$error = 'download exceeds size limit';
+		return FALSE;
+	}
 	if ($s === FALSE) $error = 'file_get_contents failed';
 	return $s !== FALSE ? $s : FALSE;
+}
+
+function update_tag_valid($tag) {
+	$tag = trim((string)$tag);
+	return $tag !== '' && preg_match('/^v?\d+\.\d+\.\d+(?:[-+][A-Za-z0-9][A-Za-z0-9._-]{0,31})?$/', $tag);
 }
 
 function update_release_expected_sha256($release, $tag_name, $download_url, $proxy = '', &$source = '') {
@@ -931,10 +957,14 @@ function update_conf_setting($key, $value) {
 	$escaped = addslashes($value);
 	// 已存在则替换
 	if (preg_match("/'" . preg_quote($key, '/') . "'\s*=>/", $s)) {
-		$s = preg_replace("/'" . preg_quote($key, '/') . "'\s*=>\s*'[^']*'/", "'$key' => '$escaped'", $s);
+		$count = 0;
+		$s = preg_replace("/'" . preg_quote($key, '/') . "'\s*=>\s*'[^']*'/", "'$key' => '$escaped'", $s, 1, $count);
+		if ($count < 1) return FALSE;
 	} else {
 		// 不存在则追加到数组末尾 ); 前面
-		$s = preg_replace('/\);\s*\?>\s*$/', "\t'$key' => '$escaped',\n);\n?>", $s);
+		$count = 0;
+		$s = preg_replace('/\);\s*\?>\s*$/', "\t'$key' => '$escaped',\n);\n?>", $s, 1, $count);
+		if ($count < 1) return FALSE;
 	}
 	return file_put_contents($conffile, $s) === strlen($s);
 }

@@ -27,5 +27,5 @@ SHA256: <64位sha256>
 ## 当前策略
 
 - 找到 SHA-256 时：必须匹配，否则停止更新。
-- 未找到 SHA-256 时：暂不阻断更新，但会把本地计算的 `zip_sha256` 和 `checksum_verified=0` 写入 `log/update.log`。
-- 后续发布规范稳定后，再把“缺少 SHA-256 即停止更新”作为更严格的发布策略。
+- 未找到 SHA-256 时：默认停止更新，并在错误信息中显示本地计算的 `zip_sha256`，便于发布者补齐校验信息。
+- 过渡期如果必须使用未提供 SHA-256 的包，站点管理员可以在 `conf/conf.php` 中显式设置 `'allow_unverified_update' => 1`。此模式仍会把本地计算的 `zip_sha256` 和 `checksum_verified=0` 写入 `log/update.log`，只建议用于临时恢复或受控测试。
