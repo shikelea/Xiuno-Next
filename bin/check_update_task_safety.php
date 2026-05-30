@@ -64,10 +64,24 @@ strpos($download, 'file_put_contents($zipfile, $zipdata) !== strlen($zipdata)') 
 	|| fail('Downloaded ZIP writes must be checked for short writes.');
 strpos($update_route, "define('UPDATE_MAX_ZIP_BYTES'") !== FALSE
 	|| fail('Online update must define a maximum update ZIP size.');
-strpos($update_route, 'strlen($response) > UPDATE_MAX_ZIP_BYTES') !== FALSE
-	|| fail('cURL update downloads must reject oversized packages.');
-strpos($update_route, 'strlen($s) > UPDATE_MAX_ZIP_BYTES') !== FALSE
-	|| fail('stream update downloads must reject oversized packages.');
+strpos($update_route, 'function update_http_get_body($url, $timeout, $headers, $max_redirects, $max_bytes = 0, &$error =') !== FALSE
+	|| fail('Online update HTTP reads must use a shared bounded redirect helper.');
+strpos($update_route, 'strlen($result[\'body\']) > $max_bytes') !== FALSE
+	|| fail('Shared update HTTP helper must reject oversized response bodies.');
+strpos($update_route, 'return update_http_get_body($url, $timeout, array(\'Accept: */*\'), 10, UPDATE_MAX_ZIP_BYTES, $error);') !== FALSE
+	|| fail('Binary update downloads must pass the maximum ZIP size into the shared HTTP helper.');
+strpos($update_route, 'CURLOPT_FOLLOWLOCATION, true') === FALSE
+	|| fail('Online update must not rely on cURL automatic redirects.');
+strpos($update_route, "'follow_location' => 1") === FALSE
+	|| fail('Online update stream fallback must not automatically follow redirects.');
+strpos($update_route, 'function update_redirect_url($location, $base_url)') !== FALSE
+	|| fail('Online update redirects must be normalized by a dedicated helper.');
+strpos($update_route, 'function update_url_public_https_allowed($url)') !== FALSE
+	|| fail('Online update redirects must be constrained to public HTTPS URLs.');
+strpos($update_route, "strtolower(\$parts['scheme']) !== 'https'") !== FALSE
+	|| fail('Online update redirects must reject protocol downgrade to HTTP.');
+strpos($update_route, "update_proxy_public_host(strtolower(\$parts['host']))") !== FALSE
+	|| fail('Online update redirects must reject private/local hosts.');
 strpos($download, "empty(\$conf['allow_unverified_update'])") !== FALSE
 	|| fail('Online update must fail closed when release SHA256 metadata is missing unless allow_unverified_update is explicitly enabled.');
 strpos($download, "lang('update_checksum_missing_blocked')") !== FALSE

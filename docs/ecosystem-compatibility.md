@@ -80,7 +80,7 @@ Local scan scripts and generated reports remain ignored. Only stable conclusions
 
 The current ignored local sample scan still covers 58 packages, with 2 theme-like packages in this pass. Metadata is clean, while the remaining blocking backend signals are one standalone PHP syntax error and one PHP 8 removed-function call (`each()`) in a theme overwrite package. The frontend signals are still dominated by BS4 compatibility markers already represented in the compatibility-layer guard surface.
 
-The PHP package guard now checks standalone plugin PHP files for removed PHP 8 function calls in addition to `php -l`, while continuing to skip `hook/` fragments that compile into Xiuno route/template context. This converts a runtime fatal class found by real samples into a pre-install/pre-enable/pre-upgrade blocker.
+The PHP package guard now checks standalone plugin PHP files for removed PHP 8 function calls in addition to `php -l`, while continuing to skip `hook/` fragments that compile into Xiuno route/template context. This converts a runtime fatal class found by real samples into a pre-install/pre-enable/pre-upgrade blocker. The guard fixture includes `overwrite/` package files as standalone PHP, matching the current theme overwrite sample that still calls `each()`.
 
 The BS4 runtime compatibility layer already covers the high-frequency frontend markers from this scan. The CI guard now also asserts the sample-driven `custom-control` subselectors and the full contextual badge family, so future frontend cleanup cannot silently remove compatibility that real packages still use.
 

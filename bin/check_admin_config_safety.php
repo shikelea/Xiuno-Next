@@ -49,20 +49,25 @@ strpos($proxy_host, "substr(\$host, -6) === '.local'") !== FALSE
 	|| fail('Custom update proxies must reject local hostnames.');
 
 $http_get = section_between($update_route, 'function update_http_get', 'function update_github_download');
-strpos($http_get, 'xn_http_url_allowed($url)') !== FALSE
-	|| fail('Update HTTP GET must enforce allowed URL schemes.');
-strpos($http_get, 'xn_http_curl_protocols') !== FALSE
+$shared_http = section_between($update_route, 'function update_http_get_body', 'function update_github_download');
+strpos($http_get, 'update_http_get_body($url') !== FALSE
+	|| fail('Update HTTP GET must use the shared bounded HTTP helper.');
+strpos($shared_http, 'xn_http_curl_protocols') !== FALSE
 	|| fail('Update HTTP GET must restrict cURL protocols.');
-strpos($http_get, "'verify_peer_name' => true") !== FALSE
+strpos($shared_http, "'verify_peer_name' => true") !== FALSE
 	|| fail('Update HTTP GET stream fallback must explicitly verify TLS host names.');
+strpos($shared_http, 'update_url_public_https_allowed($url)') !== FALSE
+	|| fail('Update HTTP GET must enforce public HTTPS URL boundaries.');
 
 $download = section_between($update_route, 'function update_github_download_binary', 'function update_release_expected_sha256');
-strpos($download, 'xn_http_url_allowed($url)') !== FALSE
-	|| fail('Update binary download must enforce allowed URL schemes.');
-strpos($download, 'xn_http_curl_protocols') !== FALSE
+strpos($download, 'update_http_get_body($url') !== FALSE
+	|| fail('Update binary download must use the shared bounded HTTP helper.');
+strpos($shared_http, 'xn_http_curl_protocols') !== FALSE
 	|| fail('Update binary download must restrict cURL protocols.');
-strpos($download, "'verify_peer_name' => true") !== FALSE
+strpos($shared_http, "'verify_peer_name' => true") !== FALSE
 	|| fail('Update binary stream fallback must explicitly verify TLS host names.');
+strpos($shared_http, 'update_url_public_https_allowed($url)') !== FALSE
+	|| fail('Update binary download must enforce public HTTPS URL boundaries.');
 
 $conf_setting = section_between($update_route, 'function update_conf_setting', "\n}\n\n?>");
 strpos($conf_setting, '=== strlen($s)') !== FALSE

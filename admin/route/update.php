@@ -406,37 +406,91 @@ function update_http_get_json($url) {
  * HTTPS GET 请求（带 User-Agent，GitHub API 必须）
  */
 function update_http_get($url, $timeout = 10) {
-	if (!xn_http_url_allowed($url)) return FALSE;
-	// 优先使用 cURL
+	$error = '';
+	return update_http_get_body($url, $timeout, array('Accept: application/vnd.github.v3+json'), 5, 0, $error);
+}
+
+function update_http_get_body($url, $timeout, $headers, $max_redirects, $max_bytes = 0, &$error = '') {
+	if (!update_url_public_https_allowed($url)) {
+		$error = 'URL is not an allowed public HTTPS URL';
+		return FALSE;
+	}
+	$current = $url;
+	$redirects = 0;
+	while (TRUE) {
+		$result = function_exists('curl_init')
+			? update_http_get_body_curl($current, $timeout, $headers, $error)
+			: update_http_get_body_stream($current, $timeout, $headers, $error);
+		if ($result === FALSE) return FALSE;
+		$httpcode = $result['code'];
+		if ($httpcode >= 300 && $httpcode < 400) {
+			if (++$redirects > $max_redirects) {
+				$error = 'too many redirects';
+				return FALSE;
+			}
+			$location = update_response_header($result['headers'], 'location');
+			$next = update_redirect_url($location, $current);
+			if ($next === FALSE) {
+				$error = 'unsafe redirect location';
+				return FALSE;
+			}
+			$current = $next;
+			continue;
+		}
+		if ($httpcode >= 200 && $httpcode < 300) {
+			if ($max_bytes > 0 && strlen($result['body']) > $max_bytes) {
+				$error = 'download exceeds size limit';
+				return FALSE;
+			}
+			return $result['body'];
+		}
+		$error = "HTTP $httpcode";
+		return FALSE;
+	}
+}
+
+function update_http_get_body_curl($url, $timeout, $headers, &$error = '') {
 	if (function_exists('curl_init')) {
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-		curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
+		curl_setopt($ch, CURLOPT_HEADER, true);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
 		curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Xiuno-Next-Updater');
 		function_exists('xn_http_curl_protocols') AND xn_http_curl_protocols($ch);
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-			'Accept: application/vnd.github.v3+json',
-		));
-		$response = curl_exec($ch);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+		$raw = curl_exec($ch);
 		$httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$header_size = intval(curl_getinfo($ch, CURLINFO_HEADER_SIZE));
+		$curl_error = curl_error($ch);
+		$curl_errno = curl_errno($ch);
 		curl_close($ch);
-		if ($httpcode >= 200 && $httpcode < 400 && $response !== FALSE) {
-			return $response;
+		if ($raw === FALSE) {
+			$error = $curl_errno ? "cURL #{$curl_errno}: {$curl_error}" : 'cURL failed';
+			return FALSE;
 		}
-		return FALSE;
+		return array(
+			'code'=>$httpcode,
+			'headers'=>substr($raw, 0, $header_size),
+			'body'=>substr($raw, $header_size),
+		);
 	}
+	$error = 'cURL unavailable';
+	return FALSE;
+}
 
-	// 备选：file_get_contents
+function update_http_get_body_stream($url, $timeout, $headers, &$error = '') {
 	$opts = array(
 		'http' => array(
 			'method' => 'GET',
 			'timeout' => $timeout,
-			'header' => "User-Agent: Xiuno-Next-Updater\r\nAccept: application/vnd.github.v3+json\r\n",
+			'header' => "User-Agent: Xiuno-Next-Updater\r\n" . implode("\r\n", $headers) . "\r\n",
+			'ignore_errors' => true,
+			'follow_location' => 0,
 		),
 		'ssl' => array(
 			'verify_peer' => true,
@@ -445,7 +499,22 @@ function update_http_get($url, $timeout = 10) {
 	);
 	$ctx = stream_context_create($opts);
 	$s = @file_get_contents($url, false, $ctx);
-	return $s !== FALSE ? $s : FALSE;
+	if ($s === FALSE) {
+		$error = 'file_get_contents failed';
+		return FALSE;
+	}
+	if (function_exists('http_get_last_response_headers')) {
+		$response_headers = http_get_last_response_headers();
+	} else {
+		$header_var = 'http_response_header';
+		$response_headers = isset($$header_var) ? $$header_var : array();
+	}
+	$headers_raw = is_array($response_headers) ? implode("\r\n", $response_headers) : '';
+	return array(
+		'code'=>update_response_status_code($headers_raw),
+		'headers'=>$headers_raw,
+		'body'=>$s,
+	);
 }
 
 /**
@@ -459,69 +528,81 @@ function update_github_download($url) {
  * 下载二进制文件（不发送 JSON Accept 头，避免代理返回非 ZIP 内容）
  */
 function update_github_download_binary($url, $timeout = 120, &$error = '') {
-	if (!xn_http_url_allowed($url)) {
-		$error = 'URL scheme is not allowed';
-		return FALSE;
-	}
-	if (function_exists('curl_init')) {
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $url);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-		curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
-		curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-		curl_setopt($ch, CURLOPT_USERAGENT, 'Xiuno-Next-Updater');
-		function_exists('xn_http_curl_protocols') AND xn_http_curl_protocols($ch);
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-			'Accept: */*',
-		));
-		$response = curl_exec($ch);
-		$httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		$curl_error = curl_error($ch);
-		$curl_errno = curl_errno($ch);
-		$final_url = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-		curl_close($ch);
-		if ($httpcode >= 200 && $httpcode < 400 && $response !== FALSE) {
-			if (strlen($response) > UPDATE_MAX_ZIP_BYTES) {
-				$error = 'download exceeds size limit';
-				return FALSE;
-			}
-			return $response;
-		}
-		$error = "HTTP $httpcode";
-		if ($curl_errno) $error .= ", cURL #{$curl_errno}: {$curl_error}";
-		if ($final_url !== $url) $error .= ", redirect: " . substr($final_url, 0, 80);
-		return FALSE;
-	}
-	$opts = array(
-		'http' => array(
-			'method' => 'GET',
-			'timeout' => $timeout,
-			'header' => "User-Agent: Xiuno-Next-Updater\r\nAccept: */*\r\n",
-			'follow_location' => 1,
-			'max_redirects' => 10,
-		),
-		'ssl' => array(
-			'verify_peer' => true,
-			'verify_peer_name' => true,
-		),
-	);
-	$ctx = stream_context_create($opts);
-	$s = @file_get_contents($url, false, $ctx);
-	if ($s !== FALSE && strlen($s) > UPDATE_MAX_ZIP_BYTES) {
-		$error = 'download exceeds size limit';
-		return FALSE;
-	}
-	if ($s === FALSE) $error = 'file_get_contents failed';
-	return $s !== FALSE ? $s : FALSE;
+	return update_http_get_body($url, $timeout, array('Accept: */*'), 10, UPDATE_MAX_ZIP_BYTES, $error);
 }
 
 function update_tag_valid($tag) {
 	$tag = trim((string)$tag);
 	return $tag !== '' && preg_match('/^v?\d+\.\d+\.\d+(?:[-+][A-Za-z0-9][A-Za-z0-9._-]{0,31})?$/', $tag);
+}
+
+function update_response_status_code($headers) {
+	if (preg_match_all('#^HTTP/\S+\s+(\d{3})#m', (string)$headers, $m)) {
+		return intval(end($m[1]));
+	}
+	return 0;
+}
+
+function update_response_header($headers, $name) {
+	$name = strtolower($name);
+	$value = '';
+	foreach (preg_split('/\r\n|\r|\n/', (string)$headers) as $line) {
+		if (strpos($line, ':') === FALSE) continue;
+		list($key, $val) = explode(':', $line, 2);
+		if (strtolower(trim($key)) === $name) $value = trim($val);
+	}
+	return $value;
+}
+
+function update_redirect_url($location, $base_url) {
+	$location = trim((string)$location);
+	if ($location === '' || preg_match('/[\x00-\x1F\x7F]/', $location)) return FALSE;
+	if (strpos($location, '//') === 0) {
+		$base_scheme = parse_url($base_url, PHP_URL_SCHEME);
+		$location = $base_scheme . ':' . $location;
+	} elseif (!parse_url($location, PHP_URL_SCHEME)) {
+		$location = update_resolve_relative_url($location, $base_url);
+	}
+	return update_url_public_https_allowed($location) ? $location : FALSE;
+}
+
+function update_resolve_relative_url($location, $base_url) {
+	$base = parse_url($base_url);
+	if (empty($base['scheme']) || empty($base['host'])) return $location;
+	$scheme = $base['scheme'];
+	$host = $base['host'];
+	$port = isset($base['port']) ? ':' . $base['port'] : '';
+	if (strpos($location, '/') === 0) {
+		$path = $location;
+	} else {
+		$base_path = isset($base['path']) ? $base['path'] : '/';
+		$dir = preg_replace('#/[^/]*$#', '/', $base_path);
+		$path = $dir . $location;
+	}
+	return $scheme . '://' . $host . $port . update_normalize_url_path($path);
+}
+
+function update_normalize_url_path($path) {
+	$parts = explode('/', $path);
+	$out = array();
+	foreach ($parts as $part) {
+		if ($part === '' || $part === '.') continue;
+		if ($part === '..') {
+			array_pop($out);
+			continue;
+		}
+		$out[] = $part;
+	}
+	return '/' . implode('/', $out);
+}
+
+function update_url_public_https_allowed($url) {
+	if (!xn_http_url_allowed($url)) return FALSE;
+	$parts = parse_url($url);
+	if (empty($parts['scheme']) || strtolower($parts['scheme']) !== 'https') return FALSE;
+	if (empty($parts['host'])) return FALSE;
+	if (!empty($parts['user']) || !empty($parts['pass'])) return FALSE;
+	return update_proxy_public_host(strtolower($parts['host']));
 }
 
 function update_release_expected_sha256($release, $tag_name, $download_url, $proxy = '', &$source = '') {
