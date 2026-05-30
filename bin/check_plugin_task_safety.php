@@ -106,6 +106,17 @@ strpos($auto_unstall, 'plugin_restore_extra_states($restore_states);') !== FALSE
 	|| fail('Auto-uninstall write failures must restore every plugin state already touched in the batch.');
 strpos($auto_unstall, "plugin_run_lifecycle(\$_dir, 'unstall', \$snapshot, NULL, \$restore_states);") !== FALSE
 	|| fail('Auto-uninstall must run the old plugin unstall lifecycle with full batch rollback context.');
+strpos($auto_unstall, 'plugin_check_auto_unstall_result($dir, $restore_states);') !== FALSE
+	|| fail('Auto-uninstall must re-check the new plugin dependencies after same-type removals.');
+$auto_result = section_between($plugin_route, 'function plugin_check_auto_unstall_result', 'function plugin_check_dependency');
+strpos($auto_result, 'plugin_dependencies($dir)') !== FALSE
+	|| fail('Auto-uninstall result check must inspect the new plugin dependencies.');
+strpos($auto_result, 'plugin_restore_extra_states($restore_states);') !== FALSE
+	|| fail('Auto-uninstall result failures must restore the full replacement batch.');
+strpos($auto_result, 'plugin_dependency_arr_to_links($arr)') !== FALSE
+	|| fail('Auto-uninstall result failures must show structured dependency details.');
+strpos($auto_result, 'plugin_message(-1, $msg);') !== FALSE
+	|| fail('Auto-uninstall result failures must release the plugin task lock.');
 
 foreach (array('download', 'install', 'unstall', 'enable', 'disable', 'upgrade') as $action) {
 	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "\n\tplugin_lock_start();");
