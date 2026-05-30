@@ -103,15 +103,31 @@ $('.mod-button button._close').on('click', function() {
 })
 */
 
+function xn_post_link_lock(jlink) {
+	if(jlink.data('post-pending')) return false;
+	jlink.data('post-pending', 1).addClass('disabled').attr('aria-disabled', 'true');
+	return true;
+}
+
+function xn_post_link_unlock(jlink) {
+	jlink.removeData('post-pending').removeClass('disabled').removeAttr('aria-disabled');
+}
+
+function xn_post_link_done(jlink, code, message) {
+	if(code == 0) {
+		window.location.reload();
+	} else {
+		xn_post_link_unlock(jlink);
+		$.alert(message);
+	}
+}
+
 $(document).on('click', 'a[data-method="post"]:not(.confirm)', function() {
 	var jthis = $(this);
+	if(!xn_post_link_lock(jthis)) return false;
 	var href = jthis.data('href') || jthis.attr('href');
 	$.xpost(href, function(code, message) {
-		if(code == 0) {
-			window.location.reload();
-		} else {
-			$.alert(message);
-		}
+		xn_post_link_done(jthis, code, message);
 	});
 	return false;
 });
@@ -126,12 +142,9 @@ $(document).on('click', 'a.confirm', function() {
 		var method = xn.strtolower(jthis.data('method'));
 		var href = jthis.data('href') || jthis.attr('href');
 		if(method == 'post') {
+			if(!xn_post_link_lock(jthis)) return false;
 			$.xpost(href, function(code, message) {
-				if(code == 0) {
-					window.location.reload();
-				} else {
-					$.alert(message);
-				}
+				xn_post_link_done(jthis, code, message);
 			});
 		} else {
 			window.location = jthis.attr('href');

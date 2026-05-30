@@ -114,6 +114,15 @@ if ($bbsJs === FALSE) {
 	if (preg_match('/(^|[^\.\w$])alert\s*\(\s*message\s*\)\s*;/', $bbsJs)) {
 		$errors[] = 'data-method POST failures must use $.alert() so dependency guidance can render links';
 	}
+	if (strpos($bbsJs, 'function xn_post_link_lock(jlink)') === FALSE || strpos($bbsJs, "jlink.data('post-pending', 1)") === FALSE) {
+		$errors[] = 'data-method POST links must set a pending guard before sending';
+	}
+	if (strpos($bbsJs, "addClass('disabled').attr('aria-disabled', 'true')") === FALSE) {
+		$errors[] = 'data-method POST links must expose a disabled state while pending';
+	}
+	if (strpos($bbsJs, 'function xn_post_link_unlock(jlink)') === FALSE || strpos($bbsJs, "removeData('post-pending')") === FALSE) {
+		$errors[] = 'data-method POST links must restore the pending state on failure';
+	}
 }
 
 $pluginList = file_get_contents($root . 'admin/view/htm/plugin_list.htm');

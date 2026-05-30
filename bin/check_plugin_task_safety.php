@@ -164,6 +164,12 @@ strpos($plugin_read, 'class="btn btn-primary download" data-method="post"') !== 
 
 strpos($bbs_js, 'a[data-method="post"]:not(.confirm)') !== FALSE
 	|| fail('Non-confirm POST links must be handled by bbs.js.');
+strpos($bbs_js, 'function xn_post_link_lock(jlink)') !== FALSE
+	|| fail('POST links must share a pending-state guard in bbs.js.');
+strpos($bbs_js, "if(!xn_post_link_lock(jthis)) return false;") !== FALSE
+	|| fail('POST links must ignore duplicate clicks while a request is pending.');
+strpos($bbs_js, 'xn_post_link_done(jthis, code, message);') !== FALSE
+	|| fail('POST links must restore pending state on failed requests.');
 
 strpos($misc, "fopen(\$lockfile, 'x')") !== FALSE
 	|| fail('xn_lock_start() should create lock files atomically.');
