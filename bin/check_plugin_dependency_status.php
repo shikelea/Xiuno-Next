@@ -116,6 +116,20 @@ strpos($dependency_guard, '$check_self_metadata && !empty') !== FALSE
 strpos($dependency_guard, "'conf.json '.lang('format_maybe_error')") !== FALSE
 	|| fail('Target plugin metadata errors must report a conf.json format error.');
 
+$dependency_links = section_between($plugin_route, 'function plugin_dependency_arr_to_links', '// 下载插件、解压');
+strpos($dependency_links, 'plugin_dependency_has_detail_page($dir)') !== FALSE
+	|| fail('Dependency links must avoid dead plugin-read pages for missing local/official packages.');
+strpos($dependency_links, 'function plugin_dependency_has_detail_page($dir)') !== FALSE
+	|| fail('Dependency detail page availability helper is missing.');
+strpos($dependency_links, 'isset($plugins[$dir])') !== FALSE
+	|| fail('Dependency detail links must allow locally downloaded packages.');
+strpos($dependency_links, 'plugin_official_read($dir)') !== FALSE
+	|| fail('Dependency detail links must allow officially listed packages.');
+strpos($dependency_links, '<span class="text-muted">') !== FALSE
+	|| fail('Missing dependency without a detail page must render as text instead of a dead link.');
+strpos($dependency_links, 'htmlspecialchars(url("plugin-read-$dir"), ENT_QUOTES)') !== FALSE
+	|| fail('Dependency detail link URLs must be escaped for HTML attributes.');
+
 $upgrade_flow = section_between($plugin_route, "} elseif(\$action == 'upgrade')", "} elseif(\$action == 'setting')");
 strpos($upgrade_flow, "plugin_check_dependency(\$dir, 'install', NULL, NULL, FALSE);") !== FALSE
 	|| fail('Upgrade preflight must allow the new package to repair old target metadata errors.');

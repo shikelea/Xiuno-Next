@@ -92,6 +92,15 @@ if ($bs4Compat === FALSE) {
 	}
 }
 
+$bbsJs = file_get_contents($root . 'view/js/bbs.js');
+if ($bbsJs === FALSE) {
+	$errors[] = 'failed to read view/js/bbs.js';
+} else {
+	if (preg_match('/(^|[^\.\w$])alert\s*\(\s*message\s*\)\s*;/', $bbsJs)) {
+		$errors[] = 'data-method POST failures must use $.alert() so dependency guidance can render links';
+	}
+}
+
 $postModel = file_get_contents($root . 'model/post.func.php');
 if ($postModel === FALSE) {
 	$errors[] = 'failed to read model/post.func.php';
