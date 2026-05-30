@@ -62,6 +62,15 @@ function run_cli_from($cwd, $args, &$output = '') {
 
 $makePlugin = read_file_checked($root . '/src/Console/Command/MakePluginCommand.php');
 $launcher = read_file_checked($root . '/bin/xiuno');
+$composer = json_decode(read_file_checked($root . '/composer.json'), true);
+if (!is_array($composer)) {
+    fail('composer.json must be valid JSON.');
+}
+foreach (($composer['autoload']['files'] ?? []) as $file) {
+    if (str_replace('\\', '/', $file) === 'xiunophp/xiunophp.php') {
+        fail('Composer must not autoload xiunophp.php before conf/conf.php is loaded.');
+    }
+}
 strpos($launcher, "defined('APP_PATH') || define('APP_PATH', \$root . DIRECTORY_SEPARATOR);") !== false
     || fail('bin/xiuno must define APP_PATH before Composer autoload loads xiunophp.php.');
 strpos($launcher, "require APP_PATH . 'vendor/autoload.php';") !== false
