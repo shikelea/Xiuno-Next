@@ -384,13 +384,16 @@ function plugin_check_auto_unstall_dependencies($dir) {
 }
 
 function plugin_auto_unstall_same_type($dir, $primary_snapshot = NULL) {
+	$restore_states = array();
+	if($primary_snapshot !== NULL) $restore_states[$dir] = $primary_snapshot;
 	foreach(plugin_auto_unstall_candidates($dir) as $_dir) {
 		$snapshot = plugin_state_snapshot($_dir);
+		$restore_states[$_dir] = $snapshot;
 		if(!plugin_unstall($_dir)) {
-			if($primary_snapshot !== NULL) plugin_state_restore($dir, $primary_snapshot);
+			plugin_restore_extra_states($restore_states);
 			plugin_require_state_write(FALSE, $_dir, $snapshot);
 		}
-		plugin_run_lifecycle($_dir, 'unstall', $snapshot, NULL, array($dir=>$primary_snapshot));
+		plugin_run_lifecycle($_dir, 'unstall', $snapshot, NULL, $restore_states);
 	}
 }
 

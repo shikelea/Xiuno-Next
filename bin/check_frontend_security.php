@@ -101,6 +101,39 @@ if ($bbsJs === FALSE) {
 	}
 }
 
+$pluginList = file_get_contents($root . 'admin/view/htm/plugin_list.htm');
+if ($pluginList === FALSE) {
+	$errors[] = 'failed to read admin/view/htm/plugin_list.htm';
+} else {
+	foreach (array('$plugin_name_html', '$plugin_brief_html', '$plugin_version_html', '$plugin_icon_url_html', '$plugin_username_html') as $needle) {
+		if (strpos($pluginList, $needle) === FALSE) {
+			$errors[] = 'plugin list must escape plugin package metadata before rendering';
+			break;
+		}
+	}
+	if (strpos($pluginList, 'htmlspecialchars(lang(\'plugin_unstall_confirm_tips\'') === FALSE) {
+		$errors[] = 'plugin list uninstall confirmation text must be escaped for attribute context';
+	}
+}
+
+$pluginRead = file_get_contents($root . 'admin/view/htm/plugin_read.htm');
+if ($pluginRead === FALSE) {
+	$errors[] = 'failed to read admin/view/htm/plugin_read.htm';
+} else {
+	foreach (array('$plugin_name_html', '$plugin_brief_html', '$plugin_version_html', '$plugin_icon_url_html', '$plugin_bbs_version_html', '$plugin_qq_html') as $needle) {
+		if (strpos($pluginRead, $needle) === FALSE) {
+			$errors[] = 'plugin detail page must escape plugin package metadata before rendering';
+			break;
+		}
+	}
+	if (strpos($pluginRead, "xn_http_url_allowed(\$plugin['brief_url'])") === FALSE) {
+		$errors[] = 'plugin detail page must validate external brief URLs before rendering links';
+	}
+	if (strpos($pluginRead, 'rel="noopener noreferrer"') === FALSE) {
+		$errors[] = 'plugin detail external links opened in a new tab must set rel=noopener noreferrer';
+	}
+}
+
 $postModel = file_get_contents($root . 'model/post.func.php');
 if ($postModel === FALSE) {
 	$errors[] = 'failed to read model/post.func.php';

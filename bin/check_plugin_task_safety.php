@@ -105,10 +105,16 @@ $auto_dependency = section_between($plugin_route, 'function plugin_check_auto_un
 strpos($auto_dependency, "plugin_check_dependency(\$_dir, 'unstall');") !== FALSE
 	|| fail('Auto-uninstall must check reverse dependencies before installing the replacement.');
 $auto_unstall = section_between($plugin_route, 'function plugin_auto_unstall_same_type', 'function plugin_check_dependency');
-strpos($auto_unstall, "plugin_run_lifecycle(\$_dir, 'unstall', \$snapshot, NULL, array(\$dir=>\$primary_snapshot));") !== FALSE
-	|| fail('Auto-uninstall must run the old plugin unstall lifecycle with replacement rollback context.');
-strpos($auto_unstall, 'plugin_state_restore($dir, $primary_snapshot);') !== FALSE
-	|| fail('Auto-uninstall write failures must restore the newly installed plugin state.');
+strpos($auto_unstall, '$restore_states = array();') !== FALSE
+	|| fail('Auto-uninstall must track all same-type rollback snapshots in one replacement batch.');
+strpos($auto_unstall, '$restore_states[$dir] = $primary_snapshot') !== FALSE
+	|| fail('Auto-uninstall must include the newly installed plugin state in batch rollback context.');
+strpos($auto_unstall, '$restore_states[$_dir] = $snapshot;') !== FALSE
+	|| fail('Auto-uninstall must add each old same-type plugin snapshot before mutating it.');
+strpos($auto_unstall, 'plugin_restore_extra_states($restore_states);') !== FALSE
+	|| fail('Auto-uninstall write failures must restore every plugin state already touched in the batch.');
+strpos($auto_unstall, "plugin_run_lifecycle(\$_dir, 'unstall', \$snapshot, NULL, \$restore_states);") !== FALSE
+	|| fail('Auto-uninstall must run the old plugin unstall lifecycle with full batch rollback context.');
 
 foreach (array('download', 'install', 'unstall', 'enable', 'disable', 'upgrade') as $action) {
 	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "\n\tplugin_lock_start();");

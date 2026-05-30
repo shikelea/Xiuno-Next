@@ -25,27 +25,34 @@
 							$plugin['name'] = array_value($plugin, 'name');
 							$plugin['brief'] = array_value($plugin, 'brief');
 							$plugin['version_fmt'] = $action == 'local' ? $plugin['version'] : array_value($plugin, 'official_version');
+							$dir_html = htmlspecialchars($dir);
+							$plugin_name_html = htmlspecialchars($plugin['name']);
+							$plugin_brief_html = htmlspecialchars($plugin['brief']);
+							$plugin_version_html = htmlspecialchars($plugin['version_fmt']);
+							$plugin_official_version_html = htmlspecialchars(array_value($plugin, 'official_version'));
+							$plugin_icon_url_html = htmlspecialchars($plugin['icon_url']);
+							$plugin_username_html = htmlspecialchars(array_value($plugin, 'username'));
 						?>
 	
-						<tr valign="top" dir="<?php echo $dir; ?>">
+						<tr valign="top" dir="<?php echo $dir_html; ?>">
 							<td width="80" class="text-center">
 								<a href="<?php echo url("plugin-read-$dir");?>" target="_blank">
-									<img src="<?php echo $plugin['icon_url']; ?>" width="54" height="54" />
+									<img src="<?php echo $plugin_icon_url_html; ?>" width="54" height="54" />
 								</a>
 								
 							</td>
 							<td width="300">
-								<a href="<?php echo url("plugin-read-$dir");?>"><b><?php echo $plugin['name']; ?> </b></a>
-								<span class="small">v<?php echo $plugin['version_fmt']; ?> </span>
+								<a href="<?php echo url("plugin-read-$dir");?>"><b><?php echo $plugin_name_html; ?> </b></a>
+								<span class="small">v<?php echo $plugin_version_html; ?> </span>
 								<?php if($plugin['have_upgrade']) { ?>
-								<span class="small text-danger fw-bold">v<?php echo array_value($plugin, 'official_version'); ?> </span>
+								<span class="small text-danger fw-bold">v<?php echo $plugin_official_version_html; ?> </span>
 								<?php } ?>
 	
-								<br /><span class="small text-muted"><?php echo $dir; ?></span>
+								<br /><span class="small text-muted"><?php echo $dir_html; ?></span>
 								
 								<?php if(!empty($plugin['username'])) { ?>
 								<br /><span class="small text-muted"><?php echo lang('author'); ?>：
-								<a href="http://bbs.xiuno.com/user-<?php echo $plugin['uid'];?>.htm" target="_blank"><?php echo $plugin['username'];?></span></a>
+								<a href="http://bbs.xiuno.com/user-<?php echo intval($plugin['uid']);?>.htm" target="_blank"><?php echo $plugin_username_html;?></a></span>
 								<?php } ?>
 							</td>
 							<td width="100">
@@ -53,7 +60,7 @@
 								<span class="price" <?php echo $price == 0 ? 'style="color: #aaa"' : ''; ?>><?php echo $price; ?>元</span>
 							</td>
 							<td>
-								<p class="grey"><?php echo $plugin['brief']; ?></p>
+								<p class="grey"><?php echo $plugin_brief_html; ?></p>
 							</td>
 							<td width="250" align="right">
 							
@@ -82,7 +89,7 @@
 								<?php } ?>
 								
 								<?php if($plugin['installed']) { ?>
-								<a role="button" class="btn btn-danger btn-sm unstall confirm" data-method="post" data-confirm-text="<?php echo lang('plugin_unstall_confirm_tips', array('name'=>$plugin['name']));?>" href="<?php echo url("plugin-unstall-$dir"); ?>"><?php echo lang('unstall');?></a>
+								<a role="button" class="btn btn-danger btn-sm unstall confirm" data-method="post" data-confirm-text="<?php echo htmlspecialchars(lang('plugin_unstall_confirm_tips', array('name'=>$plugin['name'])), ENT_QUOTES);?>" href="<?php echo url("plugin-unstall-$dir"); ?>"><?php echo lang('unstall');?></a>
 								<?php } ?>
 								
 								<?php if($plugin['have_upgrade']) { ?>

@@ -115,6 +115,10 @@ The install flow now preflights reverse dependencies before auto-uninstalling sa
 
 Plugin lifecycle files are now protected by a shutdown rollback guard. If a legacy `install.php`, `unstall.php`, or `upgrade.php` calls `message()` / `exit` instead of returning, the pending state and package snapshots are restored and the shared plugin task lock is released during shutdown.
 
+Same-type plugin/theme replacement now uses a batch rollback context. If installing a new theme or same-suffix plugin auto-uninstalls more than one existing package and a later package write or `unstall.php` lifecycle fails, Xiuno Next restores the new package state and every old same-type package touched earlier in the batch. This avoids split states where one old theme remains uninstalled while the replacement is rolled back.
+
+Admin plugin list/detail pages now escape plugin package metadata before rendering names, versions, descriptions, icon URLs, QQ values, and confirmation text. External brief links are only rendered for allowed HTTP(S) URLs and use `rel="noopener noreferrer"`. This treats `conf.json` metadata from local and downloaded packages as untrusted ecosystem input.
+
 ## 2026-05-29 BS4 Compatibility Guard Delta
 
 The high-count BS4 signals from the local sample matrix now have a dedicated repository guard. `bin/check_bs4_compat_layer.php` asserts that `bs4-compat.css` keeps the common legacy selectors (`form-group`, `btn-block`, `custom-file`, `custom-control`, `input-group-prepend/append`, legacy spacing, badges, dropdown alignment, and button groups), and that `bs4-compat.js` keeps BS4 data-attribute conversion, jQuery Modal/Tooltip/Popover/Button proxies, Xiuno helper fallbacks, custom-file labels, dropdown alignment, close-button handling, tab href migration, and same-origin CSRF boundaries. This does not replace real browser smoke, but it prevents accidental deletion of the compatibility surface that the 58 local samples currently depend on.
