@@ -402,9 +402,65 @@ function plugin_php_syntax_errors($dir) {
 				'file'=>str_replace(APP_PATH, '', $path),
 				'detail'=>implode("\n", $out),
 			);
+			continue;
+		}
+		$compat_error = plugin_php8_removed_function_error($file);
+		if($compat_error !== '') {
+			$errors[] = array(
+				'file'=>str_replace(APP_PATH, '', $path),
+				'detail'=>$compat_error,
+			);
 		}
 	}
 	return $errors;
+}
+
+function plugin_php8_removed_function_error($file) {
+	$code = file_get_contents($file);
+	if($code === FALSE || !function_exists('token_get_all')) return '';
+	$removed = array(
+		'create_function'=>TRUE,
+		'each'=>TRUE,
+		'ereg'=>TRUE,
+		'eregi'=>TRUE,
+		'ereg_replace'=>TRUE,
+		'eregi_replace'=>TRUE,
+		'get_magic_quotes_gpc'=>TRUE,
+		'split'=>TRUE,
+		'spliti'=>TRUE,
+	);
+	$tokens = token_get_all($code);
+	$count = count($tokens);
+	for($i = 0; $i < $count; $i++) {
+		$token = $tokens[$i];
+		if(!is_array($token) || $token[0] !== T_STRING) continue;
+		$name = strtolower($token[1]);
+		if(empty($removed[$name]) && strpos($name, 'mysql_') !== 0) continue;
+		$prev = plugin_previous_code_token($tokens, $i);
+		if($prev === T_OBJECT_OPERATOR || $prev === T_DOUBLE_COLON || $prev === T_FUNCTION) continue;
+		$next = plugin_next_code_token($tokens, $i);
+		if($next === '(') return 'PHP 8 removed function call: '.$name.'()';
+	}
+	return '';
+}
+
+function plugin_previous_code_token($tokens, $offset) {
+	for($i = $offset - 1; $i >= 0; $i--) {
+		$token = $tokens[$i];
+		if(is_array($token) && in_array($token[0], array(T_WHITESPACE, T_COMMENT, T_DOC_COMMENT))) continue;
+		return is_array($token) ? $token[0] : $token;
+	}
+	return NULL;
+}
+
+function plugin_next_code_token($tokens, $offset) {
+	$count = count($tokens);
+	for($i = $offset + 1; $i < $count; $i++) {
+		$token = $tokens[$i];
+		if(is_array($token) && in_array($token[0], array(T_WHITESPACE, T_COMMENT, T_DOC_COMMENT))) continue;
+		return is_array($token) ? $token[0] : $token;
+	}
+	return NULL;
 }
 
 function plugin_php_files($dir) {

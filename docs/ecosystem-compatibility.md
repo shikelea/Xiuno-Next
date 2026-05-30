@@ -76,6 +76,12 @@ A follow-up local scan over the same 58 ignored samples refined the earlier raw 
 
 Local scan scripts and generated reports remain ignored. Only stable conclusions, field contracts, and CI guards should be committed.
 
+## 2026-05-30 Sample Smoke Delta
+
+The current ignored local sample scan still covers 58 packages, with 2 theme-like packages in this pass. Metadata is clean, while the remaining blocking backend signals are one standalone PHP syntax error and one PHP 8 removed-function call (`each()`) in a theme overwrite package. The frontend signals are still dominated by BS4 compatibility markers already represented in the compatibility-layer guard surface.
+
+The PHP package guard now checks standalone plugin PHP files for removed PHP 8 function calls in addition to `php -l`, while continuing to skip `hook/` fragments that compile into Xiuno route/template context. This converts a runtime fatal class found by real samples into a pre-install/pre-enable/pre-upgrade blocker.
+
 ## 2026-05-29 Lifecycle Hardening Delta
 
 The plugin manager now treats lifecycle state changes as a guarded path rather than a best-effort write:
