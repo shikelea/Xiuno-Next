@@ -43,10 +43,14 @@ strpos($proxy_normalize, "\$parts['query']") !== FALSE
 	|| fail('Custom update proxies must reject query strings.');
 
 $proxy_host = section_between($update_route, 'function update_proxy_public_host', 'function update_http_get_json');
-strpos($proxy_host, 'FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE') !== FALSE
+strpos($proxy_host, 'update_public_ip_allowed($host)') !== FALSE
 	|| fail('Custom update proxies must reject private/reserved IP hosts.');
+strpos($update_route, 'FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE') !== FALSE
+	|| fail('Custom update proxies must reject private/reserved resolved IP addresses.');
 strpos($proxy_host, "substr(\$host, -6) === '.local'") !== FALSE
 	|| fail('Custom update proxies must reject local hostnames.');
+strpos($proxy_host, 'update_resolve_public_ips($host, $ips)') !== FALSE
+	|| fail('Custom update proxy hostnames must resolve to public IP addresses.');
 
 $http_get = section_between($update_route, 'function update_http_get', 'function update_github_download');
 $shared_http = section_between($update_route, 'function update_http_get_body', 'function update_github_download');
@@ -57,7 +61,14 @@ strpos($shared_http, 'xn_http_curl_protocols') !== FALSE
 strpos($shared_http, "'verify_peer_name' => true") !== FALSE
 	|| fail('Update HTTP GET stream fallback must explicitly verify TLS host names.');
 strpos($shared_http, 'update_url_public_https_allowed($url)') !== FALSE
+	|| strpos($shared_http, 'update_url_public_https_allowed($current, $resolved_ips)') !== FALSE
 	|| fail('Update HTTP GET must enforce public HTTPS URL boundaries.');
+strpos($shared_http, "'cURL is required for safe online updates'") !== FALSE
+	|| fail('Update HTTP GET must require cURL for DNS pinning.');
+strpos($update_route, 'CURLOPT_RESOLVE') !== FALSE
+	|| fail('Update HTTP GET must pin validated DNS results with CURLOPT_RESOLVE.');
+strpos($update_route, 'dns_get_record($host, DNS_A | DNS_AAAA)') !== FALSE
+	|| fail('Update HTTP GET must resolve and validate public A/AAAA records.');
 
 $download = section_between($update_route, 'function update_github_download_binary', 'function update_release_expected_sha256');
 strpos($download, 'update_http_get_body($url') !== FALSE
@@ -67,6 +78,7 @@ strpos($shared_http, 'xn_http_curl_protocols') !== FALSE
 strpos($shared_http, "'verify_peer_name' => true") !== FALSE
 	|| fail('Update binary stream fallback must explicitly verify TLS host names.');
 strpos($shared_http, 'update_url_public_https_allowed($url)') !== FALSE
+	|| strpos($shared_http, 'update_url_public_https_allowed($current, $resolved_ips)') !== FALSE
 	|| fail('Update binary download must enforce public HTTPS URL boundaries.');
 
 $conf_setting = section_between($update_route, 'function update_conf_setting', "\n}\n\n?>");
