@@ -6,6 +6,7 @@ $files = [
     'install/alter.sql',
     'tool/alter.sql',
 ];
+$sample_root = cli_option_value($argv, '--samples');
 
 foreach (glob($root . '/database/migrations/*.php') ?: [] as $migration) {
     $files[] = str_replace('\\', '/', substr($migration, strlen($root) + 1));
@@ -20,6 +21,8 @@ $mysql8_sensitive_columns = [
 ];
 
 $errors = [];
+$sample_files = [];
+$sample_notes = [];
 
 foreach ($files as $relative) {
     $path = $root . '/' . $relative;
@@ -28,8 +31,83 @@ foreach ($files as $relative) {
         $errors[] = "$relative: unable to read file";
         continue;
     }
+    mysql8_check_sql_text($relative, $sql, $mysql8_sensitive_columns, $errors);
+}
 
-    if (preg_match('/\bTYPE\s*=/i', $sql)) {
+if($sample_root !== '') {
+    $sample_path = normalize_sample_path($root, $sample_root);
+    if($sample_path === '' || !is_dir($sample_path)) {
+        $errors[] = "samples: directory not found: $sample_root";
+    } else {
+        $sample_files = mysql8_sample_sql_files($sample_path);
+        foreach($sample_files as $file) {
+            $relative = str_replace('\\', '/', substr($file, strlen($root) + 1));
+            $sql = file_get_contents($file);
+            if($sql === false) {
+                $errors[] = "$relative: unable to read file";
+                continue;
+            }
+            mysql8_check_sql_text($relative, $sql, $mysql8_sensitive_columns, $errors);
+            mysql8_collect_sample_notes($relative, $sql, $sample_notes);
+        }
+    }
+}
+
+if ($errors !== []) {
+    fwrite(STDERR, "FAIL: MySQL 8 compatibility checks failed\n");
+    fwrite(STDERR, implode("\n", $errors) . "\n");
+    exit(1);
+}
+
+echo "OK: MySQL 8 SQL compatibility checks passed\n";
+if($sample_root !== '') {
+    echo "Sample SQL files scanned: ".count($sample_files)."\n";
+    if($sample_notes !== []) {
+        echo "Sample compatibility notes: ".count($sample_notes)."\n";
+        $counts = array_count_values(array_column($sample_notes, 'type'));
+        foreach($counts as $type=>$count) {
+            echo " - $type: $count\n";
+        }
+    }
+}
+
+function cli_option_value(array $argv, string $name): string
+{
+    foreach($argv as $i=>$arg) {
+        if($arg === $name) return isset($argv[$i + 1]) ? (string)$argv[$i + 1] : '';
+        if(strpos($arg, $name.'=') === 0) return substr($arg, strlen($name) + 1);
+    }
+    return '';
+}
+
+function normalize_sample_path(string $root, string $sample_root): string
+{
+    $sample_root = trim(str_replace('\\', '/', $sample_root));
+    if($sample_root === '') return '';
+    if(preg_match('/^[A-Za-z]:\//', $sample_root) || strpos($sample_root, '/') === 0) return rtrim($sample_root, '/');
+    return $root.'/'.trim($sample_root, '/');
+}
+
+function mysql8_sample_sql_files(string $sample_path): array
+{
+    $files = [];
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($sample_path, FilesystemIterator::SKIP_DOTS)
+    );
+    foreach($it as $file) {
+        if(!$file->isFile()) continue;
+        $name = strtolower($file->getFilename());
+        if($name === 'install.php' || $name === 'upgrade.php' || substr($name, -4) === '.sql') {
+            $files[] = $file->getPathname();
+        }
+    }
+    sort($files);
+    return $files;
+}
+
+function mysql8_check_sql_text(string $relative, string $sql, array $mysql8_sensitive_columns, array &$errors): void
+{
+    if (preg_match('/\)\s*TYPE\s*=\s*(MyISAM|InnoDB|HEAP|MEMORY|ISAM|BDB|MERGE|MRG_MYISAM|CSV|ARCHIVE|BLACKHOLE|FEDERATED)\b/i', $sql)) {
         $errors[] = "$relative: old TYPE= engine syntax is not allowed";
     }
 
@@ -53,13 +131,15 @@ foreach ($files as $relative) {
     }
 }
 
-if ($errors !== []) {
-    fwrite(STDERR, "FAIL: MySQL 8 compatibility checks failed\n");
-    fwrite(STDERR, implode("\n", $errors) . "\n");
-    exit(1);
+function mysql8_collect_sample_notes(string $relative, string $sql, array &$notes): void
+{
+    if(preg_match('/ENGINE\s*=\s*MyISAM/i', $sql)) {
+        $notes[] = ['file'=>$relative, 'type'=>'legacy_myisam_engine'];
+    }
+    if(preg_match('/DEFAULT\s+CHARSET\s*=\s*utf8\b/i', $sql)) {
+        $notes[] = ['file'=>$relative, 'type'=>'legacy_utf8_charset'];
+    }
 }
-
-echo "OK: MySQL 8 SQL compatibility checks passed\n";
 
 function find_create_table_blocks(string $sql): array
 {
