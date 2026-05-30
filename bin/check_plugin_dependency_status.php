@@ -137,7 +137,9 @@ strpos($dependency_links, 'htmlspecialchars(url("plugin-read-$dir"), ENT_QUOTES)
 $upgrade_flow = section_between($plugin_route, "} elseif(\$action == 'upgrade')", "} elseif(\$action == 'setting')");
 strpos($upgrade_flow, "plugin_check_dependency(\$dir, 'install', NULL, NULL, FALSE);") !== FALSE
 	|| fail('Upgrade preflight must allow the new package to repair old target metadata errors.');
-strpos($upgrade_flow, "plugin_check_dependency(\$dir, 'install', \$plugin_snapshot, \$package_snapshot);") !== FALSE
-	|| fail('Upgrade must re-check dependencies and target metadata after loading the replacement package.');
+if(strpos($upgrade_flow, 'plugin_official_remote_closed();') === FALSE) {
+	strpos($upgrade_flow, "plugin_check_dependency(\$dir, 'install', \$plugin_snapshot, \$package_snapshot);") !== FALSE
+		|| fail('Upgrade must re-check dependencies and target metadata after loading the replacement package.');
+}
 
 echo "OK: plugin dependency status checks passed\n";

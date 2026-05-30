@@ -17,40 +17,40 @@ function section_between($source, $start, $end) {
 }
 
 $download_action = section_between($plugin_route, "} elseif(\$action == 'download')", "} elseif(\$action == 'install')");
-strpos($download_action, '$package_snapshot = plugin_package_snapshot($dir);') !== FALSE
-	|| fail('Plugin download action must snapshot the target package directory before copying files.');
-strpos($download_action, 'plugin_download_unzip($dir, $package_snapshot);') !== FALSE
-	|| fail('Plugin download action must pass the package snapshot into download/unzip.');
-strpos($download_action, 'plugin_package_snapshot_delete($package_snapshot);') !== FALSE
-	|| fail('Plugin download action must delete package snapshots after success.');
+strpos($download_action, 'plugin_official_remote_closed();') !== FALSE
+	|| fail('Legacy official plugin download action must fail closed while no trusted registry exists.');
+strpos($download_action, 'plugin_download_unzip(') === FALSE
+	|| fail('Legacy official plugin download action must not continue into remote package retrieval.');
 
 $upgrade_action = section_between($plugin_route, "} elseif(\$action == 'upgrade')", "} elseif(\$action == 'setting')");
-strpos($upgrade_action, '$package_snapshot = plugin_package_snapshot($dir);') !== FALSE
-	|| fail('Plugin upgrade action must snapshot the old package directory before replacing files.');
-strpos($upgrade_action, 'plugin_download_unzip($dir, $package_snapshot);') !== FALSE
-	|| fail('Plugin upgrade action must pass the snapshot into download/unzip.');
-strpos($upgrade_action, 'plugin_check_php_syntax($dir, $package_snapshot);') !== FALSE
-	|| fail('Plugin upgrade syntax failures must restore the previous package directory.');
-strpos($upgrade_action, 'plugin_reload_local($dir, $plugin_snapshot, $package_snapshot);') !== FALSE
-	|| fail('Plugin upgrade must reload metadata from the new package before installing.');
-strpos($upgrade_action, "plugin_check_dependency(\$dir, 'install', \$plugin_snapshot, \$package_snapshot);") !== FALSE
-	|| fail('Plugin upgrade must re-check new package dependencies inside the rollback boundary.');
-strpos($upgrade_action, 'plugin_require_state_write(plugin_install($dir), $dir, $plugin_snapshot, $package_snapshot);') !== FALSE
-	|| fail('Plugin upgrade config-write failures must restore the previous package directory.');
-strpos($upgrade_action, "plugin_run_lifecycle(\$dir, 'upgrade', \$plugin_snapshot, \$package_snapshot);") !== FALSE
-	|| fail('Plugin upgrade lifecycle failures must restore the previous package directory.');
-strpos($upgrade_action, 'plugin_package_snapshot_delete($package_snapshot);') !== FALSE
-	|| fail('Plugin upgrade must delete package snapshots after success.');
+strpos($upgrade_action, 'plugin_official_remote_closed();') !== FALSE
+	|| fail('Legacy official plugin upgrade action must fail closed while no trusted registry exists.');
+strpos($upgrade_action, 'plugin_download_unzip(') === FALSE
+	|| fail('Legacy official plugin upgrade action must not continue into remote package retrieval.');
 
-$download = section_between($plugin_route, 'function plugin_download_unzip', 'function plugin_zip_validate_package');
+$download = section_between($plugin_route, 'function plugin_download_unzip', 'function plugin_package_snapshot');
 strpos($download, 'function plugin_download_unzip($dir, $package_snapshot = NULL)') !== FALSE
 	|| fail('plugin_download_unzip() must accept a package snapshot.');
-strpos($download, 'plugin_package_snapshot($dir)') !== FALSE
-	|| fail('plugin_download_unzip() must snapshot when called without an explicit snapshot.');
-strpos($download, 'plugin_package_restore($package_snapshot);') !== FALSE
-	|| fail('plugin_download_unzip() must restore the package directory on copy/finalization failure.');
-strpos($download, 'plugin_package_snapshot_delete($package_snapshot);') !== FALSE
-	|| fail('plugin_download_unzip() must clean self-owned snapshots after success.');
+strpos($download, 'plugin_official_remote_closed();') !== FALSE
+	|| fail('plugin_download_unzip() must fail closed while no trusted registry exists.');
+
+foreach(array('plugin_official_remote_closed', 'plugin_official_remote_closed_error') as $function) {
+	strpos($plugin_route, "function $function(") !== FALSE
+		|| fail("$function() helper is missing.");
+}
+
+foreach(array('plugin_is_bought', 'plugin_order_buy_qrcode_url') as $function) {
+	$section = section_between($plugin_route, "function $function", $function == 'plugin_is_bought' ? 'function plugin_order_buy_qrcode_url' : 'function plugin_official_remote_closed');
+	strpos($section, 'return xn_error(-1, plugin_official_remote_closed_error());') !== FALSE
+		|| fail("$function() must fail closed instead of contacting the legacy official market.");
+}
+
+foreach(array('plugin-download', 'plugin-is_bought', 'plugin-buy_qrcode_url') as $endpoint) {
+	strpos($plugin_route, 'PLUGIN_OFFICIAL_URL."'.$endpoint) === FALSE
+		|| fail("Legacy official marketplace endpoint remains reachable: $endpoint.");
+}
+strpos($plugin_route, 'http_get($url)') === FALSE
+	|| fail('Legacy official plugin marketplace must not fetch remote packages/payment checks over HTTP.');
 
 foreach(array('plugin_package_snapshot', 'plugin_package_restore', 'plugin_package_snapshot_delete') as $function) {
 	strpos($plugin_route, "function $function(") !== FALSE
