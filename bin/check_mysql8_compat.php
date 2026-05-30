@@ -4,7 +4,12 @@ $root = dirname(__DIR__);
 $files = [
     'install/install.sql',
     'install/alter.sql',
+    'tool/alter.sql',
 ];
+
+foreach (glob($root . '/database/migrations/*.php') ?: [] as $migration) {
+    $files[] = str_replace('\\', '/', substr($migration, strlen($root) + 1));
+}
 
 $mysql8_sensitive_columns = [
     'rank' => true,

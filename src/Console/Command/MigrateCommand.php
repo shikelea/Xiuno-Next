@@ -69,7 +69,10 @@ class MigrateCommand extends Command
                 $migration = require $file;
                 $tablepre = $_SERVER['db']->tablepre ?? 'bbs_';
                 $migration->up($tablepre);
-                $this->recordMigration($name);
+                if (!$this->recordMigration($name)) {
+                    $io->error("Migration $name finished but could not be recorded.");
+                    return Command::FAILURE;
+                }
                 $io->text("  完成: $name");
             } catch (\Throwable $e) {
                 $io->error("迁移 $name 失败: " . $e->getMessage());
@@ -99,7 +102,7 @@ class MigrateCommand extends Command
         foreach ($files as $file) {
             try {
                 $migration = require $file;
-                if (!is_object($migration) || !method_exists($migration, 'up')) {
+                if (!$this->isValidMigration($migration)) {
                     $io->error(basename($file) . ' 必须返回带 up(string $tablepre): void 方法的对象。');
                     return Command::FAILURE;
                 }
@@ -111,6 +114,23 @@ class MigrateCommand extends Command
 
         $io->success(sprintf('迁移文件检查通过：%d 个文件。', count($files)));
         return Command::SUCCESS;
+    }
+
+    private function isValidMigration($migration): bool
+    {
+        if (!is_object($migration) || !method_exists($migration, 'up')) {
+            return false;
+        }
+
+        $method = new \ReflectionMethod($migration, 'up');
+        $params = $method->getParameters();
+        $returnType = $method->getReturnType();
+        return $method->isPublic()
+            && count($params) === 1
+            && $params[0]->hasType()
+            && (string) $params[0]->getType() === 'string'
+            && $returnType !== null
+            && (string) $returnType === 'void';
     }
 
     private function bootstrap(string $appPath): void
@@ -127,8 +147,8 @@ class MigrateCommand extends Command
         $GLOBALS['conf'] = $conf;
         $_SERVER['conf'] = $conf;
 
-        include XIUNOPHP_PATH . 'xiunophp.php';
-        include APP_PATH . 'model/kv.func.php';
+        include_once XIUNOPHP_PATH . 'xiunophp.php';
+        include_once APP_PATH . 'model/kv.func.php';
     }
 
     private function getExecutedMigrations(): array
@@ -137,10 +157,13 @@ class MigrateCommand extends Command
         return is_array($val) ? $val : [];
     }
 
-    private function recordMigration(string $name): void
+    private function recordMigration(string $name): bool
     {
         $executed = $this->getExecutedMigrations();
+        if (in_array($name, $executed, true)) {
+            return true;
+        }
         $executed[] = $name;
-        kv_set('xn_migrations', $executed);
+        return kv_set('xn_migrations', $executed) !== false;
     }
 }
