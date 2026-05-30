@@ -146,7 +146,9 @@ function plugin_dependency_details($dir) {
 			'cycle_path'=>array(),
 		);
 
-		if(!isset($plugins[$_dir])) {
+		if(!plugin_dependency_dir_valid($_dir)) {
+			$detail['status'] = 'invalid_dir';
+		} elseif(!isset($plugins[$_dir])) {
 			$detail['status'] = 'not_downloaded';
 		} else {
 			$dep = $plugins[$_dir];
@@ -171,6 +173,10 @@ function plugin_dependency_details($dir) {
 		$arr[$_dir] = $detail;
 	}
 	return $arr;
+}
+
+function plugin_dependency_dir_valid($dir) {
+	return is_scalar($dir) && preg_match('#^\w{1,32}$#', (string)$dir);
 }
 
 function plugin_dependency_cycle_path($current, $target, $visited = array()) {
@@ -203,6 +209,7 @@ function plugin_dependency_status_text($detail) {
 		'version_low'=>'version too low' . ($required !== '' ? " ({$current} < {$required})" : ''),
 		'metadata_error'=>'metadata error',
 		'cycle'=>'dependency cycle',
+		'invalid_dir'=>'invalid dependency name',
 	);
 	return isset($map[$status]) ? $map[$status] : $status;
 }

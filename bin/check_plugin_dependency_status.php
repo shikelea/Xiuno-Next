@@ -43,6 +43,7 @@ $plugins = array(
 			'badmeta'=>'1.0.0',
 			'cycle'=>'1.0.0',
 			'ok'=>'1.0.0',
+			'bad-dir'=>'1.0.0',
 		),
 	),
 	'downloaded'=>array(
@@ -97,14 +98,17 @@ assert_status($details, 'old', 'version_low');
 assert_status($details, 'badmeta', 'metadata_error');
 assert_status($details, 'cycle', 'cycle');
 assert_status($details, 'ok', 'ok');
+assert_status($details, 'bad-dir', 'invalid_dir');
 
 $blocked = plugin_dependencies('app');
-foreach(array('missing', 'downloaded', 'disabled', 'old', 'badmeta', 'cycle') as $dir) {
+foreach(array('missing', 'downloaded', 'disabled', 'old', 'badmeta', 'cycle', 'bad-dir') as $dir) {
 	if(!isset($blocked[$dir])) fail("Expected $dir to block install/enable");
 }
 isset($blocked['ok']) && fail('Satisfied dependency must not block install/enable');
 
 plugin_dependency_status_text($blocked['old']) !== '' || fail('Dependency status text must describe structured dependency details.');
+plugin_dependency_status_text($blocked['bad-dir']) === 'invalid dependency name' || fail('Invalid dependency names must have an explicit status text.');
+function_exists('plugin_dependency_dir_valid') || fail('Dependency dir validator helper is missing.');
 
 $dependency_guard = section_between($plugin_route, 'function plugin_check_dependency', 'function plugin_reload_local');
 strpos($dependency_guard, '$check_self_metadata = TRUE') !== FALSE
