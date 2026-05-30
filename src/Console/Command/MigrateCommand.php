@@ -67,7 +67,7 @@ class MigrateCommand extends Command
             $io->text("执行: $name ...");
             try {
                 $migration = require $file;
-                $tablepre = $_SERVER['db']->tablepre ?? 'bbs_';
+                $tablepre = $this->getTablepre();
                 $migration->up($tablepre);
                 if (!$this->recordMigration($name)) {
                     $io->error("Migration $name finished but could not be recorded.");
@@ -155,6 +155,15 @@ class MigrateCommand extends Command
     {
         $val = kv_get('xn_migrations');
         return is_array($val) ? $val : [];
+    }
+
+    private function getTablepre(): string
+    {
+        $tablepre = $_SERVER['db']->tablepre ?? 'bbs_';
+        if (!preg_match('/^[A-Za-z0-9_]{0,32}$/', $tablepre)) {
+            throw new \RuntimeException('Invalid table prefix in database configuration.');
+        }
+        return $tablepre;
     }
 
     private function recordMigration(string $name): bool

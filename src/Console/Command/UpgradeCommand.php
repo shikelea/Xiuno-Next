@@ -413,7 +413,11 @@ class UpgradeCommand extends Command
 
     private function getTablepre(): string
     {
-        return $_SERVER['db']->tablepre ?? 'bbs_';
+        $tablepre = $_SERVER['db']->tablepre ?? 'bbs_';
+        if (!preg_match('/^[A-Za-z0-9_]{0,32}$/', $tablepre)) {
+            throw new \RuntimeException('Invalid table prefix in database configuration.');
+        }
+        return $tablepre;
     }
 
     private function getExecutedMigrations(): array

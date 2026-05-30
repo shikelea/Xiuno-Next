@@ -181,3 +181,12 @@ jobs:
           XIUNO_DB_PASSWORD: root
           XIUNO_EXPECT_MYSQL_MAJOR: 8
         run: php bin/check_install_schema.php
+
+      - name: Smoke test old-version upgrade and migrations
+        env:
+          XIUNO_DB_HOST: 127.0.0.1
+          XIUNO_DB_PORT: 3306
+          XIUNO_DB_NAME: xiuno_test
+          XIUNO_DB_USER: root
+          XIUNO_DB_PASSWORD: root
+        run: php bin/check_legacy_upgrade_smoke.php

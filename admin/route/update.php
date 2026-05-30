@@ -614,8 +614,21 @@ function update_zip_validate($zip, &$error = '') {
 			$error = 'Unsafe path in zip: ' . $name;
 			return FALSE;
 		}
+		if (update_zip_entry_is_symlink($zip, $i)) {
+			$error = 'Symlink entry is not allowed in zip: ' . $name;
+			return FALSE;
+		}
 	}
 	return TRUE;
+}
+
+function update_zip_entry_is_symlink($zip, $index) {
+	if (!method_exists($zip, 'getExternalAttributesIndex')) return FALSE;
+	$opsys = 0;
+	$attr = 0;
+	if (!$zip->getExternalAttributesIndex($index, $opsys, $attr)) return FALSE;
+	$mode = ($attr >> 16) & 0170000;
+	return $mode === 0120000;
 }
 
 /**
@@ -639,7 +652,10 @@ function update_copy_files($src, $dst, $protected = array(), &$error = '', $rela
 			continue;
 		}
 
-		if (is_dir($item)) {
+		if (is_link($item)) {
+			$error = 'Symlink is not allowed: ' . $rel;
+			return FALSE;
+		} elseif (is_dir($item)) {
 			if (!is_dir($dst . $name)) {
 				if (!update_mkdir_recursive($dst . $name)) {
 					$error = 'Cannot create directory: ' . $rel;
@@ -650,13 +666,16 @@ function update_copy_files($src, $dst, $protected = array(), &$error = '', $rela
 			if ($child === FALSE) return FALSE;
 			$result['copied'] += $child['copied'];
 			$result['backed_up'] += $child['backed_up'];
-		} else {
+		} elseif (is_file($item)) {
 			if (@copy($item, $dst . $name)) {
 				$result['copied']++;
 			} else {
 				$error = 'Cannot copy file: ' . $rel;
 				return FALSE;
 			}
+		} else {
+			$error = 'Unsupported file type: ' . $rel;
+			return FALSE;
 		}
 	}
 	return $result;
@@ -680,7 +699,10 @@ function update_backup_existing_files($src, $dst, $protected, $backup_dir, &$err
 			continue;
 		}
 
-		if (is_dir($item)) {
+		if (is_link($item)) {
+			$error = 'Symlink is not allowed: ' . $rel;
+			return FALSE;
+		} elseif (is_dir($item)) {
 			$child = update_backup_existing_files($item . '/', $dst . $name . '/', $protected, $backup_dir, $error, $rel);
 			if ($child === FALSE) return FALSE;
 			$result['backed_up'] += $child['backed_up'];
@@ -719,6 +741,9 @@ function update_added_files($src, $dst, $protected = array(), $relative = '') {
 		$name = basename($item);
 		$rel = $relative ? $relative . '/' . $name : $name;
 		if (empty($relative) && in_array($name, $protected)) {
+			continue;
+		}
+		if (is_link($item)) {
 			continue;
 		}
 		if (is_dir($item)) {

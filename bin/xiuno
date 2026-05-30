@@ -1,11 +1,20 @@
 #!/usr/bin/env php
 <?php
 
-// 尝试加载 Composer 自动加载器
-if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
-    require __DIR__ . '/../vendor/autoload.php';
+$root = realpath(__DIR__ . '/..');
+if ($root === false) {
+    fwrite(STDERR, "Unable to locate project root.\n");
+    exit(1);
+}
+
+defined('DEBUG') || define('DEBUG', 0);
+defined('APP_PATH') || define('APP_PATH', $root . DIRECTORY_SEPARATOR);
+defined('XIUNOPHP_PATH') || define('XIUNOPHP_PATH', APP_PATH . 'xiunophp' . DIRECTORY_SEPARATOR);
+
+if (file_exists(APP_PATH . 'vendor/autoload.php')) {
+    require APP_PATH . 'vendor/autoload.php';
 } else {
-    fwrite(STDERR, '请先运行 "composer install" 以安装依赖。' . PHP_EOL);
+    fwrite(STDERR, "Please run \"composer install\" before using Xiuno CLI.\n");
     exit(1);
 }
 
