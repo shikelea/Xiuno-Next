@@ -82,6 +82,8 @@ The current ignored local sample scan still covers 58 packages, with 2 theme-lik
 
 The PHP package guard now checks standalone plugin PHP files for removed PHP 8 function calls in addition to `php -l`, while continuing to skip `hook/` fragments that compile into Xiuno route/template context. This converts a runtime fatal class found by real samples into a pre-install/pre-enable/pre-upgrade blocker.
 
+The BS4 runtime compatibility layer already covers the high-frequency frontend markers from this scan. The CI guard now also asserts the sample-driven `custom-control` subselectors and the full contextual badge family, so future frontend cleanup cannot silently remove compatibility that real packages still use.
+
 ## 2026-05-29 Lifecycle Hardening Delta
 
 The plugin manager now treats lifecycle state changes as a guarded path rather than a best-effort write:

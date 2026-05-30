@@ -24,11 +24,21 @@ if(empty($errors)) {
 		'.custom-select'=>'custom-select styling',
 		'.custom-control'=>'custom-control wrapper',
 		'.custom-control-input'=>'custom-control input',
+		'.custom-control-label'=>'custom-control label',
+		'.custom-checkbox'=>'custom checkbox variant',
+		'.custom-switch .custom-control-label::before'=>'custom switch track',
 		'.custom-file'=>'custom-file wrapper',
 		'.custom-file-input'=>'custom-file input',
 		'.custom-file-label'=>'custom-file label',
 		'.form-row'=>'form-row layout',
 		'.badge-primary'=>'contextual badge colors',
+		'.badge-secondary'=>'contextual secondary badge color',
+		'.badge-success'=>'contextual success badge color',
+		'.badge-danger'=>'contextual danger badge color',
+		'.badge-warning'=>'contextual warning badge color',
+		'.badge-info'=>'contextual info badge color',
+		'.badge-light'=>'contextual light badge color',
+		'.badge-dark'=>'contextual dark badge color',
 		'.badge-pill'=>'badge pill shape',
 		'.float-left'=>'legacy float-left utility',
 		'.float-right'=>'legacy float-right utility',
@@ -58,7 +68,7 @@ if(empty($errors)) {
 		require_contains($css, $selector, "bs4-compat.css must keep $label ($selector).");
 	}
 
-	foreach(array('.form-group', '.btn-block', '.custom-file', '.input-group-prepend', '.btn-group-toggle') as $selector) {
+	foreach(array('.form-group', '.btn-block', '.custom-file', '.custom-control-label', '.badge-danger', '.input-group-prepend', '.btn-group-toggle') as $selector) {
 		require_contains($css_min, $selector, "bs4-compat.min.css must include $selector.");
 	}
 
