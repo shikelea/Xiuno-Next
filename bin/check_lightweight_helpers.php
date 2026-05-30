@@ -13,6 +13,7 @@ $conf['log_path'] = APP_PATH . 'tmp/helper_smoke/';
 include APP_PATH . 'xiunophp/xiunophp.php';
 include_once APP_PATH . 'xiunophp/xn_zip.func.php';
 include_once APP_PATH . 'model/attach.func.php';
+include_once APP_PATH . 'model/misc.func.php';
 
 $errors = array();
 
@@ -56,6 +57,32 @@ unset($_REQUEST['helper_smoke_b64']);
 if (!xn_zip_safe_name('safe/path.txt') || xn_zip_safe_name('../unsafe.txt') || xn_zip_safe_name('/unsafe.txt')) {
 	$errors[] = 'xn_zip_safe_name did not enforce zip path safety';
 }
+
+$lock_name = 'helper_smoke_' . getmypid();
+$lockfile = $conf['tmp_path'] . 'lock_' . $lock_name . '.lock';
+@unlink($lockfile);
+if (!xn_lock_start($lock_name, 60)) {
+	$errors[] = 'xn_lock_start did not create a fresh lock';
+} elseif (xn_lock_start($lock_name, 60)) {
+	$errors[] = 'xn_lock_start allowed duplicate lock acquisition';
+}
+if (!is_file($lockfile) || strpos(file_get_contents($lockfile), "\n") === FALSE) {
+	$errors[] = 'xn_lock_start did not persist an owner token';
+}
+file_put_contents($lockfile, $_SERVER['time'] . "\nforeign-owner-token");
+xn_lock_end($lock_name);
+if (!is_file($lockfile)) {
+	$errors[] = 'xn_lock_end removed a lock owned by another task';
+}
+@unlink($lockfile);
+if (!xn_lock_start($lock_name, 60)) {
+	$errors[] = 'xn_lock_start did not recreate a removed smoke lock';
+}
+xn_lock_end($lock_name);
+if (is_file($lockfile)) {
+	$errors[] = 'xn_lock_end did not remove the current owner lock';
+}
+@unlink($lockfile);
 
 if (attach_download_filename("bad\r\nX-Test: 1\"name.txt") !== "badX-Test: 1'name.txt") {
 	$errors[] = 'attach_download_filename did not strip header-control characters safely';

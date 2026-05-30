@@ -146,7 +146,7 @@ function message($code, $message, $extra = array()) {
 
 // 上锁
 function xn_lock_start($lockname = '', $life = 10) {
-	global $conf, $time;
+	global $conf, $time, $g_xn_lock_tokens;
 	$lockfile = $conf['tmp_path'].'lock_'.$lockname.'.lock';
 	if(is_file($lockfile)) {
 		// 大于 $life 秒，删除锁
@@ -160,16 +160,40 @@ function xn_lock_start($lockname = '', $life = 10) {
 	
 	$fp = @fopen($lockfile, 'x');
 	if(!$fp) return FALSE;
-	fwrite($fp, (string)$time);
+	$token = xn_lock_token();
+	fwrite($fp, $time."\n".$token);
 	fclose($fp);
+	$g_xn_lock_tokens[$lockname] = $token;
 	return TRUE;
 }
 
 // 删除锁
 function xn_lock_end($lockname = '') {
-	global $conf, $time;
+	global $conf, $g_xn_lock_tokens;
 	$lockfile = $conf['tmp_path'].'lock_'.$lockname.'.lock';
+	if(empty($g_xn_lock_tokens[$lockname])) return FALSE;
+	if(!is_file($lockfile)) {
+		unset($g_xn_lock_tokens[$lockname]);
+		return TRUE;
+	}
+	$s = @file_get_contents($lockfile);
+	if($s === FALSE) {
+		unset($g_xn_lock_tokens[$lockname]);
+		return FALSE;
+	}
+	$arr = explode("\n", (string)$s, 2);
+	$token = isset($arr[1]) ? trim($arr[1]) : '';
+	if(!hash_equals($g_xn_lock_tokens[$lockname], $token)) {
+		unset($g_xn_lock_tokens[$lockname]);
+		return FALSE;
+	}
+	unset($g_xn_lock_tokens[$lockname]);
 	xn_unlink($lockfile);
+	return TRUE;
+}
+
+function xn_lock_token() {
+	return function_exists('random_bytes') ? bin2hex(random_bytes(16)) : md5(uniqid('', TRUE).mt_rand());
 }
 
 

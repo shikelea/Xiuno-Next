@@ -167,5 +167,11 @@ strpos($bbs_js, 'a[data-method="post"]:not(.confirm)') !== FALSE
 
 strpos($misc, "fopen(\$lockfile, 'x')") !== FALSE
 	|| fail('xn_lock_start() should create lock files atomically.');
+strpos($misc, 'function xn_lock_token()') !== FALSE
+	|| fail('xn_lock_start() must create owner tokens for lock files.');
+strpos($misc, '$g_xn_lock_tokens[$lockname] = $token;') !== FALSE
+	|| fail('xn_lock_start() must remember the current task owner token.');
+strpos($misc, 'hash_equals($g_xn_lock_tokens[$lockname], $token)') !== FALSE
+	|| fail('xn_lock_end() must only remove locks owned by the current task.');
 
 echo "OK: plugin task lock safety checks passed\n";
