@@ -545,7 +545,7 @@ function plugin_find_overwrite($srcfile) {
 		$dir = file_name($path);
 		$filepath_half = substr($srcfile, $len);
 		$overwrite_file = APP_PATH."plugin/$dir/overwrite/$filepath_half";
-		if(is_file($overwrite_file)) {
+		if(is_file($overwrite_file) && !is_link($overwrite_file)) {
 			$rank = isset($pconf['overwrites_rank'][$filepath_half]) ? $pconf['overwrites_rank'][$filepath_half] : 0;
 			if($rank >= $maxrank) {
 				$returnfile = $overwrite_file;
