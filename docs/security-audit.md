@@ -120,5 +120,5 @@ rg -n "simplexml_load_string|simplexml_load_file|DOMDocument|LIBXML_NOENT|xml_pa
 ## 2026-05-30 Remote Request Review Notes
 
 - The online updater main chain remains protected by HTTPS-only requests, manual redirect handling, public-host checks, package size limits, ZIP validation, default SHA-256 fail-closed behavior, and rollback.
-- Remaining high-value follow-up: public host checks still need DNS resolution/IP pinning to fully address DNS rebinding. Stream fallbacks cannot reliably pin a resolved address, so the updater may eventually need a cURL-required path for release downloads.
+- Follow-up closed for updater requests: every update/proxy URL hop now resolves A/AAAA records before connecting, rejects localhost/private/reserved/link-local style targets through the public IP filter, handles IPv4-mapped IPv6 addresses, and pins the cURL connection with `CURLOPT_RESOLVE`. Online updates now require cURL because the stream fallback cannot reliably pin a prevalidated IP address.
 - Legacy official plugin download code is mostly unreachable while the official market returns an empty list, but it still uses the old `http://plugin.xiuno.com/` trust model. Before any registry/market rebuild, this path should fail closed or require HTTPS plus package checksum/signature metadata.

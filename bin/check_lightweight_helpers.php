@@ -71,6 +71,14 @@ if (update_parse_sha256_text($hash . '  v4.4.5.zip', 'v4.4.5.zip', 'v4.4.5') !==
 if (update_parse_sha256_text(str_repeat('b', 64) . '  other.zip', 'v4.4.5.zip', 'v4.4.5') !== '') {
 	$errors[] = 'update_parse_sha256_text accepted checksum for another file';
 }
+if (!update_public_ip_allowed('8.8.8.8')) {
+	$errors[] = 'update_public_ip_allowed rejected a public IPv4 address';
+}
+foreach (array('127.0.0.1', '10.0.0.1', '169.254.169.254', '::1', '::ffff:127.0.0.1') as $blocked_ip) {
+	if (update_public_ip_allowed($blocked_ip)) {
+		$errors[] = 'update_public_ip_allowed accepted blocked IP: ' . $blocked_ip;
+	}
+}
 
 @unlink($logfile);
 @rmdir(dirname($logfile));

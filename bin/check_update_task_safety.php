@@ -66,6 +66,24 @@ strpos($update_route, "define('UPDATE_MAX_ZIP_BYTES'") !== FALSE
 	|| fail('Online update must define a maximum update ZIP size.');
 strpos($update_route, 'function update_http_get_body($url, $timeout, $headers, $max_redirects, $max_bytes = 0, &$error =') !== FALSE
 	|| fail('Online update HTTP reads must use a shared bounded redirect helper.');
+strpos($update_route, "'cURL is required for safe online updates'") !== FALSE
+	|| fail('Online update must require cURL so resolved public IPs can be pinned.');
+strpos($update_route, 'update_url_public_https_allowed($current, $resolved_ips)') !== FALSE
+	|| fail('Online update must resolve and validate every request hop before connecting.');
+strpos($update_route, 'function update_curl_pin_resolved_ips($ch, $url, $resolved_ips, &$error =') !== FALSE
+	|| fail('Online update cURL requests must pin already validated DNS results.');
+strpos($update_route, 'CURLOPT_RESOLVE') !== FALSE
+	|| fail('Online update cURL requests must use CURLOPT_RESOLVE for DNS rebinding resistance.');
+strpos($update_route, 'function update_resolve_public_ips($host, &$ips = array())') !== FALSE
+	|| fail('Online update must resolve hostnames before HTTP requests.');
+strpos($update_route, 'dns_get_record($host, DNS_A | DNS_AAAA)') !== FALSE
+	|| fail('Online update DNS validation must inspect A and AAAA records.');
+strpos($update_route, 'function update_public_ip_allowed($ip)') !== FALSE
+	|| fail('Online update must validate resolved public IP addresses.');
+strpos($update_route, "stripos(\$ip, '::ffff:') === 0") !== FALSE
+	|| fail('Online update must handle IPv4-mapped IPv6 addresses.');
+strpos($update_route, 'FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE') !== FALSE
+	|| fail('Online update must reject private and reserved resolved IP addresses.');
 strpos($update_route, 'strlen($result[\'body\']) > $max_bytes') !== FALSE
 	|| fail('Shared update HTTP helper must reject oversized response bodies.');
 strpos($update_route, 'return update_http_get_body($url, $timeout, array(\'Accept: */*\'), 10, UPDATE_MAX_ZIP_BYTES, $error);') !== FALSE
@@ -77,11 +95,12 @@ strpos($update_route, "'follow_location' => 1") === FALSE
 strpos($update_route, 'function update_redirect_url($location, $base_url)') !== FALSE
 	|| fail('Online update redirects must be normalized by a dedicated helper.');
 strpos($update_route, 'function update_url_public_https_allowed($url)') !== FALSE
+	|| strpos($update_route, 'function update_url_public_https_allowed($url, &$resolved_ips = NULL)') !== FALSE
 	|| fail('Online update redirects must be constrained to public HTTPS URLs.');
 strpos($update_route, "strtolower(\$parts['scheme']) !== 'https'") !== FALSE
 	|| fail('Online update redirects must reject protocol downgrade to HTTP.');
-strpos($update_route, "update_proxy_public_host(strtolower(\$parts['host']))") !== FALSE
-	|| fail('Online update redirects must reject private/local hosts.');
+strpos($update_route, 'update_resolve_public_ips($parts[\'host\'], $ips)') !== FALSE
+	|| fail('Online update redirects must reject private/local hosts after DNS resolution.');
 strpos($download, "empty(\$conf['allow_unverified_update'])") !== FALSE
 	|| fail('Online update must fail closed when release SHA256 metadata is missing unless allow_unverified_update is explicitly enabled.');
 strpos($download, "lang('update_checksum_missing_blocked')") !== FALSE

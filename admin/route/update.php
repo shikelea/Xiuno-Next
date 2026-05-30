@@ -383,10 +383,11 @@ function update_proxy_normalize($proxy) {
 function update_proxy_public_host($host) {
 	if ($host === 'localhost' || substr($host, -10) === '.localhost' || substr($host, -6) === '.local') return FALSE;
 	if (filter_var($host, FILTER_VALIDATE_IP)) {
-		$flags = FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE;
-		return filter_var($host, FILTER_VALIDATE_IP, $flags) !== FALSE;
+		return update_public_ip_allowed($host);
 	}
-	return strpos($host, '.') !== FALSE;
+	if (strpos($host, '.') === FALSE) return FALSE;
+	$ips = array();
+	return update_resolve_public_ips($host, $ips);
 }
 
 /**
@@ -411,16 +412,19 @@ function update_http_get($url, $timeout = 10) {
 }
 
 function update_http_get_body($url, $timeout, $headers, $max_redirects, $max_bytes = 0, &$error = '') {
-	if (!update_url_public_https_allowed($url)) {
-		$error = 'URL is not an allowed public HTTPS URL';
+	if (!function_exists('curl_init')) {
+		$error = 'cURL is required for safe online updates';
 		return FALSE;
 	}
 	$current = $url;
 	$redirects = 0;
 	while (TRUE) {
-		$result = function_exists('curl_init')
-			? update_http_get_body_curl($current, $timeout, $headers, $error)
-			: update_http_get_body_stream($current, $timeout, $headers, $error);
+		$resolved_ips = array();
+		if (!update_url_public_https_allowed($current, $resolved_ips)) {
+			$error = 'URL is not an allowed public HTTPS URL';
+			return FALSE;
+		}
+		$result = update_http_get_body_curl($current, $timeout, $headers, $resolved_ips, $error);
 		if ($result === FALSE) return FALSE;
 		$httpcode = $result['code'];
 		if ($httpcode >= 300 && $httpcode < 400) {
@@ -449,7 +453,7 @@ function update_http_get_body($url, $timeout, $headers, $max_redirects, $max_byt
 	}
 }
 
-function update_http_get_body_curl($url, $timeout, $headers, &$error = '') {
+function update_http_get_body_curl($url, $timeout, $headers, $resolved_ips = array(), &$error = '') {
 	if (function_exists('curl_init')) {
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
@@ -462,6 +466,10 @@ function update_http_get_body_curl($url, $timeout, $headers, &$error = '') {
 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Xiuno-Next-Updater');
 		function_exists('xn_http_curl_protocols') AND xn_http_curl_protocols($ch);
+		if (!update_curl_pin_resolved_ips($ch, $url, $resolved_ips, $error)) {
+			curl_close($ch);
+			return FALSE;
+		}
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 		$raw = curl_exec($ch);
 		$httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -543,6 +551,27 @@ function update_response_status_code($headers) {
 	return 0;
 }
 
+function update_curl_pin_resolved_ips($ch, $url, $resolved_ips, &$error = '') {
+	if (empty($resolved_ips)) {
+		$error = 'no resolved public IPs';
+		return FALSE;
+	}
+	if (!defined('CURLOPT_RESOLVE')) {
+		$error = 'cURL does not support CURLOPT_RESOLVE';
+		return FALSE;
+	}
+	$host = parse_url($url, PHP_URL_HOST);
+	$port = parse_url($url, PHP_URL_PORT);
+	$port = $port ? intval($port) : 443;
+	$entries = array();
+	foreach ($resolved_ips as $ip) {
+		$address = strpos($ip, ':') === FALSE ? $ip : '['.$ip.']';
+		$entries[] = $host.':'.$port.':'.$address;
+	}
+	curl_setopt($ch, CURLOPT_RESOLVE, $entries);
+	return TRUE;
+}
+
 function update_response_header($headers, $name) {
 	$name = strtolower($name);
 	$value = '';
@@ -596,13 +625,55 @@ function update_normalize_url_path($path) {
 	return '/' . implode('/', $out);
 }
 
-function update_url_public_https_allowed($url) {
+function update_url_public_https_allowed($url, &$resolved_ips = NULL) {
 	if (!xn_http_url_allowed($url)) return FALSE;
 	$parts = parse_url($url);
 	if (empty($parts['scheme']) || strtolower($parts['scheme']) !== 'https') return FALSE;
 	if (empty($parts['host'])) return FALSE;
 	if (!empty($parts['user']) || !empty($parts['pass'])) return FALSE;
-	return update_proxy_public_host(strtolower($parts['host']));
+	$ips = array();
+	$allowed = update_resolve_public_ips($parts['host'], $ips);
+	if ($resolved_ips !== NULL) $resolved_ips = $ips;
+	return $allowed;
+}
+
+function update_resolve_public_ips($host, &$ips = array()) {
+	$host = trim((string)$host, '[]');
+	$ips = array();
+	if ($host === '') return FALSE;
+	if (filter_var($host, FILTER_VALIDATE_IP)) {
+		if (!update_public_ip_allowed($host)) return FALSE;
+		$ips[] = $host;
+		return TRUE;
+	}
+	if ($host === 'localhost' || substr($host, -10) === '.localhost' || substr($host, -6) === '.local') return FALSE;
+	if (strpos($host, '.') === FALSE || preg_match('/[\x00-\x1F\x7F]/', $host)) return FALSE;
+	if (!function_exists('dns_get_record')) return FALSE;
+	$records = @dns_get_record($host, DNS_A | DNS_AAAA);
+	if (empty($records) || !is_array($records)) return FALSE;
+	foreach ($records as $record) {
+		$ip = '';
+		if (!empty($record['ip'])) $ip = $record['ip'];
+		if (!empty($record['ipv6'])) $ip = $record['ipv6'];
+		if ($ip === '') continue;
+		if (!update_public_ip_allowed($ip)) return FALSE;
+		$ips[$ip] = $ip;
+	}
+	return !empty($ips);
+}
+
+function update_public_ip_allowed($ip) {
+	$ip = trim((string)$ip, '[]');
+	if ($ip === '') return FALSE;
+	if (stripos($ip, '::ffff:') === 0) {
+		$mapped = substr($ip, 7);
+		if (filter_var($mapped, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+			return update_public_ip_allowed($mapped);
+		}
+		return FALSE;
+	}
+	$flags = FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE;
+	return filter_var($ip, FILTER_VALIDATE_IP, $flags) !== FALSE;
 }
 
 function update_release_expected_sha256($release, $tag_name, $download_url, $proxy = '', &$source = '') {
