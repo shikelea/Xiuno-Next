@@ -62,6 +62,21 @@ if ($indexTemplate === FALSE) {
 	}
 }
 
+$indexEntry = file_get_contents($root . 'index.php');
+if ($indexEntry === FALSE) {
+	$errors[] = 'failed to read index.php';
+} else {
+	if (strpos($indexEntry, "parse_url(\$view_url, PHP_URL_SCHEME)") === FALSE) {
+		$errors[] = 'compatibility injector view_url must reject configured URL schemes';
+	}
+	if (strpos($indexEntry, "substr(\$view_url, 0, 2) === '//'") === FALSE) {
+		$errors[] = 'compatibility injector view_url must reject protocol-relative URLs';
+	}
+	if (strpos($indexEntry, "\$html .= \$body_inject;") === FALSE) {
+		$errors[] = 'compatibility injector must append JS when an overwritten theme omits closing body/html tags';
+	}
+}
+
 $settingRoute = file_get_contents($root . 'admin/route/setting.php');
 if ($settingRoute === FALSE) {
 	$errors[] = 'failed to read admin/route/setting.php';
@@ -143,6 +158,15 @@ if ($postModel === FALSE) {
 	}
 	if (strpos($postModel, "\$filetype = preg_replace('#[^\\w\\-]#', '', \$attach['filetype']);") === FALSE) {
 		$errors[] = 'attachment filetype class must be normalized in server-rendered post file lists';
+	}
+}
+
+$pluginModel = file_get_contents($root . 'model/plugin.func.php');
+if ($pluginModel === FALSE) {
+	$errors[] = 'failed to read model/plugin.func.php';
+} else {
+	if (strpos($pluginModel, 'is_file($overwrite_file) && !is_link($overwrite_file)') === FALSE) {
+		$errors[] = 'plugin/theme overwrite resolution must not follow symlink overwrite files';
 	}
 }
 

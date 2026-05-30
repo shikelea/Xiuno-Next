@@ -119,6 +119,8 @@ Same-type plugin/theme replacement now uses a batch rollback context. If install
 
 Admin plugin list/detail pages now escape plugin package metadata before rendering names, versions, descriptions, icon URLs, QQ values, and confirmation text. External brief links are only rendered for allowed HTTP(S) URLs and use `rel="noopener noreferrer"`. This treats `conf.json` metadata from local and downloaded packages as untrusted ecosystem input.
 
+The core compatibility injector now has a stricter resource boundary for overwritten themes: `view_url` must remain relative or site-absolute, protocol-relative and scheme-bearing values are rejected, and the BS4/CSRF JS shim is appended even when a custom theme omits closing `body/html` tags. Plugin/theme `overwrite/` resolution also skips symlink files so local package overlays cannot redirect template reads through symbolic links.
+
 ## 2026-05-29 BS4 Compatibility Guard Delta
 
 The high-count BS4 signals from the local sample matrix now have a dedicated repository guard. `bin/check_bs4_compat_layer.php` asserts that `bs4-compat.css` keeps the common legacy selectors (`form-group`, `btn-block`, `custom-file`, `custom-control`, `input-group-prepend/append`, legacy spacing, badges, dropdown alignment, and button groups), and that `bs4-compat.js` keeps BS4 data-attribute conversion, jQuery Modal/Tooltip/Popover/Button proxies, Xiuno helper fallbacks, custom-file labels, dropdown alignment, close-button handling, tab href migration, and same-origin CSRF boundaries. This does not replace real browser smoke, but it prevents accidental deletion of the compatibility surface that the 58 local samples currently depend on.

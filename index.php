@@ -82,9 +82,15 @@ ob_start(function($html) {
 	if (stripos($html, '</head>') === false) return $html;
 
 	$conf = $_SERVER['conf'];
-	// view_url 只允许相对路径或以 / 开头的路径，防止注入外部域名
+	// view_url 只允许相对路径或以 / 开头的路径，防止注入外部域名或非 Web scheme
 	$view_url = isset($conf['view_url']) ? $conf['view_url'] : 'view/';
-	if (preg_match('#^https?://#i', $view_url)) $view_url = 'view/';
+	if (
+		preg_match('/[\x00-\x20\x7F]/', $view_url)
+		|| substr($view_url, 0, 2) === '//'
+		|| parse_url($view_url, PHP_URL_SCHEME)
+	) {
+		$view_url = 'view/';
+	}
 	$view_url = htmlspecialchars($view_url, ENT_QUOTES, 'UTF-8');
 	$sv = isset($conf['static_version']) ? htmlspecialchars($conf['static_version'], ENT_QUOTES, 'UTF-8') : '';
 
@@ -115,6 +121,8 @@ ob_start(function($html) {
 			$html = preg_replace('~</body>~i', $body_inject . '</body>', $html, 1);
 		} elseif (stripos($html, '</html>') !== false) {
 			$html = preg_replace('~</html>~i', $body_inject . '</html>', $html, 1);
+		} else {
+			$html .= $body_inject;
 		}
 	}
 
