@@ -521,10 +521,21 @@ function plugin_dependency_arr_to_links($arr) {
 		$name = is_array($dependency) && !empty($dependency['name']) ? $dependency['name'] : (isset($plugins[$dir]['name']) ? $plugins[$dir]['name'] : $dir);
 		$status = plugin_dependency_status_text($dependency);
 		$status_html = $status !== '' ? ' <span class="text-muted small">(' . htmlspecialchars($status) . ')</span>' : '';
-		$url = url("plugin-read-$dir");
-		$s .= ' <a href="' . $url . '">[' . htmlspecialchars($name) . ']</a>' . $status_html . ' ';
+		$name_html = '[' . htmlspecialchars($name) . ']';
+		if(plugin_dependency_has_detail_page($dir)) {
+			$url = htmlspecialchars(url("plugin-read-$dir"), ENT_QUOTES);
+			$s .= ' <a href="' . $url . '">' . $name_html . '</a>' . $status_html . ' ';
+		} else {
+			$s .= ' <span class="text-muted">' . $name_html . '</span>' . $status_html . ' ';
+		}
 	}
 	return $s;
+}
+
+function plugin_dependency_has_detail_page($dir) {
+	global $plugins;
+	if(isset($plugins[$dir])) return TRUE;
+	return !empty(plugin_official_read($dir));
 }
 
 

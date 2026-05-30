@@ -110,7 +110,7 @@ $(document).on('click', 'a[data-method="post"]:not(.confirm)', function() {
 		if(code == 0) {
 			window.location.reload();
 		} else {
-			alert(message);
+			$.alert(message);
 		}
 	});
 	return false;
@@ -130,7 +130,7 @@ $(document).on('click', 'a.confirm', function() {
 				if(code == 0) {
 					window.location.reload();
 				} else {
-					alert(message);					
+					$.alert(message);
 				}
 			});
 		} else {
