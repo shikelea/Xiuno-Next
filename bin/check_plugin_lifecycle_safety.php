@@ -71,6 +71,9 @@ strpos($plugin_route, "plugin_state_restore(\$guard['dir'], \$guard['snapshot'])
 
 foreach(array('install'=>'unstall', 'unstall'=>'enable', 'upgrade'=>'setting') as $action=>$next) {
 	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "} elseif(\$action == '$next')");
+	if($action == 'upgrade' && strpos($branch, 'plugin_official_remote_closed();') !== FALSE) {
+		continue;
+	}
 	strpos($branch, '$plugin_snapshot = plugin_state_snapshot($dir);') !== FALSE
 		|| fail("Plugin $action action must snapshot state before lifecycle work.");
 	strpos($branch, 'plugin_require_state_write(') !== FALSE

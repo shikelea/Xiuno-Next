@@ -123,7 +123,7 @@ if($action == 'local') {
 	if(plugin_is_bought($dir)) {
 		message(0, lang('plugin_is_bought'));
 	} else {
-		message(2, lang('plugin_not_bought'));
+		message(isset($errno) ? $errno : 2, isset($errno) ? $errstr : lang('plugin_not_bought'));
 	}
 	
 	
@@ -146,14 +146,7 @@ if($action == 'local') {
 	}
 	
 	// 下载，解压 / download and zip
-	$package_snapshot = plugin_package_snapshot($dir);
-	plugin_download_unzip($dir, $package_snapshot);
-	plugin_package_snapshot_delete($package_snapshot);
-
-	plugin_lock_end();
-	
-	// 检查解压是否成功 / check the zip if sucess
-	message(0, jump(lang('plugin_download_sucessfully', array('dir'=>$dir)), url("plugin-read-$dir"), 3));
+	plugin_official_remote_closed();
 	
 } elseif($action == 'install') {
 	
@@ -285,29 +278,7 @@ if($action == 'local') {
 	// 插件依赖检查
 	plugin_check_dependency($dir, 'install', NULL, NULL, FALSE);
 	$official = plugin_read_by_dir($dir, FALSE);
-	
-	// 检查版本  / check version match
-	if(version_compare($conf['version'], $official['bbs_version']) == -1) {
-		plugin_message(-1, lang('plugin_versio_not_match', array('bbs_version'=>$official['bbs_version'], 'version'=>$conf['version'])));
-	}
-	
-	// 下载，解压 / download and zip
-	$package_snapshot = plugin_package_snapshot($dir);
-	plugin_download_unzip($dir, $package_snapshot);
-	plugin_check_php_syntax($dir, $package_snapshot);
-	$plugin_snapshot = plugin_state_snapshot($dir);
-	plugin_reload_local($dir, $plugin_snapshot, $package_snapshot);
-	plugin_check_dependency($dir, 'install', $plugin_snapshot, $package_snapshot);
-	
-	// 安装插件
-	plugin_require_state_write(plugin_install($dir), $dir, $plugin_snapshot, $package_snapshot);
-	plugin_run_lifecycle($dir, 'upgrade', $plugin_snapshot, $package_snapshot);
-	plugin_package_snapshot_delete($package_snapshot);
-	
-	plugin_lock_end();
-	
-	$msg = lang('plugin_upgrade_sucessfully', array('name'=>$name));
-	message(0, jump($msg, http_referer(), 3));
+	plugin_official_remote_closed();
 	
 } elseif($action == 'setting') {
 	
@@ -544,102 +515,7 @@ function plugin_dependency_has_detail_page($dir) {
 
 // 下载插件、解压
 function plugin_download_unzip($dir, $package_snapshot = NULL) {
-	global $conf;
-	$own_package_snapshot = FALSE;
-	$app_url = http_url_path();
-	$siteid =  plugin_siteid();
-	$app_url = xn_urlencode($app_url);
-	$url = PLUGIN_OFFICIAL_URL."plugin-download-$dir-$siteid-$app_url.htm"; // $siteid 用来防止别人伪造站点，GET 不够安全，但不是太影响
-
-	// 服务端开始下载
-	// set_time_limit(0); // 设置超时
-	$s = http_get($url);
-	empty($s) AND plugin_message(-1, $url.lang('plugin_return_data_error').lang('server_response_empty'));
-	if(substr($s, 0, 2) != 'PK') {
-		$arr = xn_json_decode($s);
-		
-		empty($arr) AND  plugin_message(-1, $url.lang('plugin_return_data_error').$s);
-		if($arr['code'] == -2) {
-			plugin_message(-2, jump(lang('plugin_is_not_free'), url("plugin-read-$dir")));
-		}
-		plugin_message($arr['code'], $url.lang('plugin_return_data_error').$arr['message']);  //lang('server_response_error').':'
-	}
-	//$arr = xn_json_decode($s);
-	//empty($arr['message']) AND message(-1, '服务端返回数据错误：'.$s);
-	//$arr['code'] != 0 AND message(-1, '服务端返回数据错误：'.$arr['message']);
-	
-	$zipfile = $conf['tmp_path'].'plugin_'.$dir.'.zip';
-	if(file_put_contents($zipfile, $s) !== strlen($s)) {
-		plugin_message(-1, lang('plugin_maybe_download_failed')." plugin/$dir");
-	}
-	if(!class_exists('ZipArchive')) {
-		@unlink($zipfile);
-		plugin_message(-1, 'ZipArchive does not exists!');
-	}
-
-	$extract_dir = $conf['tmp_path'].'plugin_extract_'.$dir.'/';
-	if(is_dir($extract_dir)) {
-		rmdir_recusive($extract_dir, 1);
-	}
-	xn_mkdir($extract_dir);
-
-	$zip = new ZipArchive;
-	$open_result = $zip->open($zipfile);
-	if($open_result !== TRUE) {
-		@unlink($zipfile);
-		rmdir_recusive($extract_dir, 1);
-		plugin_message(-1, lang('zip_data_error').' (ZipArchive error: '.$open_result.')');
-	}
-	$zip_error = '';
-	if(!plugin_zip_validate_package($zip, $dir, $zip_error)) {
-		$zip->close();
-		@unlink($zipfile);
-		rmdir_recusive($extract_dir, 1);
-		plugin_message(-1, lang('zip_data_error').' ('.htmlspecialchars($zip_error).')');
-	}
-	if(!$zip->extractTo($extract_dir)) {
-		$zip->close();
-		@unlink($zipfile);
-		rmdir_recusive($extract_dir, 1);
-		plugin_message(-1, lang('zip_data_error'));
-	}
-	$zip->close();
-
-	$source_dir = $extract_dir.$dir.'/';
-	$conffile = $source_dir.'conf.json';
-	if(!is_dir($source_dir) || !is_file($conffile)) {
-		@unlink($zipfile);
-		rmdir_recusive($extract_dir, 1);
-		plugin_message(-1, 'conf.json '.lang('not_exists'));
-	}
-	$arr = xn_json_decode(file_get_contents($conffile));
-	if(empty($arr['name'])) {
-		@unlink($zipfile);
-		rmdir_recusive($extract_dir, 1);
-		plugin_message(-1, 'conf.json '.lang('format_maybe_error'));
-	}
-
-	$dest_dir = APP_PATH."plugin/$dir/";
-	if($package_snapshot === NULL) {
-		$package_snapshot = plugin_package_snapshot($dir);
-		$own_package_snapshot = TRUE;
-	}
-	rmdir_recusive($dest_dir.'hook/', 1);
-	rmdir_recusive($dest_dir.'overwrite/', 1);
-	$copy_error = '';
-	if(!plugin_copy_dir($source_dir, $dest_dir, $copy_error)) {
-		@unlink($zipfile);
-		rmdir_recusive($extract_dir, 1);
-		plugin_package_restore($package_snapshot);
-		plugin_message(-1, lang('plugin_maybe_download_failed')." plugin/$dir (".htmlspecialchars($copy_error).')');
-	}
-	@unlink($zipfile);
-	rmdir_recusive($extract_dir, 1);
-	if(!is_dir($dest_dir)) {
-		plugin_package_restore($package_snapshot);
-		plugin_message(-1, lang('plugin_maybe_download_failed')." plugin/$dir");
-	}
-	if($own_package_snapshot) plugin_package_snapshot_delete($package_snapshot);
+	plugin_official_remote_closed();
 }
 
 function plugin_package_snapshot($dir) {
@@ -766,44 +642,19 @@ function plugin_mkdir_recursive($dir) {
 }
 
 function plugin_is_bought($dir) {
-	// 发起请求
-	global $conf;
-	$siteid =  plugin_siteid();
-	$app_url = http_url_path();
-	$app_url = xn_urlencode($app_url);
-	$url = PLUGIN_OFFICIAL_URL."plugin-is_bought-$dir-$siteid-$app_url.htm"; // $siteid 用来防止别人伪造站点，GET 不够安全，但不是太影响
-	$s = http_get($url);
-	$arr = xn_json_decode($s);
-	empty($arr) AND  message(-1, $url.lang('plugin_return_data_error').$s); 
-	if($arr['code'] == 0) {
-		return TRUE;
-	} else {
-		return xn_error($arr['code'], $arr['message']);
-	}
+	return xn_error(-1, plugin_official_remote_closed_error());
 }
 
 function plugin_order_buy_qrcode_url($siteid, $dir, $app_url = '') {
-	// 发起请求
-	global $conf;
-	
-	$siteid = plugin_siteid();
-	$app_url = http_url_path();
-	$app_url = xn_urlencode($app_url);
-	$url = PLUGIN_OFFICIAL_URL."plugin-buy_qrcode_url-$dir-$siteid-$app_url.htm"; // $siteid 用来防止别人伪造站点，GET 不够安全，但不是太影响
+	return xn_error(-1, plugin_official_remote_closed_error());
+}
 
-	// 服务端开始下载
-	set_time_limit(0); // 设置超时
-	$s = http_get($url);
-	if(empty($s)) return xn_error(-1, lang('server_response_empty')); 
-	$arr = xn_json_decode($s);
-	if(empty($arr) || !isset($arr['code'])) {
-		return xn_error($arr['code'], $url.lang('plugin_return_data_error').$s);
-	}
-	if($arr['code'] == 0) {
-		return $arr['message'];
-	} else {
-		return xn_error($arr['code'], $url.lang('plugin_return_data_error').$arr['message']);
-	}
+function plugin_official_remote_closed() {
+	plugin_message(-1, plugin_official_remote_closed_error());
+}
+
+function plugin_official_remote_closed_error() {
+	return 'Official plugin marketplace is closed; install vetted local plugin/theme packages instead.';
 }
 
 function plugin_is_local($dir) {

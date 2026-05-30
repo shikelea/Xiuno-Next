@@ -51,24 +51,15 @@ $dependency_direct = str_replace('plugin_message(-1, $msg)', '', $dependency);
 strpos($dependency_direct, 'message(-1, $msg)') === FALSE
 	|| fail('Dependency checks must not call message() directly.');
 
-$download = section_between($plugin_route, 'function plugin_download_unzip', 'function plugin_is_bought');
-substr_count($download, 'plugin_message(') >= 6
-	|| fail('Download/unzip error exits must release the plugin task lock.');
-$download_code = preg_replace('#//[^\n]*#', '', $download);
-strpos($download_code, 'AND message(') === FALSE
-	|| fail('Download/unzip guards must not call message() directly.');
-strpos($download, 'file_put_contents($zipfile, $s) !== strlen($s)') !== FALSE
-	|| fail('Plugin ZIP writes must detect short writes.');
-strpos($download, 'plugin_zip_validate_package($zip, $dir, $zip_error)') !== FALSE
-	|| fail('Plugin ZIP packages must be validated before extraction.');
-strpos($download, 'if(!$zip->extractTo($extract_dir))') !== FALSE
-	|| fail('Plugin ZIP extraction failures must stop the task.');
-strpos($download, '$extract_dir =') !== FALSE && strpos($download, '$source_dir = $extract_dir.$dir') !== FALSE
-	|| fail('Plugin ZIP packages must be extracted to a temporary directory first.');
-strpos($download, 'plugin_copy_dir($source_dir, $dest_dir, $copy_error)') !== FALSE
-	|| fail('Validated plugin packages must be copied into the target directory with checked writes.');
-strpos($download_code, 'xn_unzip(') === FALSE
-	|| fail('Plugin downloads must not use direct xn_unzip() into plugin/.');
+$download = section_between($plugin_route, 'function plugin_download_unzip', 'function plugin_package_snapshot');
+strpos($download, 'plugin_official_remote_closed();') !== FALSE
+	|| fail('Legacy official plugin download/unzip must fail closed while no trusted registry exists.');
+strpos($download, 'http_get(') === FALSE && strpos($download, 'extractTo(') === FALSE && strpos($download, 'xn_unzip(') === FALSE
+	|| fail('Legacy official plugin download/unzip must not fetch or extract remote packages.');
+strpos($plugin_route, 'function plugin_official_remote_closed()') !== FALSE
+	|| fail('Official plugin marketplace fail-closed helper is missing.');
+strpos($plugin_route, "plugin_message(-1, plugin_official_remote_closed_error());") !== FALSE
+	|| fail('Official plugin marketplace fail-closed helper must release the plugin task lock through plugin_message().');
 
 $zip_validate = section_between($plugin_route, 'function plugin_zip_validate_package', 'function plugin_copy_dir');
 strpos($zip_validate, 'xn_zip_safe_name($name)') !== FALSE
@@ -126,6 +117,9 @@ foreach (array('install', 'enable', 'upgrade') as $action) {
 	$next = $action == 'install' ? 'unstall' : ($action == 'enable' ? 'disable' : 'setting');
 	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "} elseif(\$action == '$next')");
 	$code = preg_replace('#//[^\n]*#', '', $branch);
+	if($action == 'upgrade' && strpos($code, 'plugin_official_remote_closed();') !== FALSE) {
+		continue;
+	}
 	strpos($code, "plugin_require_action_state(\$dir, '$action") !== FALSE
 		|| fail("Plugin $action action must reject stale or repeated state transitions.");
 	(
