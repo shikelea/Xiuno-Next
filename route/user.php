@@ -344,15 +344,19 @@ if(empty($action)) {
 } elseif($action == 'synlogin') {
 
 	// 检查过来的 token | check token
-	$token = param('token');
-	$return_url = param('return_url');
+	$token = param('token', '', FALSE);
+	$return_url = user_synlogin_return_url(param('return_url', '', FALSE));
+	empty($return_url) AND message(-1, lang('unauthorized_access'));
 	
 	$s = xn_decrypt($token);
 	!$s AND message(-1, lang('unauthorized_access'));
-	list($_time, $_useragent) = explode("\t", $s);
+	$token_parts = explode("\t", $s);
+	count($token_parts) != 2 AND message(-1, lang('unauthorized_access'));
+	list($_time, $_useragent) = $token_parts;
+	abs($time - intval($_time)) > 300 AND message(-1, lang('link_has_expired'));
 	$useragent != $_useragent AND message(-1, lang('authorized_get_failed'));
 	
-	empty($_SESSION['return_url']) AND $_SESSION['return_url'] = $return_url;
+	$_SESSION['return_url'] = $return_url;
 	if(!$uid) {
 		http_location(url('user-login'));
 	} else {
@@ -373,8 +377,7 @@ if(empty($action)) {
 		$s = xn_encrypt($s);
 		
 		// 将 token 附加到 URL，跳转回去 | add token into URL, jump back
-		$url = xn_urldecode($return_url).'?token='.$s;
-		//$url = xn_url_add_arg($return_url, 'token', $s);
+		$url = user_synlogin_append_token($return_url, $s);
 		http_location($url);
 	}
 
@@ -456,6 +459,37 @@ function user_email_code_clear($prefix) {
 	unset($_SESSION[$prefix.'_code']);
 	unset($_SESSION[$prefix.'_code_time']);
 	unset($_SESSION[$prefix.'_code_attempts']);
+}
+
+function user_synlogin_return_url($return_url) {
+	$raw = (string)$return_url;
+	$candidates = array(trim($raw), trim(xn_urldecode($raw)));
+	foreach($candidates as $url) {
+		if($url === '' || preg_match('/[\x00-\x1F\x7F]/', $url)) continue;
+		$hash_pos = strpos($url, '#');
+		if($hash_pos !== FALSE) $url = substr($url, 0, $hash_pos);
+		$parts = parse_url($url);
+		if(empty($parts['scheme']) || !in_array(strtolower($parts['scheme']), array('http', 'https'), TRUE)) continue;
+		if(empty($parts['host']) || !user_synlogin_public_host($parts['host'])) continue;
+		if(!empty($parts['user']) || !empty($parts['pass'])) continue;
+		return $url;
+	}
+	return '';
+}
+
+function user_synlogin_public_host($host) {
+	$host = strtolower(trim((string)$host, "[] \t\r\n"));
+	if($host === '' || $host === 'localhost' || substr($host, -10) === '.localhost' || substr($host, -6) === '.local') return FALSE;
+	if(filter_var($host, FILTER_VALIDATE_IP)) {
+		$flags = FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE;
+		return filter_var($host, FILTER_VALIDATE_IP, $flags) !== FALSE;
+	}
+	return preg_match('/^[a-z0-9.-]+$/i', $host) && strpos($host, '.') !== FALSE;
+}
+
+function user_synlogin_append_token($return_url, $token) {
+	$separator = strpos($return_url, '?') === FALSE ? '?' : '&';
+	return $return_url.$separator.http_build_query(array('token'=>$token));
 }
 
 function user_auth_check($token) {
