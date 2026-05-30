@@ -134,12 +134,7 @@ if(empty($action)) {
 		empty($password) AND message('password', lang('please_input_password'));
 		
 		if($conf['user_create_email_on']) {
-			$sess_email = _SESSION('user_create_email');
-			$sess_code = _SESSION('user_create_code');
-			empty($sess_code) AND message('code', lang('click_to_get_verify_code'));
-			empty($sess_email) AND message('code', lang('click_to_get_verify_code'));
-			$email != $sess_email AND message('code', lang('verify_code_incorrect'));
-			$code != $sess_code AND message('code', lang('verify_code_incorrect'));
+			user_email_code_verify('user_create', $email, $code);
 		}
 		
 		!is_email($email, $err) AND message('email', $err);
@@ -172,8 +167,7 @@ if(empty($action)) {
 	
 		// 更新 session
 		
-		unset($_SESSION['user_create_email']);
-		unset($_SESSION['user_create_code']);
+		user_email_code_clear('user_create');
 		$_SESSION['uid'] = $uid;
 		user_token_set($uid);
 		
@@ -228,12 +222,7 @@ if(empty($action)) {
 		$code = param('code');
 		empty($code) AND message('code', lang('please_input_verify_code'));
 		
-		$sess_email = _SESSION('user_resetpw_email');
-		$sess_code = _SESSION('user_resetpw_code');
-		empty($sess_code) AND message('code', lang('click_to_get_verify_code'));
-		empty($sess_email) AND message('code', lang('click_to_get_verify_code'));
-		$email != $sess_email AND message('code', lang('verify_code_incorrect'));
-		$code != $sess_code AND message('code', lang('verify_code_incorrect'));
+		user_email_code_verify('user_resetpw', $email, $code);
 	
 		$_SESSION['resetpw_verify_ok'] = 1;
 		
@@ -278,8 +267,7 @@ if(empty($action)) {
 		$password = user_hash_password($password);
 		user_update($_uid, array('password'=>$password));
 		
-		unset($_SESSION['user_resetpw_email']);
-		unset($_SESSION['user_resetpw_code']);
+		user_email_code_clear('user_resetpw');
 		unset($_SESSION['resetpw_verify_ok']);
 		
 		// hook user_resetpw_post_end.php
@@ -308,9 +296,7 @@ if(empty($action)) {
 		$_user = user_read_by_email($email);
 		!empty($_user) AND message('email', lang('email_is_in_use'));
 		
-		$code = rand(100000, 999999);
-		$_SESSION['user_create_email'] = $email;
-		$_SESSION['user_create_code'] = $code;
+		$code = user_email_code_issue('user_create', $email);
 		
 	
 	// 重置密码，往老地址发送
@@ -325,9 +311,7 @@ if(empty($action)) {
 		
 		empty($conf['user_resetpw_on']) AND message(-1, lang('resetpw_not_on'));
 		
-		$code = rand(100000, 999999);
-		$_SESSION['user_resetpw_email'] = $email;
-		$_SESSION['user_resetpw_code'] = $code;
+		$code = user_email_code_issue('user_resetpw', $email);
 
 	} else {
 		message(-1, 'action2 error');
@@ -420,6 +404,58 @@ function user_http_referer() {
 	}
 	// hook user_http_referer_end.php
 	return $referer;
+}
+
+function user_email_code_issue($prefix, $email) {
+	global $time;
+	user_email_code_rate_limit($prefix, $email);
+	$code = (string)random_int(100000, 999999);
+	$_SESSION[$prefix.'_email'] = $email;
+	$_SESSION[$prefix.'_code'] = $code;
+	$_SESSION[$prefix.'_code_time'] = $time;
+	$_SESSION[$prefix.'_code_attempts'] = 0;
+	return $code;
+}
+
+function user_email_code_verify($prefix, $email, $code) {
+	global $time;
+	$sess_email = _SESSION($prefix.'_email');
+	$sess_code = (string)_SESSION($prefix.'_code');
+	$sess_time = intval(_SESSION($prefix.'_code_time'));
+	$attempts = intval(_SESSION($prefix.'_code_attempts'));
+	empty($sess_code) AND message('code', lang('click_to_get_verify_code'));
+	empty($sess_email) AND message('code', lang('click_to_get_verify_code'));
+	if($sess_time <= 0 || $time - $sess_time > 300) {
+		user_email_code_clear($prefix);
+		message('code', lang('link_has_expired'));
+	}
+	$attempts >= 5 AND message('code', lang('verify_code_try_too_frequently', array('times'=>5)));
+	if($email != $sess_email || !hash_equals($sess_code, (string)$code)) {
+		$_SESSION[$prefix.'_code_attempts'] = $attempts + 1;
+		message('code', lang('verify_code_incorrect'));
+	}
+}
+
+function user_email_code_rate_limit($prefix, $email) {
+	global $time;
+	$window_email = _SESSION($prefix.'_send_email');
+	$window_start = intval(_SESSION($prefix.'_send_window_start'));
+	$send_count = intval(_SESSION($prefix.'_send_count'));
+	if($window_email != $email || $window_start <= 0 || $time - $window_start > 3600) {
+		$window_start = $time;
+		$send_count = 0;
+	}
+	$send_count >= 5 AND message('email', lang('verify_code_try_too_frequently', array('times'=>5)));
+	$_SESSION[$prefix.'_send_email'] = $email;
+	$_SESSION[$prefix.'_send_window_start'] = $window_start;
+	$_SESSION[$prefix.'_send_count'] = $send_count + 1;
+}
+
+function user_email_code_clear($prefix) {
+	unset($_SESSION[$prefix.'_email']);
+	unset($_SESSION[$prefix.'_code']);
+	unset($_SESSION[$prefix.'_code_time']);
+	unset($_SESSION[$prefix.'_code_attempts']);
 }
 
 function user_auth_check($token) {

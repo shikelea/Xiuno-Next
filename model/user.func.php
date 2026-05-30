@@ -294,13 +294,13 @@ function user_safe_info($user) {
 
 // 用户
 function user_token_get() {
-	global $time;
+	global $time, $conf;
 	$_uid = user_token_get_do();
 	
 	// hook model_user_token_get_start.php
 	
 	if(!$_uid) {
-		setcookie('bbs_token', '', $time - 86400, '');
+		user_token_cookie_set('', $time - 86400);
 	}
 	
 	// hook model_user_token_get_end.php
@@ -320,10 +320,13 @@ function user_token_get_do() {
 	$s = xn_decrypt($token, $tokenkey);
 	if(empty($s)) return FALSE;
 	$arr = explode("\t", $s);
-	if(count($arr) != 3) return FALSE;
-	list($_ip, $_time, $_uid) = $arr;
+	if(count($arr) != 3 && count($arr) != 4) return FALSE;
+	$_fingerprint = '';
+	list($_ip, $_time, $_uid) = array_slice($arr, 0, 3);
+	if(count($arr) == 4) $_fingerprint = $arr[3];
 	// Token 有效期 30 天
 	if($time - intval($_time) > 86400 * 30) return FALSE;
+	if($_fingerprint !== '' && !hash_equals(user_token_fingerprint(), $_fingerprint)) return FALSE;
 	$_uid = intval($_uid);
 	if($_uid <= 0) return FALSE;
 
@@ -337,14 +340,14 @@ function user_token_set($uid) {
 	global $time, $conf;
 	if(empty($uid)) return;
 	$token = user_token_gen($uid);
-	setcookie('bbs_token', $token, $time + 8640000, $conf['cookie_path']);
+	user_token_cookie_set($token, $time + 8640000);
 	
 	// hook model_user_token_set_end.php
 }
 
 function user_token_clear() {
 	global $time, $conf;
-	setcookie('bbs_token', '', $time - 8640000, $conf['cookie_path']);
+	user_token_cookie_set('', $time - 8640000);
 	
 	// hook model_user_token_clear_end.php
 }
@@ -355,11 +358,35 @@ function user_token_gen($uid) {
 	// hook model_user_token_gen_start.php
 	
 	$tokenkey = hash('sha256', xn_key());
-	$token = xn_encrypt("$ip	$time	$uid", $tokenkey);
+	$fingerprint = user_token_fingerprint();
+	$token = xn_encrypt("$ip	$time	$uid	$fingerprint", $tokenkey);
 	
 	// hook model_user_token_gen_end.php
 	
 	return $token;
+}
+
+function user_token_fingerprint() {
+	$useragent = _SERVER('HTTP_USER_AGENT');
+	return hash_hmac('sha256', $useragent, xn_key());
+}
+
+function user_token_cookie_set($value, $expires) {
+	global $conf;
+	$path = isset($conf['cookie_path']) ? $conf['cookie_path'] : '';
+	setcookie('bbs_token', $value, array(
+		'expires'=>$expires,
+		'path'=>$path,
+		'secure'=>user_cookie_secure(),
+		'httponly'=>TRUE,
+		'samesite'=>'Lax',
+	));
+}
+
+function user_cookie_secure() {
+	$https = strtolower(_SERVER('HTTPS', 'off'));
+	$proto = strtolower(_SERVER('HTTP_X_FORWARDED_PROTO', ''));
+	return $https == 'on' || $https == '1' || $proto == 'https' || intval(_SERVER('SERVER_PORT', 0)) == 443;
 }
 
 
