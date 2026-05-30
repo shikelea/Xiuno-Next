@@ -92,6 +92,8 @@ The MySQL 8 sample SQL pass now uses `php bin/check_mysql8_compat.php --samples=
 
 `bin/check_ecosystem_dependency_family_smoke.php` turns the local-sample `huux_notice` dependent family (`ax_notice_sx`, `ob_feedback`, `till_quick_at`) and the `abs_themeacp_stately -> abs_theme_stately` theme-adjacent dependency into repository fixtures. It keeps plugin and theme dependency metadata in the same compatibility track without committing third-party packages.
 
+`bin/check_plugin_same_type_dependency_smoke.php` covers the deeper replacement edge: a new theme can pass its dependency preflight because an old same-type theme is still installed, then invalidate itself when the same-type auto-uninstall batch removes that dependency. The smoke verifies the new theme, the dependency theme, and every touched same-type candidate roll back together, while `plugin_task` is released and the dependency message remains structured.
+
 ## 2026-05-29 Lifecycle Hardening Delta
 
 The plugin manager now treats lifecycle state changes as a guarded path rather than a best-effort write:

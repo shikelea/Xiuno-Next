@@ -80,6 +80,9 @@ jobs:
       - name: Smoke test ecosystem dependency families
         run: php bin/check_ecosystem_dependency_family_smoke.php
 
+      - name: Smoke test same-type dependency rollback
+        run: php bin/check_plugin_same_type_dependency_smoke.php
+
       - name: Smoke test plugin PHP syntax guard
         run: php bin/check_plugin_syntax_guard.php
 
