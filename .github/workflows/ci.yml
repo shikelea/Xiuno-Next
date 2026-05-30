@@ -203,3 +203,13 @@ jobs:
           XIUNO_DB_PASSWORD: root
           XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
         run: php bin/check_legacy_upgrade_smoke.php
+
+      - name: Smoke test plugin install SQL samples
+        env:
+          XIUNO_DB_HOST: 127.0.0.1
+          XIUNO_DB_PORT: 3306
+          XIUNO_DB_NAME: xiuno_test
+          XIUNO_DB_USER: root
+          XIUNO_DB_PASSWORD: root
+          XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
+        run: php bin/check_plugin_install_sql_smoke.php
