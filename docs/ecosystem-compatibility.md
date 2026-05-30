@@ -88,6 +88,8 @@ The MySQL 8 sample SQL pass now uses `php bin/check_mysql8_compat.php --samples=
 
 `bin/check_plugin_install_sql_smoke.php` now turns two local-sample-derived install SQL paths into CI fixtures without committing third-party packages: a `till_post_replies`-style `ALTER TABLE bbs_post` add/drop flow, and a `sa_shop`-style MyISAM/utf8 create/drop flow. This keeps MySQL 8 compatibility honest while preserving the rule that ignored sample packages and raw reports stay out of the repository.
 
+`bin/check_plugin_dependency_flow_smoke.php` now runs real dependency failure flows in a temporary plugin app. It verifies that install-time missing/downloaded/disabled/old dependencies and uninstall-time reverse dependencies release `plugin_task`, include structured status text, link only to locally available dependency detail pages, and avoid dead links for missing remote packages.
+
 ## 2026-05-29 Lifecycle Hardening Delta
 
 The plugin manager now treats lifecycle state changes as a guarded path rather than a best-effort write:
