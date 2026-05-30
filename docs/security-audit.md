@@ -83,6 +83,7 @@ rg -n "simplexml_load_string|simplexml_load_file|DOMDocument|LIBXML_NOENT|xml_pa
 - `bs4-compat.js` now limits automatic CSRF header injection to same-origin jQuery/fetch POST requests. Cross-origin requests no longer receive `X-CSRF-TOKEN`.
 - Plugin upgrade now reloads the new package metadata after replacement and re-checks dependencies before install. A new missing dependency restores the old package directory and previous plugin state.
 - Install/upgrade dependency checks now also reject target plugin metadata errors, so malformed self `conf.json` data cannot be silently marked installed/enabled. Upgrade preflight still allows the replacement package to repair old self metadata, then re-applies the strict check after loading the new `conf.json`.
+- Plugin dependency keys must now match the same safe plugin directory shape as route parameters; invalid dependency names become an explicit blocking status instead of being treated as ordinary missing plugins.
 - Plugin write actions now reject stale or repeated state transitions before running lifecycle files, so manual POSTs cannot re-run install/unstall/enable/disable/upgrade in an invalid state.
 - Plugin dependency prompts now only link dependencies that have a local or official detail page; missing packages with no known source render as text with status instead of sending admins to a dead `plugin-read-*` page.
 - Generic `data-method="post"` failures now use the project's modal alert instead of native `alert()`, so dependency guidance returned by plugin actions can render links and status text.
