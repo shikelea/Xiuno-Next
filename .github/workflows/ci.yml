@@ -62,6 +62,9 @@ jobs:
       - name: Smoke test admin thread queue safety
         run: php bin/check_admin_thread_queue_safety.php
 
+      - name: Smoke test admin auth safety
+        run: php bin/check_admin_auth_safety.php
+
       - name: Smoke test user auth safety
         run: php bin/check_user_auth_safety.php
 

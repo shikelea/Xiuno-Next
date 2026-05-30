@@ -1421,6 +1421,22 @@ function http_location($url) {
 	exit;
 }
 
+function xn_cookie_secure() {
+	$https = strtolower(_SERVER('HTTPS', 'off'));
+	$proto = strtolower(_SERVER('HTTP_X_FORWARDED_PROTO', ''));
+	return $https == 'on' || $https == '1' || $proto == 'https' || intval(_SERVER('SERVER_PORT', 0)) == 443;
+}
+
+function xn_setcookie($name, $value, $expires = 0, $path = '', $httponly = TRUE, $samesite = 'Lax') {
+	return setcookie($name, $value, array(
+		'expires'=>$expires,
+		'path'=>$path,
+		'secure'=>xn_cookie_secure(),
+		'httponly'=>$httponly,
+		'samesite'=>$samesite,
+	));
+}
+
 // 获取 referer
 function http_referer() {
 	$len = strlen(http_url_path());

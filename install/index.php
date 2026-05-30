@@ -58,7 +58,7 @@ if(empty($action)) {
 		install_csrf_check();
 		$_lang = install_post('lang');
 		!in_array($_lang, array('zh-cn', 'zh-tw', 'en-us', 'ru-ru', 'th-th')) AND $_lang = 'zh-cn';
-		setcookie('lang', $_lang);
+		xn_setcookie('lang', $_lang, 0, '', TRUE);
 		
 		//$conf['lang'] = $_lang;
 		//xn_copy(APP_PATH.'./conf/conf.default.php', APP_PATH.'./conf/conf.backup.php');
