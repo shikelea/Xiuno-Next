@@ -90,14 +90,19 @@ class UpgradeCommand extends Command
             return Command::FAILURE;
         }
 
-        kv_set('xn_upgraded_from', $currentVersion);
-        kv_set('xn_upgraded_date', date('Y-m-d H:i:s'));
+        if (kv_set('xn_upgraded_from', $currentVersion) === false || kv_set('xn_upgraded_date', date('Y-m-d H:i:s')) === false) {
+            $io->error('Upgrade metadata could not be recorded.');
+            return Command::FAILURE;
+        }
 
         // 将新版本号写入 conf.php，防止重复触发升级
         try {
-            file_replace_var(APP_PATH . 'conf/conf.php', ['version' => self::TARGET_VERSION]);
+            if (file_replace_var(APP_PATH . 'conf/conf.php', ['version' => self::TARGET_VERSION]) === false) {
+                throw new \RuntimeException('conf.php version write failed');
+            }
         } catch (\Throwable $e) {
             $io->text('  [提示] 请手动将 conf.php 中的 version 改为 \'' . self::TARGET_VERSION . '\'');
+            return Command::FAILURE;
         }
 
         $io->newLine();
@@ -132,7 +137,7 @@ class UpgradeCommand extends Command
         foreach ($files as $file) {
             try {
                 $migration = require $file;
-                if (!is_object($migration) || !method_exists($migration, 'up')) {
+                if (!$this->isValidMigration($migration)) {
                     $io->error(basename($file) . ' 必须返回带 up(string $tablepre): void 方法的对象。');
                     return Command::FAILURE;
                 }
@@ -149,6 +154,23 @@ class UpgradeCommand extends Command
             count($files)
         ));
         return Command::SUCCESS;
+    }
+
+    private function isValidMigration($migration): bool
+    {
+        if (!is_object($migration) || !method_exists($migration, 'up')) {
+            return false;
+        }
+
+        $method = new \ReflectionMethod($migration, 'up');
+        $params = $method->getParameters();
+        $returnType = $method->getReturnType();
+        return $method->isPublic()
+            && count($params) === 1
+            && $params[0]->hasType()
+            && (string) $params[0]->getType() === 'string'
+            && $returnType !== null
+            && (string) $returnType === 'void';
     }
 
     /**
@@ -271,7 +293,9 @@ class UpgradeCommand extends Command
 
         if (!empty($additions)) {
             try {
-                file_replace_var($confFile, $additions);
+                if (file_replace_var($confFile, $additions) === false) {
+                    throw new \RuntimeException('conf.php config write failed');
+                }
                 $io->text('  配置文件已更新: 添加了 ' . implode(', ', array_keys($additions)));
             } catch (\Throwable $e) {
                 $errors[] = '配置更新失败: ' . $e->getMessage();
@@ -325,8 +349,12 @@ class UpgradeCommand extends Command
             try {
                 $migration = require $file;
                 $migration->up($tablepre);
-                $executed[] = $name;
-                kv_set('xn_migrations', $executed);
+                if (!in_array($name, $executed, true)) {
+                    $executed[] = $name;
+                }
+                if (kv_set('xn_migrations', $executed) === false) {
+                    throw new \RuntimeException('migration record write failed');
+                }
                 $io->text("  完成: $name");
                 $runCount++;
             } catch (\Throwable $e) {
@@ -379,8 +407,8 @@ class UpgradeCommand extends Command
         $GLOBALS['conf'] = $conf;
         $_SERVER['conf'] = $conf;
 
-        include XIUNOPHP_PATH . 'xiunophp.php';
-        include APP_PATH . 'model/kv.func.php';
+        include_once XIUNOPHP_PATH . 'xiunophp.php';
+        include_once APP_PATH . 'model/kv.func.php';
     }
 
     private function getTablepre(): string

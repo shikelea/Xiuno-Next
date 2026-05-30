@@ -21,19 +21,22 @@ class MakePluginCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $name = $input->getArgument('name');
+        $name = (string) $input->getArgument('name');
         
         // 验证插件名称
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
+        if (!preg_match('/^\w{1,32}$/', $name)) {
             $io->error('插件名称只能包含字母、数字和下划线。');
             return Command::FAILURE;
         }
 
         // 确保 plugin 目录存在
-        // 假设脚本在 bin/xiuno 运行，或者从根目录运行
-        // 最好使用相对路径
-        $pluginRoot = getcwd() . '/plugin';
-        
+        $projectRoot = realpath(dirname(__DIR__, 3));
+        if ($projectRoot === false) {
+            $io->error('Unable to locate project root.');
+            return Command::FAILURE;
+        }
+        $pluginRoot = $projectRoot . '/plugin';
+
         if (!is_dir($pluginRoot)) {
             if (!mkdir($pluginRoot, 0755, true)) {
                  $io->error('无法创建 plugin 目录: ' . $pluginRoot);
@@ -55,9 +58,15 @@ class MakePluginCommand extends Command
         }
         
         // 创建基础文件
-        $this->createPluginConf($pluginPath, $name);
-        $this->createHookExample($pluginPath);
-        $this->createInstallFiles($pluginPath);
+        try {
+            $this->createPluginConf($pluginPath, $name);
+            $this->createHookExample($pluginPath);
+            $this->createInstallFiles($pluginPath);
+        } catch (\RuntimeException $e) {
+            $this->removeDirectory($pluginPath);
+            $io->error($e->getMessage());
+            return Command::FAILURE;
+        }
         
         $io->success(sprintf('插件 "%s" 创建成功！路径: %s', $name, $pluginPath));
 
@@ -78,14 +87,16 @@ class MakePluginCommand extends Command
     "dependencies": {}
 }
 JSON;
-        file_put_contents($path . '/conf.json', $content);
+        $this->writeFile($path . '/conf.json', $content);
     }
     
     private function createHookExample(string $path): void
     {
         $hookPath = $path . '/hook';
         if (!is_dir($hookPath)) {
-            mkdir($hookPath, 0755);
+            if (!mkdir($hookPath, 0755)) {
+                throw new \RuntimeException('Unable to create hook directory.');
+            }
         }
         $content = <<<'PHP'
 <?php
@@ -95,7 +106,7 @@ JSON;
 
 ?>
 PHP;
-        file_put_contents($path . '/hook/index_inc_start.php', $content);
+        $this->writeFile($path . '/hook/index_inc_start.php', $content);
     }
 
     private function createInstallFiles(string $path): void
@@ -114,7 +125,7 @@ PHP;
 
 ?>
 PHP;
-        file_put_contents($path . '/install.php', $content);
+        $this->writeFile($path . '/install.php', $content);
 
         $content = <<<PHP
 <?php
@@ -130,7 +141,7 @@ PHP;
 
 ?>
 PHP;
-        file_put_contents($path . '/unstall.php', $content);
+        $this->writeFile($path . '/unstall.php', $content);
         
         $content = <<<PHP
 <?php
@@ -144,6 +155,40 @@ PHP;
 
 ?>
 PHP;
-        file_put_contents($path . '/upgrade.php', $content);
+        $this->writeFile($path . '/upgrade.php', $content);
+    }
+
+    private function writeFile(string $path, string $content): void
+    {
+        $written = file_put_contents($path, $content);
+        if ($written === false || $written !== strlen($content)) {
+            throw new \RuntimeException('Unable to write plugin scaffold file: ' . $path);
+        }
+    }
+
+    private function removeDirectory(string $path): void
+    {
+        if (!is_dir($path)) {
+            return;
+        }
+
+        $items = scandir($path);
+        if ($items === false) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $child = $path . '/' . $item;
+            if (is_dir($child)) {
+                $this->removeDirectory($child);
+            } else {
+                @unlink($child);
+            }
+        }
+
+        @rmdir($path);
     }
 }

@@ -83,6 +83,9 @@ jobs:
       - name: Smoke test install safety
         run: php bin/check_install_safety.php
 
+      - name: Smoke test CLI and upgrade safety
+        run: php bin/check_cli_upgrade_safety.php
+
       - name: Check MySQL 8 SQL compatibility
         run: php bin/check_mysql8_compat.php
 
