@@ -86,7 +86,7 @@ rg -n "simplexml_load_string|simplexml_load_file|DOMDocument|LIBXML_NOENT|xml_pa
 - Plugin write actions now reject stale or repeated state transitions before running lifecycle files, so manual POSTs cannot re-run install/unstall/enable/disable/upgrade in an invalid state.
 - Installing a same-type plugin/theme now checks reverse dependencies before auto-uninstalling the old package, skips already uninstalled packages, and runs the old package's `unstall.php` lifecycle with replacement rollback context.
 - Plugin lifecycle execution now arms a shutdown rollback guard before including third-party lifecycle files, so direct `message()` / `exit` paths restore pending state/package snapshots and release the shared plugin task lock.
-- Online update now hard-fails ZIP extraction errors and attempts to restore the backup if core file copy or `conf/conf.php` version writes fail.
+- Online update now hard-fails ZIP extraction errors, restores the backup if core file copy or `conf/conf.php` version writes fail, and records newly added files so rollback can remove them instead of leaving stale files behind.
 - Online update rollback now reads the selected backup from POST only, avoiding the old `param(..., 'POST')` confusion where the third argument controlled escaping rather than request source.
 - Installer DB setup now uses an `install_task` lock with shutdown release, validates database names before `CREATE DATABASE`, and stops when `conf/conf.php` copy or replacement fails.
 - `bin/check_frontend_security.php`, `bin/check_plugin_dependency_status.php`, `bin/check_plugin_task_safety.php`, `bin/check_plugin_package_rollback.php`, `bin/check_update_task_safety.php`, and `bin/check_install_safety.php` guard these contracts in CI.

@@ -66,13 +66,20 @@ strpos($download, 'if ($result === FALSE)') !== FALSE
 	|| fail('Update copy failures must stop the update.');
 strpos($download, 'if (!update_conf_version($latest_version))') !== FALSE
 	|| fail('conf.php version write failures must stop the update.');
+strpos($download, 'update_added_files($source_dir, $app_root, $protected)') !== FALSE
+	|| fail('Update must record files added by the replacement package before copying.');
+strpos($download, 'update_write_added_files($backup_dir, $added_files, $added_error)') !== FALSE
+	|| fail('Update must persist the added-file manifest in the backup directory.');
 
 $copy_failure = section_between($download, 'if ($result === FALSE)', '$result[\'backed_up\']');
-strpos($copy_failure, 'update_restore_backup($backup_dir, $app_root, $restore_error)') !== FALSE
-	|| fail('Update copy failures must attempt to restore the backup before reporting failure.');
+strpos($copy_failure, 'update_restore_backup_with_added_cleanup($backup_dir, $app_root, $restore_error)') !== FALSE
+	|| fail('Update copy failures must restore the backup and remove newly added files before reporting failure.');
 $version_failure = section_between($download, 'if (!update_conf_version($latest_version))', '// 清理临时文件');
-strpos($version_failure, 'update_restore_backup($backup_dir, $app_root, $restore_error)') !== FALSE
-	|| fail('conf.php version write failures must attempt to restore the backup before reporting failure.');
+strpos($version_failure, 'update_restore_backup_with_added_cleanup($backup_dir, $app_root, $restore_error)') !== FALSE
+	|| fail('conf.php version write failures must restore the backup and remove newly added files before reporting failure.');
+
+strpos($rollback_locked, 'update_restore_backup_with_added_cleanup($backup_dir, APP_PATH, $restore_error)') !== FALSE
+	|| fail('Manual rollback must restore the backup and remove files that were added by the update.');
 
 strpos($update_route, 'function update_copy_files($src, $dst, $protected = array(), &$error =') !== FALSE
 	|| fail('update_copy_files() must expose a failure error string.');
@@ -83,6 +90,26 @@ strpos($copy, 'return FALSE;') !== FALSE
 $restore = section_between($update_route, 'function update_restore_backup', 'function update_count_files');
 strpos($restore, 'Cannot create restore directory') !== FALSE
 	|| fail('Rollback restore must fail when target directories cannot be created.');
+
+strpos($update_route, 'function update_added_files($src, $dst, $protected = array(), $relative =') !== FALSE
+	|| fail('Added-file discovery helper is missing.');
+strpos($update_route, 'function update_write_added_files($backup_dir, $added_files, &$error =') !== FALSE
+	|| fail('Added-file manifest writer is missing.');
+strpos($update_route, 'function update_restore_backup_with_added_cleanup($backup_dir, $dst_root, &$error =') !== FALSE
+	|| fail('Combined restore and added-file cleanup helper is missing.');
+strpos($update_route, 'function update_remove_added_files($backup_dir, $dst_root, &$error =') !== FALSE
+	|| fail('Added-file cleanup helper is missing.');
+strpos($update_route, 'function update_remove_empty_parent_dirs($dir, $root)') !== FALSE
+	|| fail('Added-file cleanup must remove empty parent directories safely.');
+$added_cleanup = section_between($update_route, 'function update_remove_added_files', 'function update_remove_empty_parent_dirs');
+strpos($added_cleanup, "preg_match('#^[A-Za-z]:#', \$rel)") !== FALSE
+	|| fail('Added-file cleanup must reject drive-qualified paths.');
+strpos($added_cleanup, "preg_match('#(^|/)\.\.(/|$)#', \$rel)") !== FALSE
+	|| fail('Added-file cleanup must reject parent-directory traversal.');
+strpos($added_cleanup, '@unlink($target)') !== FALSE
+	|| fail('Added-file cleanup must remove tracked added files.');
+strpos($added_cleanup, 'update_remove_empty_parent_dirs(dirname($target), $dst_root)') !== FALSE
+	|| fail('Added-file cleanup must remove empty directories left by added files.');
 
 $conf_version = section_between($update_route, 'function update_conf_version', 'function update_conf_setting');
 strpos($conf_version, '$count = 0;') !== FALSE
