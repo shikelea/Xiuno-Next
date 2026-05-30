@@ -14,24 +14,29 @@ function admin_token_check() {
 	
 	// hook admin_token_check_start.php
 	
-	$admin_token = param('bbs_admin_token');
+	$admin_token = _COOKIE('bbs_admin_token');
 	if(empty($admin_token)) {
 		$_REQUEST[0] = 'index';
 		$_REQUEST[1] = 'login';
 	} else {
 		$s = xn_decrypt($admin_token, $key);
 		if(empty($s)) {
-			setcookie('bbs_admin_token', '', 0, '', '', '', TRUE);
+			xn_setcookie('bbs_admin_token', '', 0);
 			//message(-1, lang('admin_token_error'));
 			message(-1, lang('admin_token_expiry'));
 		}
-		list($_ip, $_time) = explode("\t", $s);
+		$token_parts = explode("\t", $s);
+		if(count($token_parts) != 2) {
+			xn_setcookie('bbs_admin_token', '', 0);
+			message(-1, lang('admin_token_expiry'));
+		}
+		list($_ip, $_time) = $token_parts;
 		
 		// 后台超过 3600 自动退出。
 		// Background / more than 3600 automatic withdrawal.
 		//if($_ip != $longip || $time - $_time > 3600) {
-		if((XN_ADMIN_BIND_IP && $_ip != $longip || !XN_ADMIN_BIND_IP) && $time - $_time > 3600) {
-			setcookie('bbs_admin_token', '', 0, '', '', '', TRUE);
+		if((XN_ADMIN_BIND_IP && $_ip != $longip) || $time - intval($_time) > 3600) {
+			xn_setcookie('bbs_admin_token', '', 0);
 			message(-1, lang('admin_token_expiry'));
 		}
 		
@@ -52,18 +57,17 @@ function admin_token_set() {
 	
 	// hook admin_token_set_start.php
 	
-	$admin_token = param('bbs_admin_token');
 	$s = "$longip	$time";
 	
 	$admin_token = xn_encrypt($s, $key);
-	setcookie('bbs_admin_token', $admin_token, $time + 3600, '',  '', 0, TRUE);
+	xn_setcookie('bbs_admin_token', $admin_token, $time + 3600);
 	
 	// hook admin_token_set_end.php
 }
 
 function admin_token_clean() {
 	global $time;
-	setcookie('bbs_admin_token', '', $time - 86400, '', '', 0, TRUE);
+	xn_setcookie('bbs_admin_token', '', $time - 86400);
 	
 	// hook admin_token_clean_start.php
 }

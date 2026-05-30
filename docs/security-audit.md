@@ -107,3 +107,18 @@ rg -n "simplexml_load_string|simplexml_load_file|DOMDocument|LIBXML_NOENT|xml_pa
 - Registration and password-reset email codes now use `random_int()`, store an issuance timestamp, expire after five minutes, cap failed verification attempts, and cap sends to five per email/purpose per session hour.
 - `user-synlogin` now requires a five-minute incoming token, validates token structure, normalizes `return_url` to public HTTP(S) destinations without credentials/local/private hosts, and appends the encrypted response token with URL encoding instead of raw string concatenation.
 - `bin/check_frontend_security.php`, `bin/check_plugin_dependency_status.php`, `bin/check_plugin_task_safety.php`, `bin/check_plugin_package_rollback.php`, `bin/check_update_task_safety.php`, `bin/check_install_safety.php`, `bin/check_cli_upgrade_safety.php`, and `bin/check_user_auth_safety.php` guard these contracts in CI.
+
+## 2026-05-30 Admin Auth Cookie Hardening
+
+- Admin authentication now reads `bbs_admin_token` only from cookies. Request parameters can no longer override the admin cookie during token verification or token rotation.
+- Admin token parsing now rejects malformed decrypted payloads before consuming IP/time fields.
+- `admin_bind_ip` now expires admin tokens immediately on IP mismatch when binding is enabled; the one-hour timeout remains active for all admin sessions.
+- Added shared `xn_setcookie()` / `xn_cookie_secure()` helpers. Admin token cookies, session cleanup cookies, installer language cookies, and the session `cookie_test` probe now use HttpOnly, SameSite=Lax, and HTTPS-aware Secure defaults.
+- PHP session cookies now set SameSite=Lax and derive Secure from the same HTTPS/proxy-aware helper.
+- `bin/check_admin_auth_safety.php` is part of CI to keep the admin cookie contract, IP-binding behavior, and session cookie flags from regressing.
+
+## 2026-05-30 Remote Request Review Notes
+
+- The online updater main chain remains protected by HTTPS-only requests, manual redirect handling, public-host checks, package size limits, ZIP validation, default SHA-256 fail-closed behavior, and rollback.
+- Remaining high-value follow-up: public host checks still need DNS resolution/IP pinning to fully address DNS rebinding. Stream fallbacks cannot reliably pin a resolved address, so the updater may eventually need a cURL-required path for release downloads.
+- Legacy official plugin download code is mostly unreachable while the official market returns an empty list, but it still uses the old `http://plugin.xiuno.com/` trust model. Before any registry/market rebuild, this path should fail closed or require HTTPS plus package checksum/signature metadata.

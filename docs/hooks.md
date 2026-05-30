@@ -52,7 +52,7 @@
 | `admin_forum_update_privilete_before.htm` | `admin/view/htm/forum_update.htm` | 46 |
 | `admin_forum_update_start.htm` | `admin/view/htm/forum_update.htm` | 3 |
 | `admin_forum_update_submit_after.htm` | `admin/view/htm/forum_update.htm` | 92 |
-| `admin_func_end.php` | `admin/admin.func.php` | 82 |
+| `admin_func_end.php` | `admin/admin.func.php` | 86 |
 | `admin_func_start.php` | `admin/admin.func.php` | 3 |
 | `admin_group_list_end.htm` | `admin/view/htm/group_list.htm` | 54 |
 | `admin_group_list_get_end.php` | `admin/route/group.php` | 24 |
@@ -145,8 +145,8 @@
 | `admin_setting_smtp_post_start.php` | `admin/route/setting.php` | 88 |
 | `admin_setting_smtp_start.htm` | `admin/view/htm/setting_smtp.htm` | 3 |
 | `admin_setting_start.php` | `admin/route/setting.php` | 9 |
-| `admin_tab_active_end.php` | `admin/admin.func.php` | 78 |
-| `admin_tab_active_start.php` | `admin/admin.func.php` | 73 |
+| `admin_tab_active_end.php` | `admin/admin.func.php` | 82 |
+| `admin_tab_active_start.php` | `admin/admin.func.php` | 77 |
 | `admin_thread_found_end.htm` | `admin/view/htm/thread_found.htm` | 20 |
 | `admin_thread_found_end.php` | `admin/route/thread.php` | 143 |
 | `admin_thread_found_js.htm` | `admin/view/htm/thread_found.htm` | 29 |
@@ -167,11 +167,11 @@
 | `admin_thread_scan_start.php` | `admin/route/thread.php` | 71 |
 | `admin_thread_start.php` | `admin/route/thread.php` | 7 |
 | `admin_thread_start.php` | `admin/route/thread.php` | 183 |
-| `admin_token_check_end.php` | `admin/admin.func.php` | 44 |
+| `admin_token_check_end.php` | `admin/admin.func.php` | 49 |
 | `admin_token_check_start.php` | `admin/admin.func.php` | 15 |
-| `admin_token_clean_start.php` | `admin/admin.func.php` | 68 |
-| `admin_token_set_end.php` | `admin/admin.func.php` | 61 |
-| `admin_token_set_start.php` | `admin/admin.func.php` | 53 |
+| `admin_token_clean_start.php` | `admin/admin.func.php` | 72 |
+| `admin_token_set_end.php` | `admin/admin.func.php` | 65 |
+| `admin_token_set_start.php` | `admin/admin.func.php` | 58 |
 | `admin_user_create_end.htm` | `admin/view/htm/user_create.htm` | 53 |
 | `admin_user_create_get_end.php` | `admin/route/user.php` | 62 |
 | `admin_user_create_get_post.php` | `admin/route/user.php` | 47 |
