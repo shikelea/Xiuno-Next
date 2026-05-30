@@ -1,4 +1,15 @@
 <?php include _include(ADMIN_PATH.'view/htm/header.inc.htm');?>
+<?php
+$dir_html = htmlspecialchars($dir);
+$plugin_name_html = htmlspecialchars($plugin['name']);
+$plugin_version_html = htmlspecialchars($plugin['version']);
+$plugin_brief_html = htmlspecialchars($plugin['brief']);
+$plugin_icon_url_html = htmlspecialchars($plugin['icon_url']);
+$plugin_bbs_version_html = htmlspecialchars($plugin['bbs_version']);
+$plugin_brief_url = !empty($plugin['brief_url']) && xn_http_url_allowed($plugin['brief_url']) ? $plugin['brief_url'] : '';
+$plugin_brief_url_html = htmlspecialchars($plugin_brief_url);
+$plugin_qq_html = htmlspecialchars($plugin['qq']);
+?>
 
 <div class="row">
 	<div class="col-12">
@@ -10,23 +21,23 @@
 			<div class="card-body">
 				<div class="media">
 					<div>
-						<img src="<?php echo $plugin['icon_url']; ?>" width="54" height="54" class="me-3" />
+						<img src="<?php echo $plugin_icon_url_html; ?>" width="54" height="54" class="me-3" />
 					</div>
 					<div class="media-body">
-						<h4><?php echo $plugin['name']; ?> v<?php echo $plugin['version']; ?></h4>
-						<p><?php echo $plugin['brief']; ?></p>
+						<h4><?php echo $plugin_name_html; ?> v<?php echo $plugin_version_html; ?></h4>
+						<p><?php echo $plugin_brief_html; ?></p>
 					</div>
 				</div>
 				<hr />
 				<div class="row line-height-3">
 					<div class="col-md-6">
 						<span class="text-muted"><?php echo lang('plugin_dir');?></span>：
-						<?php echo $dir; ?>
+						<?php echo $dir_html; ?>
 					</div>
 					
 					<div class="col-md-6">
 						<span class="text-muted"><?php echo lang('plugin_bbs_version');?></span>：
-						<?php echo $plugin['bbs_version']; ?>
+						<?php echo $plugin_bbs_version_html; ?>
 					</div>
 					
 					<?php if(!empty($plugin['pluginid'])) { ?>
@@ -37,7 +48,7 @@
 					
 					<div class="col-md-6">
 						<span class="text-muted"><?php echo lang('installs');?></span>：
-						<span><?php echo $plugin['installs']; ?></span>
+						<span><?php echo intval($plugin['installs']); ?></span>
 					</div>
 					
 					<!--
@@ -49,7 +60,7 @@
 
 					<div class="col-md-6">
 						<span class="text-muted"><?php echo lang('plugin_sells');?></span>：
-						<span><?php echo $plugin['sells']; ?></span>
+						<span><?php echo intval($plugin['sells']); ?></span>
 					</div>
 					
 					<div class="col-md-6">
@@ -59,13 +70,15 @@
 					
 					<div class="col-md-6">
 						<span class="text-muted"><?php echo lang('plugin_brief_url');?></span>：
-						<span><a href="<?php echo $plugin['brief_url']; ?>" target="_blank"><?php echo $plugin['brief_url']; ?></a></span>
+						<?php if($plugin_brief_url) { ?>
+						<span><a href="<?php echo $plugin_brief_url_html; ?>" target="_blank" rel="noopener noreferrer"><?php echo $plugin_brief_url_html; ?></a></span>
+						<?php } ?>
 					</div>
 					
 					
 					<div class="col-md-6">
 						<span class="text-muted">客服QQ</span>：
-						<span class="fw-bold text-danger"><?php echo $plugin['qq']; ?></span>
+						<span class="fw-bold text-danger"><?php echo $plugin_qq_html; ?></span>
 					</div>
 					
 					<?php  } ?>
@@ -122,7 +135,7 @@
 					<?php } ?>
 					
 					<?php if($plugin['installed']) { ?>
-					<a role="button" class="btn btn-danger unstall confirm" data-method="post" data-confirm-text="<?php echo lang('plugin_unstall_confirm_tips', array('name'=>$plugin['name']));?>" href="<?php echo url("plugin-unstall-$dir"); ?>"><?php echo lang('unstall');?></a>
+					<a role="button" class="btn btn-danger unstall confirm" data-method="post" data-confirm-text="<?php echo htmlspecialchars(lang('plugin_unstall_confirm_tips', array('name'=>$plugin['name'])), ENT_QUOTES);?>" href="<?php echo url("plugin-unstall-$dir"); ?>"><?php echo lang('unstall');?></a>
 					<?php } ?>
 					
 					<?php if($plugin['have_upgrade']) { ?>
