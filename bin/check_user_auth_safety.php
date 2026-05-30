@@ -80,6 +80,47 @@ strpos($user_route, "user_email_code_clear('user_create')") !== FALSE
 strpos($user_route, "user_email_code_clear('user_resetpw')") !== FALSE
 	|| fail('Successful password reset must clear email verification state.');
 
+$synlogin_end = '// '.'hook user_end.php';
+$synlogin = section_between($user_route, "} elseif(\$action == 'synlogin')", $synlogin_end);
+strpos($synlogin, "param('token', '', FALSE)") !== FALSE
+	|| fail('Synlogin must read encrypted tokens without HTML escaping.');
+strpos($synlogin, "user_synlogin_return_url(param('return_url', '', FALSE))") !== FALSE
+	|| fail('Synlogin must validate return_url before storing or redirecting.');
+strpos($synlogin, 'count($token_parts) != 2') !== FALSE
+	|| fail('Synlogin must validate incoming token structure.');
+strpos($synlogin, 'abs($time - intval($_time)) > 300') !== FALSE
+	|| fail('Synlogin incoming token must expire after five minutes.');
+strpos($synlogin, '$_SESSION[\'return_url\'] = $return_url') !== FALSE
+	|| fail('Synlogin must replace stale return_url after validation.');
+strpos($synlogin, 'user_synlogin_append_token($return_url, $s)') !== FALSE
+	|| fail('Synlogin must append response tokens through a safe helper.');
+strpos($synlogin, "xn_urldecode(\$return_url).'?token='") === FALSE
+	|| fail('Synlogin must not concatenate raw token query strings.');
+
+$return_url = section_between($user_route, 'function user_synlogin_return_url', 'function user_synlogin_public_host');
+strpos($return_url, 'array(trim($raw), trim(xn_urldecode($raw)))') !== FALSE
+	|| fail('Synlogin return_url must accept both raw URLs and Xiuno-encoded URLs.');
+strpos($return_url, 'preg_match(\'/[\\x00-\\x1F\\x7F]/\', $url)') !== FALSE
+	|| fail('Synlogin return_url must reject control characters.');
+strpos($return_url, "in_array(strtolower(\$parts['scheme']), array('http', 'https'), TRUE)") !== FALSE
+	|| fail('Synlogin return_url must be constrained to HTTP(S).');
+strpos($return_url, "empty(\$parts['host']) || !user_synlogin_public_host(\$parts['host'])") !== FALSE
+	|| fail('Synlogin return_url must validate public hosts.');
+strpos($return_url, "!empty(\$parts['user']) || !empty(\$parts['pass'])") !== FALSE
+	|| fail('Synlogin return_url must reject embedded credentials.');
+strpos($return_url, "return '';") !== FALSE
+	|| fail('Synlogin return_url must fail closed.');
+
+$return_host = section_between($user_route, 'function user_synlogin_public_host', 'function user_synlogin_append_token');
+strpos($return_host, "FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE") !== FALSE
+	|| fail('Synlogin return_url must reject private/reserved IP hosts.');
+strpos($return_host, "substr(\$host, -6) === '.local'") !== FALSE
+	|| fail('Synlogin return_url must reject local hostnames.');
+
+$append_token = section_between($user_route, 'function user_synlogin_append_token', 'function user_auth_check');
+strpos($append_token, 'http_build_query(array(\'token\'=>$token))') !== FALSE
+	|| fail('Synlogin must URL-encode response tokens with http_build_query().');
+
 strpos($workflow, 'php bin/check_user_auth_safety.php') !== FALSE
 	|| fail('CI must run the user auth safety guard.');
 

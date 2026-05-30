@@ -970,8 +970,8 @@
 | `thread_username_after.htm` | `view/htm/thread.htm` | 38 |
 | `thread_username_before.htm` | `view/htm/thread.htm` | 34 |
 | `thread_views_after.htm` | `view/htm/thread.htm` | 41 |
-| `user_auth_check_end.php` | `route/user.php` | 473 |
-| `user_auth_check_start.php` | `route/user.php` | 462 |
+| `user_auth_check_end.php` | `route/user.php` | 507 |
+| `user_auth_check_start.php` | `route/user.php` | 496 |
 | `user_common_body_slot_after.htm` | `view/htm/user.common.template.htm` | 49 |
 | `user_common_body_slot_before.htm` | `view/htm/user.common.template.htm` | 47 |
 | `user_common_main_card_after.htm` | `view/htm/user.common.template.htm` | 52 |
@@ -1005,9 +1005,9 @@
 | `user_create_submit_after.htm` | `view/htm/user_create.htm` | 60 |
 | `user_create_title_after.htm` | `view/htm/user_create.htm` | 11 |
 | `user_create_username_after.htm` | `view/htm/user_create.htm` | 28 |
-| `user_end.php` | `route/user.php` | 385 |
-| `user_http_referer_end.php` | `route/user.php` | 405 |
-| `user_http_referer_start.php` | `route/user.php` | 389 |
+| `user_end.php` | `route/user.php` | 388 |
+| `user_http_referer_end.php` | `route/user.php` | 408 |
+| `user_http_referer_start.php` | `route/user.php` | 392 |
 | `user_index_delete_user_button_after.htm` | `view/htm/user.htm` | 30 |
 | `user_index_end.htm` | `view/htm/user.common.template.htm` | 56 |
 | `user_index_end.php` | `route/user.php` | 25 |
