@@ -97,6 +97,10 @@ foreach (['MigrateCommand.php' => $migrate, 'UpgradeCommand.php' => $upgrade] as
     strpos($source, 'new \ReflectionMethod($migration, \'up\')') !== false
         || fail("$file must use ReflectionMethod to validate migration signatures.");
 }
+strpos($migrate, 'if (!$this->isValidMigration($migration))') !== false
+    || fail('migrate must validate migration signatures immediately before executing up().');
+strpos($upgrade, 'if (!$this->isValidMigration($migration))') !== false
+    || fail('upgrade must validate migration signatures immediately before executing up().');
 
 strpos($migrate, 'private function recordMigration(string $name): bool') !== false
     || fail('migrate must expose a checked migration record result.');
@@ -112,6 +116,8 @@ strpos($upgrade, "file_replace_var(APP_PATH . 'conf/conf.php', ['version' => sel
     || fail('upgrade must fail when the target version cannot be written.');
 strpos($upgrade, "Upgrade metadata could not be recorded.") !== false
     || fail('upgrade must fail when upgrade metadata cannot be recorded.');
+strpos($upgrade, "'allow_unverified_update' => 0") !== false
+    || fail('upgrade must add the default online-update integrity setting for older conf.php files.');
 
 $migration = read_file_checked($root . '/database/migrations/0001_alter_user_password_field.php');
 strpos($migration, '$ok = db_exec(') !== false

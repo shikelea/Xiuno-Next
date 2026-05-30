@@ -53,15 +53,23 @@ strpos($http_get, 'xn_http_url_allowed($url)') !== FALSE
 	|| fail('Update HTTP GET must enforce allowed URL schemes.');
 strpos($http_get, 'xn_http_curl_protocols') !== FALSE
 	|| fail('Update HTTP GET must restrict cURL protocols.');
+strpos($http_get, "'verify_peer_name' => true") !== FALSE
+	|| fail('Update HTTP GET stream fallback must explicitly verify TLS host names.');
 
 $download = section_between($update_route, 'function update_github_download_binary', 'function update_release_expected_sha256');
 strpos($download, 'xn_http_url_allowed($url)') !== FALSE
 	|| fail('Update binary download must enforce allowed URL schemes.');
 strpos($download, 'xn_http_curl_protocols') !== FALSE
 	|| fail('Update binary download must restrict cURL protocols.');
+strpos($download, "'verify_peer_name' => true") !== FALSE
+	|| fail('Update binary stream fallback must explicitly verify TLS host names.');
 
 $conf_setting = section_between($update_route, 'function update_conf_setting', "\n}\n\n?>");
 strpos($conf_setting, '=== strlen($s)') !== FALSE
 	|| fail('update_conf_setting() must detect partial writes.');
+strpos($conf_setting, '$count = 0;') !== FALSE
+	|| fail('update_conf_setting() must verify replacement or append regex matches.');
+strpos($conf_setting, 'if ($count < 1) return FALSE;') !== FALSE
+	|| fail('update_conf_setting() must fail when no config entry was replaced or appended.');
 
 echo "OK: admin config safety checks passed\n";

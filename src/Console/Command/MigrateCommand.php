@@ -67,6 +67,10 @@ class MigrateCommand extends Command
             $io->text("执行: $name ...");
             try {
                 $migration = require $file;
+                if (!$this->isValidMigration($migration)) {
+                    $io->error(basename($file) . ' 必须返回带 up(string $tablepre): void 方法的对象。');
+                    return Command::FAILURE;
+                }
                 $tablepre = $this->getTablepre();
                 $migration->up($tablepre);
                 if (!$this->recordMigration($name)) {
