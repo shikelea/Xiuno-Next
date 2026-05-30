@@ -219,6 +219,13 @@ if ($action == 'check') {
 		rmdir_recusive($extract_dir, 1);
 		update_message(-1, lang('update_backup_failed') . ' (' . htmlspecialchars($backup_error) . ')');
 	}
+	$added_files = update_added_files($source_dir, $app_root, $protected);
+	$added_error = '';
+	if (!update_write_added_files($backup_dir, $added_files, $added_error)) {
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		update_message(-1, lang('update_backup_failed') . ' (' . htmlspecialchars($added_error) . ')');
+	}
 	// 备份 conf.php 后再写版本号，确保回滚时版本状态也能恢复。
 	$conf_backup_error = '';
 	if (is_file(APP_PATH . 'conf/conf.php') && !update_backup_file(APP_PATH . 'conf/conf.php', $backup_dir . 'conf/conf.php', $conf_backup_error)) {
@@ -230,7 +237,7 @@ if ($action == 'check') {
 	$result = update_copy_files($source_dir, $app_root, $protected, $copy_error);
 	if ($result === FALSE) {
 		$restore_error = '';
-		$restore_result = update_restore_backup($backup_dir, $app_root, $restore_error);
+		$restore_result = update_restore_backup_with_added_cleanup($backup_dir, $app_root, $restore_error);
 		@unlink($zipfile);
 		rmdir_recusive($extract_dir, 1);
 		$restore_note = $restore_result === FALSE ? '; rollback failed: ' . htmlspecialchars($restore_error) : '; backup restored';
@@ -241,7 +248,7 @@ if ($action == 'check') {
 	@file_put_contents(APP_PATH . 'log/update.log', date('Y-m-d H:i:s') . " updated to v{$latest_version}, copied={$result['copied']}, backed_up={$result['backed_up']}, zip_sha256={$zip_sha256}, {$checksum_log}, backup={$backup_dir}\n", FILE_APPEND);
 	if (!update_conf_version($latest_version)) {
 		$restore_error = '';
-		$restore_result = update_restore_backup($backup_dir, $app_root, $restore_error);
+		$restore_result = update_restore_backup_with_added_cleanup($backup_dir, $app_root, $restore_error);
 		@unlink($zipfile);
 		rmdir_recusive($extract_dir, 1);
 		$restore_note = $restore_result === FALSE ? '; rollback failed: ' . htmlspecialchars($restore_error) : '; backup restored';
@@ -278,7 +285,7 @@ if ($action == 'check') {
 	}
 
 	$restore_error = '';
-	$result = update_restore_backup($backup_dir, APP_PATH, $restore_error);
+	$result = update_restore_backup_with_added_cleanup($backup_dir, APP_PATH, $restore_error);
 	if ($result === FALSE) {
 		update_message(-1, lang('update_rollback_failed') . ' (' . htmlspecialchars($restore_error) . ')');
 	}
@@ -685,6 +692,41 @@ function update_backup_file($src, $backup_file, &$error = '') {
 	return TRUE;
 }
 
+function update_added_files($src, $dst, $protected = array(), $relative = '') {
+	$src = rtrim(str_replace('\\', '/', $src), '/') . '/';
+	$dst = rtrim(str_replace('\\', '/', $dst), '/') . '/';
+	$items = glob($src . '*');
+	$arr = array();
+	if (empty($items)) return $arr;
+
+	foreach ($items as $item) {
+		$item = str_replace('\\', '/', $item);
+		$name = basename($item);
+		$rel = $relative ? $relative . '/' . $name : $name;
+		if (empty($relative) && in_array($name, $protected)) {
+			continue;
+		}
+		if (is_dir($item)) {
+			$arr = array_merge($arr, update_added_files($item . '/', $dst . $name . '/', $protected, $rel));
+		} elseif (!is_file($dst . $name)) {
+			$arr[] = $rel;
+		}
+	}
+	return $arr;
+}
+
+function update_added_manifest($backup_dir) {
+	return rtrim(str_replace('\\', '/', $backup_dir), '/') . '/.added_files.json';
+}
+
+function update_write_added_files($backup_dir, $added_files, &$error = '') {
+	$manifest = update_added_manifest($backup_dir);
+	$json = xn_json_encode(array_values($added_files));
+	if (file_put_contents($manifest, $json, LOCK_EX) === strlen($json)) return TRUE;
+	$error = 'Cannot write added-file manifest';
+	return FALSE;
+}
+
 function update_latest_backup() {
 	$conf = _SERVER('conf');
 	$dirs = glob($conf['tmp_path'] . 'update_backup_*', GLOB_ONLYDIR);
@@ -705,6 +747,22 @@ function update_resolve_backup($backup) {
 	if (!preg_match('/^update_backup_\d{8}_\d{6}$/', $backup)) return FALSE;
 	$dir = rtrim(str_replace('\\', '/', $conf['tmp_path']), '/') . '/' . $backup . '/';
 	return is_dir($dir) ? $dir : FALSE;
+}
+
+function update_restore_backup_with_added_cleanup($backup_dir, $dst_root, &$error = '') {
+	$restore_error = '';
+	$result = update_restore_backup($backup_dir, $dst_root, $restore_error);
+	$remove_error = '';
+	$removed = update_remove_added_files($backup_dir, $dst_root, $remove_error);
+	if ($result === FALSE || $removed === FALSE) {
+		$parts = array();
+		if ($result === FALSE) $parts[] = $restore_error;
+		if ($removed === FALSE) $parts[] = $remove_error;
+		$error = implode('; ', $parts);
+		return FALSE;
+	}
+	$result['removed_added'] = $removed;
+	return $result;
 }
 
 function update_restore_backup($backup_dir, $dst_root, &$error = '', $relative = '') {
@@ -745,6 +803,47 @@ function update_restore_backup($backup_dir, $dst_root, &$error = '', $relative =
 		}
 	}
 	return $result;
+}
+
+function update_remove_added_files($backup_dir, $dst_root, &$error = '') {
+	$manifest = update_added_manifest($backup_dir);
+	if (!is_file($manifest)) return 0;
+	$items = xn_json_decode(file_get_contents($manifest));
+	if (!is_array($items)) {
+		$error = 'Invalid added-file manifest';
+		return FALSE;
+	}
+	$dst_root = rtrim(str_replace('\\', '/', $dst_root), '/') . '/';
+	usort($items, function($a, $b) { return strlen($b) - strlen($a); });
+	$removed = 0;
+	foreach($items as $rel) {
+		$rel = str_replace('\\', '/', (string)$rel);
+		if ($rel === '' || $rel[0] === '/' || preg_match('#^[A-Za-z]:#', $rel) || preg_match('#(^|/)\.\.(/|$)#', $rel)) {
+			$error = 'Unsafe added-file path: ' . $rel;
+			return FALSE;
+		}
+		$target = $dst_root . $rel;
+		if (is_file($target) || is_link($target)) {
+			if (!@unlink($target)) {
+				$error = 'Cannot remove added file: ' . $rel;
+				return FALSE;
+			}
+			$removed++;
+			update_remove_empty_parent_dirs(dirname($target), $dst_root);
+		}
+	}
+	return $removed;
+}
+
+function update_remove_empty_parent_dirs($dir, $root) {
+	$dir = rtrim(str_replace('\\', '/', $dir), '/');
+	$root = rtrim(str_replace('\\', '/', $root), '/');
+	while ($dir !== '' && $dir !== $root && strpos($dir, $root . '/') === 0 && is_dir($dir)) {
+		$items = scandir($dir);
+		if ($items === FALSE || count(array_diff($items, array('.', '..'))) > 0) break;
+		@rmdir($dir);
+		$dir = rtrim(str_replace('\\', '/', dirname($dir)), '/');
+	}
 }
 
 function update_count_files($dir) {
