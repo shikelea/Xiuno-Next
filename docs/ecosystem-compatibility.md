@@ -86,6 +86,8 @@ The BS4 runtime compatibility layer already covers the high-frequency frontend m
 
 The MySQL 8 sample SQL pass now uses `php bin/check_mysql8_compat.php --samples=plugin` against ignored local plugin/theme packages. The current pass scanned 44 install/upgrade SQL entry points and found no hard MySQL 8 blockers such as legacy `TYPE=` table syntax, zero-date defaults, or unquoted sensitive core-style column names. It did record 15 `ENGINE=MyISAM` and 18 `DEFAULT CHARSET=utf8` legacy notes. These are compatibility-matrix inputs rather than immediate package blockers: changing default engines or charset policy can affect old-site upgrades and third-party install scripts, so this remains a staged migration decision.
 
+`bin/check_plugin_install_sql_smoke.php` now turns two local-sample-derived install SQL paths into CI fixtures without committing third-party packages: a `till_post_replies`-style `ALTER TABLE bbs_post` add/drop flow, and a `sa_shop`-style MyISAM/utf8 create/drop flow. This keeps MySQL 8 compatibility honest while preserving the rule that ignored sample packages and raw reports stay out of the repository.
+
 ## 2026-05-29 Lifecycle Hardening Delta
 
 The plugin manager now treats lifecycle state changes as a guarded path rather than a best-effort write:
