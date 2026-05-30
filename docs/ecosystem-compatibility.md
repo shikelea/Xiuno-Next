@@ -84,6 +84,8 @@ The PHP package guard now checks standalone plugin PHP files for removed PHP 8 f
 
 The BS4 runtime compatibility layer already covers the high-frequency frontend markers from this scan. The CI guard now also asserts the sample-driven `custom-control` subselectors and the full contextual badge family, so future frontend cleanup cannot silently remove compatibility that real packages still use.
 
+The MySQL 8 sample SQL pass now uses `php bin/check_mysql8_compat.php --samples=plugin` against ignored local plugin/theme packages. The current pass scanned 44 install/upgrade SQL entry points and found no hard MySQL 8 blockers such as legacy `TYPE=` table syntax, zero-date defaults, or unquoted sensitive core-style column names. It did record 15 `ENGINE=MyISAM` and 18 `DEFAULT CHARSET=utf8` legacy notes. These are compatibility-matrix inputs rather than immediate package blockers: changing default engines or charset policy can affect old-site upgrades and third-party install scripts, so this remains a staged migration decision.
+
 ## 2026-05-29 Lifecycle Hardening Delta
 
 The plugin manager now treats lifecycle state changes as a guarded path rather than a best-effort write:
