@@ -74,6 +74,9 @@ jobs:
       - name: Smoke test plugin dependency status
         run: php bin/check_plugin_dependency_status.php
 
+      - name: Smoke test plugin dependency flow
+        run: php bin/check_plugin_dependency_flow_smoke.php
+
       - name: Smoke test plugin PHP syntax guard
         run: php bin/check_plugin_syntax_guard.php
 
