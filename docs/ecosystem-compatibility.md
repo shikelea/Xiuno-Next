@@ -90,6 +90,8 @@ The MySQL 8 sample SQL pass now uses `php bin/check_mysql8_compat.php --samples=
 
 `bin/check_plugin_dependency_flow_smoke.php` now runs real dependency failure flows in a temporary plugin app. It verifies that install-time missing/downloaded/disabled/old dependencies and uninstall-time reverse dependencies release `plugin_task`, include structured status text, link only to locally available dependency detail pages, and avoid dead links for missing remote packages.
 
+`bin/check_ecosystem_dependency_family_smoke.php` turns the local-sample `huux_notice` dependent family (`ax_notice_sx`, `ob_feedback`, `till_quick_at`) and the `abs_themeacp_stately -> abs_theme_stately` theme-adjacent dependency into repository fixtures. It keeps plugin and theme dependency metadata in the same compatibility track without committing third-party packages.
+
 ## 2026-05-29 Lifecycle Hardening Delta
 
 The plugin manager now treats lifecycle state changes as a guarded path rather than a best-effort write:
