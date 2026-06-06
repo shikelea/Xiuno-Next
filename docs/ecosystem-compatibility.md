@@ -94,6 +94,8 @@ The MySQL 8 sample SQL pass now uses `php bin/check_mysql8_compat.php --samples=
 
 `bin/check_plugin_same_type_dependency_smoke.php` covers the deeper replacement edge: a new theme can pass its dependency preflight because an old same-type theme is still installed, then invalidate itself when the same-type auto-uninstall batch removes that dependency. The smoke verifies the new theme, the dependency theme, and every touched same-type candidate roll back together, while `plugin_task` is released and the dependency message remains structured.
 
+`bin/check_plugin_theme_overwrite_compile_smoke.php` adds a runtime guard for the theme overwrite compiler. It verifies that enabled packages participate in `overwrites_rank` order, disabled or not-installed packages are ignored, symlink overwrite files are skipped, and `disabled_plugin` mode falls back to the core template. This keeps the theme compatibility track covered by executable behavior rather than static checks alone.
+
 ## 2026-05-29 Lifecycle Hardening Delta
 
 The plugin manager now treats lifecycle state changes as a guarded path rather than a best-effort write:
