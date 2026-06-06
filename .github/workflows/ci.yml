@@ -50,6 +50,9 @@ jobs:
       - name: Smoke test theme API safety
         run: php bin/check_theme_api_safety.php
 
+      - name: Smoke test theme overwrite compilation
+        run: php bin/check_plugin_theme_overwrite_compile_smoke.php
+
       - name: Smoke test admin config safety
         run: php bin/check_admin_config_safety.php
 
