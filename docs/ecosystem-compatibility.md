@@ -102,6 +102,8 @@ The same plugin install SQL smoke now covers two additional local-sample-derived
 
 The fixture now also includes existing-row ALTER coverage for user and group extension patterns: `huux_notice`-style `bbs_user.notices` / `bbs_user.unread_notices` counters and `tt_read_stately`-style `bbs_group.readp`, `bbs_group.allowPostRead`, and `bbs_thread.readp` columns. This keeps dependency-family and theme-adjacent plugin SQL behavior visible under both default and strict MySQL 8 CI modes.
 
+Forum-level permission extensions are covered as well through a `tt_offer`-style fixture that adds `allowOffer` to `bbs_group` and `bbs_forum`, plus offer counters/status fields on `bbs_thread`, verifies defaults on existing rows, and removes the added columns. This expands the install SQL smoke to the core post/thread/user/group/forum tables most commonly touched by local samples.
+
 Discuz import converters are now out of scope for Xiuno Next. The legacy import scripts `tool/dx_to_xn4.php`, `tool/dx32_to_xn4.php`, and `tool/dx34_to_xn4.php` have been removed, and `bin/check_legacy_converter_safety.php` now guards against restoring them. The active old-site migration target for this phase is Xiuno BBS 4.0.4-style upgrades through the maintained `migrate` / `upgrade` path, not cross-product imports.
 
 The legacy upgrade smoke now seeds an old `bbs_user` row with a `char(32)` MD5-style password hash before running both `migrate` and `upgrade`. The smoke verifies that the password column is widened to `varchar(255)` while the legacy user, salt, and hash remain intact for the normal login-time bcrypt upgrade path.
