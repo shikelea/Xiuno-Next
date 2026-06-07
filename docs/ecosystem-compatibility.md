@@ -104,6 +104,8 @@ The fixture now also includes existing-row ALTER coverage for user and group ext
 
 Forum-level permission extensions are covered as well through a `tt_offer`-style fixture that adds `allowOffer` to `bbs_group` and `bbs_forum`, plus offer counters/status fields on `bbs_thread`, verifies defaults on existing rows, and removes the added columns. This expands the install SQL smoke to the core post/thread/user/group/forum tables most commonly touched by local samples.
 
+The MySQL 8 static guard now rejects literal defaults on `TEXT`/`BLOB`-family columns. In the ignored local sample set this class currently maps to cover/note/lucky-post package patches rather than core compatibility-layer behavior: `till_forum_cover`, `till_user_cover`, `sa_noteapp`, and `xn_lucky_post` use `TEXT DEFAULT ''`-style column definitions. These should be fixed in package SQL or migration shims before they are promoted to positive install smoke fixtures.
+
 Discuz import converters are now out of scope for Xiuno Next. The legacy import scripts `tool/dx_to_xn4.php`, `tool/dx32_to_xn4.php`, and `tool/dx34_to_xn4.php` have been removed, and `bin/check_legacy_converter_safety.php` now guards against restoring them. The active old-site migration target for this phase is Xiuno BBS 4.0.4-style upgrades through the maintained `migrate` / `upgrade` path, not cross-product imports.
 
 The legacy upgrade smoke now seeds an old `bbs_user` row with a `char(32)` MD5-style password hash before running both `migrate` and `upgrade`. The smoke verifies that the password column is widened to `varchar(255)` while the legacy user, salt, and hash remain intact for the normal login-time bcrypt upgrade path.
