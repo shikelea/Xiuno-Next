@@ -146,6 +146,13 @@ function reset_old_database(PDO $pdo, string $dbname): void
             `password` = '1a1dc91c907325c69271ddf0c944bc72'
     ");
     $pdo->exec("
+        INSERT INTO bbs_user SET
+            uid = 8,
+            username = 'legacy_editor',
+            salt = 'oldsalt2',
+            `password` = '5f4dcc3b5aa765d61d8327deb882cf99'
+    ");
+    $pdo->exec("
         CREATE TABLE bbs_kv (
             k char(32) NOT NULL DEFAULT '',
             v mediumtext NOT NULL,
@@ -162,6 +169,7 @@ function reset_old_database(PDO $pdo, string $dbname): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
     $pdo->exec("INSERT INTO bbs_forum SET fid = 3, `name` = 'legacy_forum', threads = 1");
+    $pdo->exec("INSERT INTO bbs_forum SET fid = 4, `name` = 'legacy_media', threads = 1");
     $pdo->exec("
         CREATE TABLE bbs_forum_access (
             fid int unsigned NOT NULL DEFAULT '0',
@@ -193,6 +201,9 @@ function reset_old_database(PDO $pdo, string $dbname): void
             subject char(128) NOT NULL DEFAULT '',
             create_date int unsigned NOT NULL DEFAULT '0',
             posts int unsigned NOT NULL DEFAULT '0',
+            images tinyint NOT NULL DEFAULT '0',
+            files tinyint NOT NULL DEFAULT '0',
+            closed tinyint unsigned NOT NULL DEFAULT '0',
             firstpid int unsigned NOT NULL DEFAULT '0',
             lastuid int unsigned NOT NULL DEFAULT '0',
             lastpid int unsigned NOT NULL DEFAULT '0',
@@ -209,9 +220,28 @@ function reset_old_database(PDO $pdo, string $dbname): void
             subject = 'legacy subject',
             create_date = 1700000100,
             posts = 1,
+            images = 0,
+            files = 2,
+            closed = 0,
             firstpid = 101,
             lastuid = 7,
             lastpid = 102
+    ");
+    $pdo->exec("
+        INSERT INTO bbs_thread SET
+            fid = 4,
+            tid = 12,
+            top = 0,
+            uid = 8,
+            subject = 'legacy closed image',
+            create_date = 1700000200,
+            posts = 0,
+            images = 1,
+            files = 1,
+            closed = 1,
+            firstpid = 201,
+            lastuid = 8,
+            lastpid = 201
     ");
     $pdo->exec("
         CREATE TABLE bbs_thread_top (
@@ -264,16 +294,29 @@ function reset_old_database(PDO $pdo, string $dbname): void
             message_fmt = 'legacy reply'
     ");
     $pdo->exec("
+        INSERT INTO bbs_post SET
+            tid = 12,
+            pid = 201,
+            uid = 8,
+            isfirst = 1,
+            create_date = 1700000201,
+            message = 'legacy image post',
+            message_fmt = 'legacy image post'
+    ");
+    $pdo->exec("
         CREATE TABLE bbs_attach (
             aid int unsigned NOT NULL AUTO_INCREMENT,
             tid int NOT NULL DEFAULT '0',
             pid int NOT NULL DEFAULT '0',
             uid int NOT NULL DEFAULT '0',
             filesize int unsigned NOT NULL DEFAULT '0',
+            width mediumint unsigned NOT NULL DEFAULT '0',
+            height mediumint unsigned NOT NULL DEFAULT '0',
             filename char(120) NOT NULL DEFAULT '',
             orgfilename char(120) NOT NULL DEFAULT '',
             filetype char(7) NOT NULL DEFAULT '',
             create_date int unsigned NOT NULL DEFAULT '0',
+            isimage tinyint NOT NULL DEFAULT '0',
             PRIMARY KEY (aid),
             KEY pid (pid),
             KEY uid (uid)
@@ -304,6 +347,21 @@ function reset_old_database(PDO $pdo, string $dbname): void
             create_date = 1700000104
     ");
     $pdo->exec("
+        INSERT INTO bbs_attach SET
+            aid = 601,
+            tid = 12,
+            pid = 201,
+            uid = 8,
+            filesize = 34567,
+            width = 640,
+            height = 480,
+            filename = 'legacy/photo.jpg',
+            orgfilename = 'photo.jpg',
+            filetype = 'jpg',
+            create_date = 1700000202,
+            isimage = 1
+    ");
+    $pdo->exec("
         CREATE TABLE bbs_mythread (
             uid int unsigned NOT NULL DEFAULT '0',
             tid int unsigned NOT NULL DEFAULT '0',
@@ -311,6 +369,7 @@ function reset_old_database(PDO $pdo, string $dbname): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
     $pdo->exec("INSERT INTO bbs_mythread SET uid = 7, tid = 11");
+    $pdo->exec("INSERT INTO bbs_mythread SET uid = 8, tid = 12");
     $pdo->exec("
         CREATE TABLE bbs_mypost (
             uid int unsigned NOT NULL DEFAULT '0',
@@ -323,7 +382,8 @@ function reset_old_database(PDO $pdo, string $dbname): void
     $pdo->exec("
         INSERT INTO bbs_mypost (uid, tid, pid) VALUES
             (7, 11, 101),
-            (7, 11, 102)
+            (7, 11, 102),
+            (8, 12, 201)
     ");
 }
 
@@ -421,17 +481,28 @@ function assert_column_type(PDO $pdo, string $dbname, string $table, string $col
 function assert_legacy_user_preserved(PDO $pdo, string $dbname): void
 {
     $pdo->exec('USE ' . quote_identifier($dbname));
-    $stmt = $pdo->prepare('SELECT uid, username, salt, `password` FROM bbs_user WHERE uid = ?');
-    $stmt->execute([7]);
-    $row = $stmt->fetch();
-    if (!$row) {
-        throw new RuntimeException('Legacy user row was not preserved after migration.');
+    $stmt = $pdo->prepare('SELECT uid, username, salt, `password` FROM bbs_user WHERE uid IN (?, ?) ORDER BY uid');
+    $stmt->execute([7, 8]);
+    $rows = $stmt->fetchAll();
+    if (count($rows) !== 2) {
+        throw new RuntimeException('Legacy user rows were not preserved after migration.');
     }
-    if ($row['username'] !== 'legacy_user' || $row['salt'] !== 'oldsalt') {
-        throw new RuntimeException('Legacy user identity fields changed after migration.');
-    }
-    if ($row['password'] !== '1a1dc91c907325c69271ddf0c944bc72') {
-        throw new RuntimeException('Legacy md5 password hash changed before login-time upgrade.');
+
+    $expected = [
+        7 => ['username' => 'legacy_user', 'salt' => 'oldsalt', 'password' => '1a1dc91c907325c69271ddf0c944bc72'],
+        8 => ['username' => 'legacy_editor', 'salt' => 'oldsalt2', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99'],
+    ];
+    foreach ($rows as $row) {
+        $uid = (int) $row['uid'];
+        if (!isset($expected[$uid])) {
+            throw new RuntimeException('Unexpected legacy user row after migration.');
+        }
+        if ($row['username'] !== $expected[$uid]['username'] || $row['salt'] !== $expected[$uid]['salt']) {
+            throw new RuntimeException('Legacy user identity fields changed after migration.');
+        }
+        if ($row['password'] !== $expected[$uid]['password']) {
+            throw new RuntimeException('Legacy md5 password hash changed before login-time upgrade.');
+        }
     }
 }
 
@@ -515,6 +586,88 @@ function assert_legacy_content_preserved(PDO $pdo, string $dbname): void
     $myposts = $pdo->query("SELECT pid FROM bbs_mypost WHERE uid = 7 AND tid = 11 ORDER BY pid")->fetchAll(PDO::FETCH_COLUMN);
     if (array_map('intval', $myposts) !== [101, 102]) {
         throw new RuntimeException('Legacy mypost index was not preserved after migration.');
+    }
+
+    assert_legacy_multi_scope_content_preserved($pdo, $dbname);
+}
+
+function assert_legacy_multi_scope_content_preserved(PDO $pdo, string $dbname): void
+{
+    $pdo->exec('USE ' . quote_identifier($dbname));
+    $sql = "
+        SELECT
+            f.name AS forum_name,
+            t.subject,
+            t.uid,
+            t.closed,
+            t.images,
+            t.files,
+            t.firstpid,
+            t.lastpid,
+            p.uid AS post_uid,
+            p.isfirst,
+            p.create_date AS post_create_date,
+            p.message,
+            p.message_fmt,
+            a.aid,
+            a.uid AS attach_uid,
+            a.filesize,
+            a.filename,
+            a.orgfilename,
+            a.filetype,
+            a.create_date AS attach_create_date,
+            a.width,
+            a.height,
+            a.isimage
+        FROM bbs_thread t
+        INNER JOIN bbs_forum f ON f.fid = t.fid
+        INNER JOIN bbs_post p ON p.pid = t.firstpid AND p.tid = t.tid
+        INNER JOIN bbs_attach a ON a.pid = p.pid AND a.tid = t.tid
+        WHERE t.tid = 12
+    ";
+    $rows = $pdo->query($sql)->fetchAll();
+    if (count($rows) !== 1) {
+        throw new RuntimeException('Legacy multi-forum image thread relation count changed after migration.');
+    }
+    $row = $rows[0];
+
+    $postCount = $pdo->query("SELECT COUNT(*) FROM bbs_post WHERE tid = 12")->fetchColumn();
+    $attachCount = $pdo->query("SELECT COUNT(*) FROM bbs_attach WHERE tid = 12")->fetchColumn();
+    $imageAttachCount = $pdo->query("SELECT COUNT(*) FROM bbs_attach WHERE tid = 12 AND isimage = 1")->fetchColumn();
+    if ((int) $postCount !== 1 || (int) $attachCount !== 1 || (int) $imageAttachCount !== 1) {
+        throw new RuntimeException('Legacy image thread post/attachment counts changed after migration.');
+    }
+
+    if ($row['forum_name'] !== 'legacy_media' || $row['subject'] !== 'legacy closed image' || (int) $row['uid'] !== 8) {
+        throw new RuntimeException('Legacy multi-forum thread identity changed after migration.');
+    }
+    if ((int) $row['closed'] !== 1 || (int) $row['images'] !== 1 || (int) $row['files'] !== 1 || (int) $row['firstpid'] !== 201 || (int) $row['lastpid'] !== 201) {
+        throw new RuntimeException('Legacy closed/image thread metadata changed after migration.');
+    }
+    if ((int) $row['post_uid'] !== 8 || (int) $row['isfirst'] !== 1 || (int) $row['post_create_date'] !== 1700000201) {
+        throw new RuntimeException('Legacy image thread first-post metadata changed after migration.');
+    }
+    if ($row['message'] !== 'legacy image post' || $row['message_fmt'] !== 'legacy image post') {
+        throw new RuntimeException('Legacy image thread post content changed after migration.');
+    }
+    if ($row['filename'] !== 'legacy/photo.jpg' || $row['orgfilename'] !== 'photo.jpg' || $row['filetype'] !== 'jpg') {
+        throw new RuntimeException('Legacy image attachment filename metadata changed after migration.');
+    }
+    if ((int) $row['aid'] !== 601 || (int) $row['attach_uid'] !== 8 || (int) $row['filesize'] !== 34567 || (int) $row['attach_create_date'] !== 1700000202) {
+        throw new RuntimeException('Legacy image attachment ownership or file metadata changed after migration.');
+    }
+    if ((int) $row['width'] !== 640 || (int) $row['height'] !== 480 || (int) $row['isimage'] !== 1) {
+        throw new RuntimeException('Legacy image attachment dimensions changed after migration.');
+    }
+
+    $mythread = $pdo->query("SELECT COUNT(*) FROM bbs_mythread WHERE uid = 8 AND tid = 12")->fetchColumn();
+    if ((int) $mythread !== 1) {
+        throw new RuntimeException('Legacy second-user mythread index was not preserved after migration.');
+    }
+
+    $mypost = $pdo->query("SELECT COUNT(*) FROM bbs_mypost WHERE uid = 8 AND tid = 12 AND pid = 201")->fetchColumn();
+    if ((int) $mypost !== 1) {
+        throw new RuntimeException('Legacy second-user mypost index was not preserved after migration.');
     }
 }
 
