@@ -98,6 +98,8 @@ The MySQL schema CI now also runs the install schema, old-version upgrade/migrat
 
 `bin/check_plugin_install_sql_smoke.php` now turns two local-sample-derived install SQL paths into CI fixtures without committing third-party packages: a `till_post_replies`-style `ALTER TABLE bbs_post` add/drop flow against an already populated post table, and a `sa_shop`-style MyISAM/utf8 create/drop flow. This keeps MySQL 8 compatibility honest while preserving the rule that ignored sample packages and raw reports stay out of the repository.
 
+Legacy conversion tools are now included in the MySQL 8 static SQL guard. The first pass fixes dynamic `CREATE TABLE IF NOT EXISTS {$tablepre}...` blocks that declared unquoted `rank` columns in Xiuno/Discuz conversion helpers. These scripts still need real old-site fixture smoke before they can be treated as fully modernized migration paths.
+
 `bin/check_plugin_dependency_flow_smoke.php` now runs real dependency failure flows in a temporary plugin app. It verifies that install-time missing/downloaded/disabled/old dependencies and uninstall-time reverse dependencies release `plugin_task`, include structured status text, link only to locally available dependency detail pages, and avoid dead links for missing remote packages.
 
 `bin/check_ecosystem_dependency_family_smoke.php` turns the local-sample `huux_notice` dependent family (`ax_notice_sx`, `ob_feedback`, `till_quick_at`) and the `abs_themeacp_stately -> abs_theme_stately` theme-adjacent dependency into repository fixtures. It keeps plugin and theme dependency metadata in the same compatibility track without committing third-party packages.

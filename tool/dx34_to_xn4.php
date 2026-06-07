@@ -300,7 +300,7 @@ $tablepre = $db->tablepre;
 $sql = "CREATE TABLE IF NOT EXISTS {$tablepre}friendlink (
   linkid bigint(11) unsigned NOT NULL AUTO_INCREMENT,
   type smallint(11) NOT NULL DEFAULT '0',
-  rank smallint(11) NOT NULL DEFAULT '0',
+  `rank` smallint(11) NOT NULL DEFAULT '0',
   create_date int(11) unsigned NOT NULL DEFAULT '0',
   name char(32) NOT NULL DEFAULT '',
   url char(64) NOT NULL DEFAULT '',
@@ -352,7 +352,7 @@ $sql = "CREATE TABLE IF NOT EXISTS {$tablepre}tag_cate (
 	cateid int(11) unsigned NOT NULL AUTO_INCREMENT,
 	fid int(11) unsigned NOT NULL DEFAULT '0',		# 属于哪个版块
 	name char(32) NOT NULL DEFAULT '',
-	rank int(11) unsigned NOT NULL DEFAULT '0',
+	`rank` int(11) unsigned NOT NULL DEFAULT '0',
 	enable int(11) unsigned NOT NULL DEFAULT '0',
 	PRIMARY KEY (cateid),
 	KEY (fid)
@@ -362,7 +362,7 @@ $sql = "CREATE TABLE IF NOT EXISTS {$tablepre}tag (
 	tagid int(11) unsigned NOT NULL AUTO_INCREMENT,
 	cateid int(11) unsigned NOT NULL DEFAULT '0',
 	name char(32) NOT NULL DEFAULT '',
-	rank int(11) unsigned NOT NULL DEFAULT '0',
+	`rank` int(11) unsigned NOT NULL DEFAULT '0',
 	enable int(11) unsigned NOT NULL DEFAULT '0',
 	PRIMARY KEY (tagid),
 	KEY (cateid)
