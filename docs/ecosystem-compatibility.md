@@ -96,6 +96,8 @@ The MySQL 8 sample SQL pass now uses `php bin/check_mysql8_compat.php --samples=
 
 `bin/check_plugin_theme_overwrite_compile_smoke.php` adds a runtime guard for the theme overwrite compiler. It verifies that enabled packages participate in `overwrites_rank` order, disabled or not-installed packages are ignored, symlink overwrite files are skipped, and `disabled_plugin` mode falls back to the core template. This keeps the theme compatibility track covered by executable behavior rather than static checks alone.
 
+`bin/check_plugin_hook_context_compile_smoke.php` covers hook fragments that are intentionally not standalone-linted. It compiles `case` route fragments, HTML template fragments, and PHP hooks with legacy `<?php exit;` guards into their target contexts, verifying `hooks_rank` order while excluding disabled or not-installed packages.
+
 ## 2026-05-29 Lifecycle Hardening Delta
 
 The plugin manager now treats lifecycle state changes as a guarded path rather than a best-effort write:
