@@ -113,6 +113,9 @@ jobs:
       - name: Smoke test CLI and upgrade safety
         run: php bin/check_cli_upgrade_safety.php
 
+      - name: Check legacy converter safety
+        run: php bin/check_legacy_converter_safety.php
+
       - name: Check MySQL 8 SQL compatibility
         run: php bin/check_mysql8_compat.php
 
