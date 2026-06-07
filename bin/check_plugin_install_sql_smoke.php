@@ -37,9 +37,12 @@ try {
     $dbname = safe_database_name($baseName . '_plugin_sql');
     reset_database($pdo, $dbname);
     install_core_schema($pdo, $root);
+    seed_thread_table($pdo);
     seed_post_table($pdo);
 
     smoke_till_post_replies_sql($pdo);
+    smoke_haya_post_like_sql($pdo);
+    smoke_aitu_source_sql($pdo);
     smoke_sa_shop_sql($pdo);
 
     echo "OK: plugin install SQL smoke passed\n";
@@ -99,6 +102,16 @@ function seed_post_table(PDO $pdo): void
     }
 }
 
+function seed_thread_table(PDO $pdo): void
+{
+    $pdo->exec("INSERT INTO bbs_thread SET fid=1, tid=1, uid=1, subject='seed thread', create_date=1700000000, last_date=1700000000, firstpid=1, lastpid=1");
+
+    $count = (int)$pdo->query('SELECT COUNT(*) FROM bbs_thread')->fetchColumn();
+    if ($count < 1) {
+        throw new RuntimeException('Unable to seed bbs_thread before plugin ALTER smoke.');
+    }
+}
+
 function smoke_till_post_replies_sql(PDO $pdo): void
 {
     $pdo->exec("ALTER TABLE bbs_post ADD COLUMN `repeat_follow` LONGTEXT NOT NULL, ADD COLUMN `r_f_c` SMALLINT(6) UNSIGNED DEFAULT 0 NOT NULL, ADD COLUMN `r_f_a` SMALLINT(6) UNSIGNED DEFAULT 0 NOT NULL");
@@ -113,6 +126,52 @@ function smoke_till_post_replies_sql(PDO $pdo): void
     assert_column_missing($pdo, 'bbs_post', 'r_f_a');
 }
 
+function smoke_haya_post_like_sql(PDO $pdo): void
+{
+    $pdo->exec("CREATE TABLE bbs_post_like (
+        lid int(11) unsigned NOT NULL AUTO_INCREMENT,
+        uid int(11) unsigned NOT NULL DEFAULT '0',
+        tid int(11) unsigned NOT NULL DEFAULT '0',
+        pid int(11) unsigned NOT NULL DEFAULT '0',
+        create_date int(11) unsigned NOT NULL DEFAULT '0',
+        PRIMARY KEY (lid),
+        KEY pid (pid),
+        KEY uid (uid)
+    ) ENGINE=MyISAM DEFAULT CHARSET=utf8");
+    $pdo->exec("ALTER TABLE bbs_post ADD COLUMN likes int(11) NULL DEFAULT '0' COMMENT 'like count'");
+    $pdo->exec("ALTER TABLE bbs_thread ADD COLUMN likes int(11) NULL DEFAULT '0' COMMENT 'like count'");
+
+    assert_table_exists($pdo, 'bbs_post_like');
+    assert_table_engine($pdo, 'bbs_post_like', 'MyISAM');
+    assert_column_exists($pdo, 'bbs_post', 'likes');
+    assert_column_exists($pdo, 'bbs_thread', 'likes');
+    assert_seed_numeric_default($pdo, 'bbs_post', 'pid', 1, 'likes', 0);
+    assert_seed_numeric_default($pdo, 'bbs_thread', 'tid', 1, 'likes', 0);
+
+    $pdo->exec('DROP TABLE IF EXISTS `bbs_post_like`');
+    $pdo->exec('ALTER TABLE bbs_post DROP COLUMN likes');
+    $pdo->exec('ALTER TABLE bbs_thread DROP COLUMN likes');
+    assert_table_missing($pdo, 'bbs_post_like');
+    assert_column_missing($pdo, 'bbs_post', 'likes');
+    assert_column_missing($pdo, 'bbs_thread', 'likes');
+}
+
+function smoke_aitu_source_sql(PDO $pdo): void
+{
+    $pdo->exec("ALTER TABLE bbs_post ADD COLUMN source VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'source'");
+    $pdo->exec("ALTER TABLE bbs_thread ADD COLUMN thumbnail VARCHAR(980) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '0' COMMENT 'thumbnail'");
+
+    assert_column_exists($pdo, 'bbs_post', 'source');
+    assert_column_exists($pdo, 'bbs_thread', 'thumbnail');
+    assert_seed_string_default($pdo, 'bbs_post', 'pid', 1, 'source', '');
+    assert_seed_string_default($pdo, 'bbs_thread', 'tid', 1, 'thumbnail', '0');
+
+    $pdo->exec('ALTER TABLE bbs_post DROP COLUMN source');
+    $pdo->exec('ALTER TABLE bbs_thread DROP COLUMN thumbnail');
+    assert_column_missing($pdo, 'bbs_post', 'source');
+    assert_column_missing($pdo, 'bbs_thread', 'thumbnail');
+}
+
 function assert_seed_post_alter_defaults(PDO $pdo): void
 {
     $row = $pdo->query('SELECT repeat_follow, r_f_c, r_f_a FROM bbs_post WHERE pid = 1')->fetch();
@@ -124,6 +183,32 @@ function assert_seed_post_alter_defaults(PDO $pdo): void
     }
     if ((int)$row['r_f_c'] !== 0 || (int)$row['r_f_a'] !== 0) {
         throw new RuntimeException('reply follow counters should default to 0 on existing rows after plugin ALTER smoke.');
+    }
+}
+
+function assert_seed_numeric_default(PDO $pdo, string $table, string $idColumn, int $id, string $column, int $expected): void
+{
+    $stmt = $pdo->prepare("SELECT `$column` FROM `$table` WHERE `$idColumn` = ?");
+    $stmt->execute([$id]);
+    $value = $stmt->fetchColumn();
+    if ($value === false) {
+        throw new RuntimeException("Missing seeded row after plugin ALTER smoke: $table.$idColumn=$id");
+    }
+    if ((int)$value !== $expected) {
+        throw new RuntimeException("$table.$column should default to $expected on existing rows after plugin ALTER smoke.");
+    }
+}
+
+function assert_seed_string_default(PDO $pdo, string $table, string $idColumn, int $id, string $column, string $expected): void
+{
+    $stmt = $pdo->prepare("SELECT `$column` FROM `$table` WHERE `$idColumn` = ?");
+    $stmt->execute([$id]);
+    $value = $stmt->fetchColumn();
+    if ($value === false) {
+        throw new RuntimeException("Missing seeded row after plugin ALTER smoke: $table.$idColumn=$id");
+    }
+    if ((string)$value !== $expected) {
+        throw new RuntimeException("$table.$column should default to '$expected' on existing rows after plugin ALTER smoke.");
     }
 }
 
