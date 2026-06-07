@@ -35,6 +35,8 @@ foreach ($files as $relative) {
     mysql8_check_sql_text($relative, $sql, $mysql8_sensitive_columns, $errors);
 }
 
+mysql8_check_driver_engine_rewrite($root, $errors);
+
 if($sample_root !== '') {
     $sample_path = normalize_sample_path($root, $sample_root);
     if($sample_path === '' || !is_dir($sample_path)) {
@@ -139,6 +141,20 @@ function mysql8_collect_sample_notes(string $relative, string $sql, array &$note
     }
     if(preg_match('/DEFAULT\s+CHARSET\s*=\s*utf8\b/i', $sql)) {
         $notes[] = ['file'=>$relative, 'type'=>'legacy_utf8_charset'];
+    }
+}
+
+function mysql8_check_driver_engine_rewrite(string $root, array &$errors): void
+{
+    foreach (['xiunophp/db_mysql.class.php', 'xiunophp/db_pdo_mysql.class.php'] as $relative) {
+        $source = file_get_contents($root . '/' . $relative);
+        if ($source === false) {
+            $errors[] = "$relative: unable to read file";
+            continue;
+        }
+        if (strpos($source, "strtoupper(substr(\$sql, 0, 12)) == 'CREATE TABLE'") === false) {
+            $errors[] = "$relative: CREATE TABLE engine rewrite guard must inspect the SQL prefix";
+        }
     }
 }
 

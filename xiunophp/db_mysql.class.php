@@ -123,7 +123,7 @@ class db_mysql {
 			if(!$this->wlink && !$this->connect_master()) return FALSE;
 			$link = $this->link = $this->wlink;
 		}
-		if(strtoupper(substr($sql, 0, 12) == 'CREATE TABLE')) {
+		if(strtoupper(substr($sql, 0, 12)) == 'CREATE TABLE') {
 			$fulltext = strpos($sql, 'FULLTEXT(') !== FALSE;
 			$highversion = version_compare($this->version(), '5.6') >= 0;
 			if(!$fulltext || ($fulltext && $highversion)) {

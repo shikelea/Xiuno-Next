@@ -88,6 +88,8 @@ The MySQL 8 sample SQL pass now uses `php bin/check_mysql8_compat.php --samples=
 
 The core MySQL 8 static guard now also scans `install/upgrade.sql`, not only fresh-install SQL and migrations. The installer creates missing databases with an explicit whitelisted charset/collation clause instead of inheriting the server default. This does not yet force the ecosystem from legacy `utf8`/MyISAM to `utf8mb4`/InnoDB; that migration remains a staged compatibility decision once MySQL 8.4, strict-mode behavior, old-site upgrades, and plugin/theme install SQL are covered by enough smoke data.
 
+The same guard now watches the database driver `CREATE TABLE` engine-rewrite check. A legacy `db_mysql` parenthesis bug meant the old driver would not inspect the SQL prefix correctly before attempting the MyISAM to InnoDB rewrite. PHP 8 installations still use `pdo_mysql`, but keeping both driver implementations aligned reduces drift in shared legacy code and generated bundles.
+
 `bin/check_plugin_install_sql_smoke.php` now turns two local-sample-derived install SQL paths into CI fixtures without committing third-party packages: a `till_post_replies`-style `ALTER TABLE bbs_post` add/drop flow, and a `sa_shop`-style MyISAM/utf8 create/drop flow. This keeps MySQL 8 compatibility honest while preserving the rule that ignored sample packages and raw reports stay out of the repository.
 
 `bin/check_plugin_dependency_flow_smoke.php` now runs real dependency failure flows in a temporary plugin app. It verifies that install-time missing/downloaded/disabled/old dependencies and uninstall-time reverse dependencies release `plugin_task`, include structured status text, link only to locally available dependency detail pages, and avoid dead links for missing remote packages.
