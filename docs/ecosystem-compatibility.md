@@ -102,7 +102,7 @@ Legacy conversion tools are now included in the MySQL 8 static SQL guard. The fi
 
 The legacy upgrade smoke now seeds an old `bbs_user` row with a `char(32)` MD5-style password hash before running both `migrate` and `upgrade`. The smoke verifies that the password column is widened to `varchar(255)` while the legacy user, salt, and hash remain intact for the normal login-time bcrypt upgrade path.
 
-The same smoke also seeds a minimal legacy content chain across `bbs_forum`, `bbs_thread`, `bbs_post`, and `bbs_attach`. After both migration paths it checks that the forum/thread/post/attachment relationship and core text/filename fields still join correctly, giving the old-site fixture its first real content-preservation coverage.
+The same smoke also seeds a legacy content relation set across `bbs_forum`, `bbs_thread`, `bbs_post`, `bbs_attach`, `bbs_thread_top`, `bbs_forum_access`, `bbs_mythread`, and `bbs_mypost`. After both migration paths it checks the forum/thread/first-post/reply/attachment chain, two attachment records, top-thread metadata, forum permission flags, and the user's thread/post indexes. This gives old-site migration its first executable guard for secondary content relations rather than only the minimal first-post chain.
 
 `bin/check_plugin_dependency_flow_smoke.php` now runs real dependency failure flows in a temporary plugin app. It verifies that install-time missing/downloaded/disabled/old dependencies and uninstall-time reverse dependencies release `plugin_task`, include structured status text, link only to locally available dependency detail pages, and avoid dead links for missing remote packages.
 
