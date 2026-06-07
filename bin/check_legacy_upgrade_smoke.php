@@ -48,6 +48,7 @@ try {
     write_cli_conf($confFile, $host, $port, $migrateDb, $user, $password, '4.4.5', $sqlMode);
     run_cli($root, ['migrate', '--no-interaction']);
     assert_column_type($pdo, $migrateDb, 'bbs_user', 'password', 'varchar(255)');
+    assert_legacy_user_preserved($pdo, $migrateDb);
     assert_migration_recorded($pdo, $migrateDb, '0001_alter_user_password_field');
 
     $upgradeDb = safe_database_name($baseName . '_upgrade');
@@ -55,6 +56,7 @@ try {
     write_cli_conf($confFile, $host, $port, $upgradeDb, $user, $password, '4.0.7', $sqlMode);
     run_cli($root, ['upgrade'], "yes\n");
     assert_column_type($pdo, $upgradeDb, 'bbs_user', 'password', 'varchar(255)');
+    assert_legacy_user_preserved($pdo, $upgradeDb);
     assert_migration_recorded($pdo, $upgradeDb, '0001_alter_user_password_field');
     assert_kv_exists($pdo, $upgradeDb, 'xn_upgraded_from');
     assert_kv_exists($pdo, $upgradeDb, 'xn_upgraded_date');
@@ -127,9 +129,19 @@ function reset_old_database(PDO $pdo, string $dbname): void
     $pdo->exec("
         CREATE TABLE bbs_user (
             uid int unsigned NOT NULL AUTO_INCREMENT,
+            username char(32) NOT NULL DEFAULT '',
+            salt char(16) NOT NULL DEFAULT '',
             `password` char(32) NOT NULL DEFAULT '',
-            PRIMARY KEY (uid)
+            PRIMARY KEY (uid),
+            UNIQUE KEY username (username)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        INSERT INTO bbs_user SET
+            uid = 7,
+            username = 'legacy_user',
+            salt = 'oldsalt',
+            `password` = '1a1dc91c907325c69271ddf0c944bc72'
     ");
     $pdo->exec("
         CREATE TABLE bbs_kv (
@@ -229,6 +241,23 @@ function assert_column_type(PDO $pdo, string $dbname, string $table, string $col
     $expected = normalize_column_type($expected);
     if ($actual !== $expected) {
         throw new RuntimeException("$table.$column type is $actual, expected $expected");
+    }
+}
+
+function assert_legacy_user_preserved(PDO $pdo, string $dbname): void
+{
+    $pdo->exec('USE ' . quote_identifier($dbname));
+    $stmt = $pdo->prepare('SELECT uid, username, salt, `password` FROM bbs_user WHERE uid = ?');
+    $stmt->execute([7]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        throw new RuntimeException('Legacy user row was not preserved after migration.');
+    }
+    if ($row['username'] !== 'legacy_user' || $row['salt'] !== 'oldsalt') {
+        throw new RuntimeException('Legacy user identity fields changed after migration.');
+    }
+    if ($row['password'] !== '1a1dc91c907325c69271ddf0c944bc72') {
+        throw new RuntimeException('Legacy md5 password hash changed before login-time upgrade.');
     }
 }
 

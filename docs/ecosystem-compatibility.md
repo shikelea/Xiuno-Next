@@ -100,6 +100,8 @@ The MySQL schema CI now also runs the install schema, old-version upgrade/migrat
 
 Legacy conversion tools are now included in the MySQL 8 static SQL guard. The first pass fixes dynamic `CREATE TABLE IF NOT EXISTS {$tablepre}...` blocks that declared unquoted `rank` columns in Xiuno/Discuz conversion helpers. These scripts still need real old-site fixture smoke before they can be treated as fully modernized migration paths.
 
+The legacy upgrade smoke now seeds an old `bbs_user` row with a `char(32)` MD5-style password hash before running both `migrate` and `upgrade`. The smoke verifies that the password column is widened to `varchar(255)` while the legacy user, salt, and hash remain intact for the normal login-time bcrypt upgrade path.
+
 `bin/check_plugin_dependency_flow_smoke.php` now runs real dependency failure flows in a temporary plugin app. It verifies that install-time missing/downloaded/disabled/old dependencies and uninstall-time reverse dependencies release `plugin_task`, include structured status text, link only to locally available dependency detail pages, and avoid dead links for missing remote packages.
 
 `bin/check_ecosystem_dependency_family_smoke.php` turns the local-sample `huux_notice` dependent family (`ax_notice_sx`, `ob_feedback`, `till_quick_at`) and the `abs_themeacp_stately -> abs_theme_stately` theme-adjacent dependency into repository fixtures. It keeps plugin and theme dependency metadata in the same compatibility track without committing third-party packages.
