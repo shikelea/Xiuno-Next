@@ -125,6 +125,11 @@ function mysql8_check_sql_text(string $relative, string $sql, array $mysql8_sens
     }
 
     foreach (find_create_table_blocks($sql) as $block) {
+        mysql8_check_text_blob_default_definitions($relative, $block['body'], $errors, $block['line'] - 1);
+    }
+    mysql8_check_alter_text_blob_defaults($relative, $sql, $errors);
+
+    foreach (find_create_table_blocks($sql) as $block) {
         foreach (preg_split('/\R/', $block['body']) as $line_number => $line) {
             $line = preg_replace('/#.*/', '', $line);
             if (!preg_match('/^\s*([A-Za-z_][A-Za-z0-9_]*)\s+/i', $line, $matches)) {
@@ -138,6 +143,382 @@ function mysql8_check_sql_text(string $relative, string $sql, array $mysql8_sens
             }
         }
     }
+}
+
+function mysql8_check_text_blob_default_definitions(string $relative, string $body, array &$errors, int $base_line): void
+{
+    $definition = '';
+    $definition_line = 0;
+    $lines = preg_split('/\R/', $body);
+
+    foreach ($lines as $line_number => $line) {
+        $clean = mysql8_strip_sql_line_comment($line);
+        if (trim($clean) === '') {
+            continue;
+        }
+
+        if ($definition === '') {
+            $definition_line = $line_number;
+        }
+        $definition .= ' ' . $clean;
+
+        while (($comma = mysql8_find_unquoted_comma_position($definition)) !== null) {
+            mysql8_check_text_blob_definition($relative, substr($definition, 0, $comma), $errors, $base_line + $definition_line);
+            $definition = ltrim(substr($definition, $comma + 1));
+            $definition_line = $line_number;
+        }
+    }
+
+    if ($definition !== '') {
+        mysql8_check_text_blob_definition($relative, $definition, $errors, $base_line + $definition_line);
+    }
+}
+
+function mysql8_check_alter_text_blob_defaults(string $relative, string $sql, array &$errors): void
+{
+    $statement = '';
+    $statement_line = 0;
+
+    foreach (preg_split('/\R/', $sql) as $line_number => $line) {
+        $clean = mysql8_strip_sql_line_comment($line);
+        if (trim($clean) === '') {
+            continue;
+        }
+        if ($statement === '') {
+            $statement_line = $line_number + 1;
+        }
+        $statement .= ' ' . $clean;
+
+        if (!mysql8_has_unquoted_semicolon($clean)) {
+            continue;
+        }
+        $alter = mysql8_extract_alter_table_fragment($statement);
+        if ($alter !== null && mysql8_alter_statement_has_text_blob_default($alter)) {
+            $errors[] = sprintf(
+                '%s:%d: MySQL 8 text/blob columns must not use literal DEFAULT values',
+                $relative,
+                $statement_line
+            );
+        }
+        $statement = '';
+        $statement_line = 0;
+    }
+
+    $alter = mysql8_extract_alter_table_fragment($statement);
+    if ($alter !== null && mysql8_alter_statement_has_text_blob_default($alter)) {
+        $errors[] = sprintf(
+            '%s:%d: MySQL 8 text/blob columns must not use literal DEFAULT values',
+            $relative,
+            $statement_line
+        );
+    }
+}
+
+function mysql8_extract_alter_table_fragment(string $statement): ?string
+{
+    $position = stripos($statement, 'ALTER TABLE');
+    if ($position === false) {
+        return null;
+    }
+
+    return substr($statement, $position);
+}
+
+function mysql8_check_text_blob_definition(string $relative, string $definition, array &$errors, int $line): void
+{
+    if (mysql8_text_blob_definition_has_literal_default($definition)) {
+        $errors[] = sprintf(
+            '%s:%d: MySQL 8 text/blob columns must not use literal DEFAULT values',
+            $relative,
+            $line
+        );
+    }
+}
+
+function mysql8_alter_statement_has_text_blob_default(string $statement): bool
+{
+    return mysql8_alter_add_parenthesized_clause_has_text_blob_default($statement)
+        || mysql8_direct_alter_clause_has_text_blob_default($statement);
+}
+
+function mysql8_identifier_pattern(): string
+{
+    return '(?:`(?:``|[^`])+`|[A-Za-z_][A-Za-z0-9_]*)';
+}
+
+function mysql8_text_blob_definition_has_literal_default(string $definition): bool
+{
+    $identifier = mysql8_identifier_pattern();
+    return preg_match('/^\s*' . $identifier . '\s+(?:tinytext|mediumtext|longtext|text|tinyblob|mediumblob|longblob|blob)\b/i', $definition)
+        && mysql8_definition_has_literal_default($definition);
+}
+
+function mysql8_definition_has_literal_default(string $definition): bool
+{
+    $default = mysql8_find_unquoted_keyword($definition, 'DEFAULT');
+    if ($default === null) {
+        return false;
+    }
+
+    $value = ltrim(substr($definition, $default + strlen('DEFAULT')));
+    if ($value === '') {
+        return false;
+    }
+    return !preg_match('/^(NULL\b|\()/i', $value);
+}
+
+function mysql8_find_unquoted_keyword(string $source, string $keyword): ?int
+{
+    $quote = null;
+    $length = strlen($source);
+    $keyword_length = strlen($keyword);
+
+    for ($i = 0; $i < $length; $i++) {
+        $char = $source[$i];
+        if ($quote !== null) {
+            if ($quote === '`' && $char === '`' && ($source[$i + 1] ?? '') === '`') {
+                $i++;
+                continue;
+            }
+            if ($char === '\\') {
+                $i++;
+                continue;
+            }
+            if ($char === $quote) {
+                $quote = null;
+            }
+            continue;
+        }
+        if ($char === "'" || $char === '"' || $char === '`') {
+            $quote = $char;
+            continue;
+        }
+        if (strncasecmp(substr($source, $i, $keyword_length), $keyword, $keyword_length) !== 0) {
+            continue;
+        }
+
+        $before = $i === 0 ? '' : $source[$i - 1];
+        $after = $source[$i + $keyword_length] ?? '';
+        if (($before === '' || !preg_match('/[A-Za-z0-9_]/', $before))
+            && ($after === '' || !preg_match('/[A-Za-z0-9_]/', $after))) {
+            return $i;
+        }
+    }
+
+    return null;
+}
+
+function mysql8_alter_add_parenthesized_clause_has_text_blob_default(string $statement): bool
+{
+    $offset = 0;
+    while (preg_match('/\bADD\s+(?:COLUMN\s+)?\(/i', $statement, $match, PREG_OFFSET_CAPTURE, $offset)) {
+        $open = $match[0][1] + strlen($match[0][0]) - 1;
+        $close = find_matching_parenthesis($statement, $open);
+        if ($close === null) {
+            return false;
+        }
+        $body = substr($statement, $open + 1, $close - $open - 1);
+        if (mysql8_text_blob_definition_body_has_literal_default($body)) {
+            return true;
+        }
+        $offset = $close + 1;
+    }
+    return false;
+}
+
+function mysql8_direct_alter_clause_has_text_blob_default(string $statement): bool
+{
+    $identifier = mysql8_identifier_pattern();
+    $pattern = '/\b(?:(?:ADD|MODIFY)\s+(?:COLUMN\s+)?' . $identifier . '|CHANGE\s+(?:COLUMN\s+)?' . $identifier . '\s+' . $identifier . ')\s+(?:tinytext|mediumtext|longtext|text|tinyblob|mediumblob|longblob|blob)\b/i';
+    $offset = 0;
+
+    while (preg_match($pattern, $statement, $match, PREG_OFFSET_CAPTURE, $offset)) {
+        $start = $match[0][1];
+        $clause = mysql8_sql_segment_until_clause_delimiter(substr($statement, $start));
+        if (mysql8_definition_has_literal_default($clause)) {
+            return true;
+        }
+        $offset = $start + strlen($match[0][0]);
+    }
+
+    return false;
+}
+
+function mysql8_sql_segment_until_clause_delimiter(string $source): string
+{
+    $quote = null;
+    $depth = 0;
+    $length = strlen($source);
+
+    for ($i = 0; $i < $length; $i++) {
+        $char = $source[$i];
+        if ($quote !== null) {
+            if ($char === '\\') {
+                $i++;
+                continue;
+            }
+            if ($char === $quote) {
+                $quote = null;
+            }
+            continue;
+        }
+        if ($char === "'" || $char === '"') {
+            $quote = $char;
+            continue;
+        }
+        if ($char === '(') {
+            $depth++;
+            continue;
+        }
+        if ($char === ')' && $depth > 0) {
+            $depth--;
+            continue;
+        }
+        if (($char === ',' || $char === ';') && $depth === 0) {
+            return substr($source, 0, $i);
+        }
+    }
+
+    return $source;
+}
+
+function mysql8_text_blob_definition_body_has_literal_default(string $body): bool
+{
+    $definition = '';
+    foreach (preg_split('/\R/', $body) as $line) {
+        $clean = mysql8_strip_sql_line_comment($line);
+        if (trim($clean) === '') {
+            continue;
+        }
+        $definition .= ' ' . $clean;
+        while (($comma = mysql8_find_unquoted_comma_position($definition)) !== null) {
+            if (mysql8_text_blob_definition_has_literal_default(substr($definition, 0, $comma))) {
+                return true;
+            }
+            $definition = ltrim(substr($definition, $comma + 1));
+        }
+    }
+
+    return $definition !== '' && mysql8_text_blob_definition_has_literal_default($definition);
+}
+
+function mysql8_has_unquoted_comma(string $line): bool
+{
+    return mysql8_find_unquoted_comma_position($line) !== null;
+}
+
+function mysql8_find_unquoted_comma_position(string $line): ?int
+{
+    $quote = null;
+    $depth = 0;
+    $length = strlen($line);
+
+    for ($i = 0; $i < $length; $i++) {
+        $char = $line[$i];
+        if ($quote !== null) {
+            if ($quote === '`' && $char === '`' && ($line[$i + 1] ?? '') === '`') {
+                $i++;
+                continue;
+            }
+            if ($char === '\\') {
+                $i++;
+                continue;
+            }
+            if ($char === $quote) {
+                $quote = null;
+            }
+            continue;
+        }
+        if ($char === "'" || $char === '"' || $char === '`') {
+            $quote = $char;
+            continue;
+        }
+        if ($char === '(') {
+            $depth++;
+            continue;
+        }
+        if ($char === ')' && $depth > 0) {
+            $depth--;
+            continue;
+        }
+        if ($char === ',' && $depth === 0) {
+            return $i;
+        }
+    }
+
+    return null;
+}
+
+function mysql8_has_unquoted_semicolon(string $line): bool
+{
+    $quote = null;
+    $length = strlen($line);
+
+    for ($i = 0; $i < $length; $i++) {
+        $char = $line[$i];
+        if ($quote !== null) {
+            if ($quote === '`' && $char === '`' && ($line[$i + 1] ?? '') === '`') {
+                $i++;
+                continue;
+            }
+            if ($char === '\\') {
+                $i++;
+                continue;
+            }
+            if ($char === $quote) {
+                $quote = null;
+            }
+            continue;
+        }
+        if ($char === "'" || $char === '"' || $char === '`') {
+            $quote = $char;
+            continue;
+        }
+        if ($char === ';') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function mysql8_strip_sql_line_comment(string $line): string
+{
+    $quote = null;
+    $length = strlen($line);
+
+    for ($i = 0; $i < $length; $i++) {
+        $char = $line[$i];
+
+        if ($quote !== null) {
+            if ($quote === '`' && $char === '`' && ($line[$i + 1] ?? '') === '`') {
+                $i++;
+                continue;
+            }
+            if ($char === '\\') {
+                $i++;
+                continue;
+            }
+            if ($char === $quote) {
+                $quote = null;
+            }
+            continue;
+        }
+
+        if ($char === "'" || $char === '"' || $char === '`') {
+            $quote = $char;
+            continue;
+        }
+
+        if ($char === '#') {
+            return substr($line, 0, $i);
+        }
+        if ($char === '-' && ($line[$i + 1] ?? '') === '-' && preg_match('/\s/', $line[$i + 2] ?? '')) {
+            return substr($line, 0, $i);
+        }
+    }
+
+    return $line;
 }
 
 function mysql8_collect_sample_notes(string $relative, string $sql, array &$notes): void
