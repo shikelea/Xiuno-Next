@@ -98,6 +98,9 @@ jobs:
       - name: Smoke test plugin lifecycle exit rollback
         run: php bin/check_plugin_lifecycle_exit_smoke.php
 
+      - name: Smoke test plugin upgrade lifecycle rollback
+        run: php bin/check_plugin_upgrade_lifecycle_smoke.php
+
       - name: Smoke test plugin package rollback
         run: php bin/check_plugin_package_rollback.php
 
