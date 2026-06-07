@@ -106,6 +106,8 @@ The same smoke also seeds a legacy content relation set across `bbs_forum`, `bbs
 
 The `upgrade` path now also has smoke coverage for cleanup of legacy runtime artifacts. Before running the 4.0.4-style upgrade path, the smoke seeds `tmp/model.min.php`, `tmp/plugin_hook.php`, `tmp/safe_mode.php`, and the `tmp/safe_mode` marker, then verifies that the upgrade command removes them. This guards against an upgraded site continuing to run stale model/plugin hook caches or remaining stuck in safe mode.
 
+The legacy upgrade smoke now also verifies no-op idempotency after a successful 4.0.4-style upgrade. Running `php bin/xiuno upgrade` again against the already upgraded test site must exit successfully without rewriting `conf/conf.php`, changing `xn_migrations`, changing `xn_upgraded_from`, changing `xn_upgraded_date`, recreating legacy cache/safe-mode files, or altering the seeded legacy users and content relations. This keeps repeated maintenance runs from becoming a hidden migration risk.
+
 `bin/check_plugin_dependency_flow_smoke.php` now runs real dependency failure flows in a temporary plugin app. It verifies that install-time missing/downloaded/disabled/old dependencies and uninstall-time reverse dependencies release `plugin_task`, include structured status text, link only to locally available dependency detail pages, and avoid dead links for missing remote packages.
 
 `bin/check_ecosystem_dependency_family_smoke.php` turns the local-sample `huux_notice` dependent family (`ax_notice_sx`, `ob_feedback`, `till_quick_at`) and the `abs_themeacp_stately -> abs_theme_stately` theme-adjacent dependency into repository fixtures. It keeps plugin and theme dependency metadata in the same compatibility track without committing third-party packages.

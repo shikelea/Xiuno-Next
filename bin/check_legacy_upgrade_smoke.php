@@ -27,13 +27,38 @@ if (!preg_match('/(^|_)test($|_)/i', $baseName)) {
 }
 
 $confFile = $root . '/conf/conf.php';
+if (is_link($confFile)) {
+    fwrite(STDERR, "Refusing to run destructive smoke with symlinked conf/conf.php.\n");
+    exit(1);
+}
 $confBackup = is_file($confFile) ? file_get_contents($confFile) : null;
 if ($confBackup === false) {
     fwrite(STDERR, "Unable to back up conf/conf.php.\n");
     exit(1);
 }
+$confBackupMode = null;
+$confBackupOwner = null;
+$confBackupGroup = null;
+if ($confBackup !== null) {
+    $confPerms = fileperms($confFile);
+    if ($confPerms === false) {
+        fwrite(STDERR, "Unable to read conf/conf.php permissions.\n");
+        exit(1);
+    }
+    $confOwner = fileowner($confFile);
+    $confGroup = filegroup($confFile);
+    if ($confOwner === false || $confGroup === false) {
+        fwrite(STDERR, "Unable to read conf/conf.php owner/group.\n");
+        exit(1);
+    }
+    $confBackupMode = $confPerms & 0777;
+    $confBackupOwner = $confOwner;
+    $confBackupGroup = $confGroup;
+}
 $cacheBackup = [];
 $cacheLock = acquire_upgrade_cache_lock($root);
+$exitCode = 0;
+$mainSucceeded = false;
 
 try {
     $pdo = new PDO("mysql:host=$host;port=$port;charset=utf8mb4", $user, $password, [
@@ -68,24 +93,40 @@ try {
     assert_conf_upgraded($confFile);
     assert_upgrade_cache_cleaned($root);
 
-    echo "OK: legacy upgrade and migration smoke passed\n";
+    $noopSnapshot = capture_upgrade_noop_snapshot($pdo, $upgradeDb, $confFile);
+    run_cli($root, ['upgrade']);
+    assert_upgrade_noop_preserved($pdo, $upgradeDb, $confFile, $root, $noopSnapshot);
+    assert_legacy_user_preserved($pdo, $upgradeDb);
+    assert_legacy_content_preserved($pdo, $upgradeDb);
+
+    $mainSucceeded = true;
 } catch (Throwable $e) {
     fwrite(STDERR, "FAIL: " . $e->getMessage() . "\n");
-    exit(1);
+    $exitCode = 1;
 } finally {
-    if ($confBackup === null) {
-        if (is_file($confFile)) {
-            unlink($confFile);
-        }
-    } else {
-        file_put_contents($confFile, $confBackup);
+    $cleanupErrors = [];
+    try {
+        restore_smoke_conf($confFile, $confBackup, $confBackupMode, $confBackupOwner, $confBackupGroup);
+    } catch (Throwable $cleanupError) {
+        $cleanupErrors[] = $cleanupError->getMessage();
     }
     try {
         restore_upgrade_cache_files($cacheBackup);
-    } finally {
-        release_upgrade_cache_lock($cacheLock);
+    } catch (Throwable $cleanupError) {
+        $cleanupErrors[] = $cleanupError->getMessage();
+    }
+    release_upgrade_cache_lock($cacheLock);
+
+    foreach ($cleanupErrors as $message) {
+        fwrite(STDERR, ($exitCode === 0 ? 'FAIL' : 'WARN') . ": cleanup failed: $message\n");
+        $exitCode = 1;
     }
 }
+
+if ($mainSucceeded && $exitCode === 0) {
+    echo "OK: legacy upgrade and migration smoke passed\n";
+}
+exit($exitCode);
 
 function apply_sql_mode(PDO $pdo, string $sqlMode): void
 {
@@ -970,6 +1011,42 @@ function assert_kv_exists(PDO $pdo, string $dbname, string $key): void
     kv_value($pdo, $dbname, $key);
 }
 
+function capture_upgrade_noop_snapshot(PDO $pdo, string $dbname, string $confFile): array
+{
+    $confContent = file_get_contents($confFile);
+    if ($confContent === false) {
+        throw new RuntimeException('Unable to read upgraded conf.php for no-op snapshot.');
+    }
+
+    return [
+        'migrations' => kv_value($pdo, $dbname, 'xn_migrations'),
+        'upgraded_from' => kv_value($pdo, $dbname, 'xn_upgraded_from'),
+        'upgraded_date' => kv_value($pdo, $dbname, 'xn_upgraded_date'),
+        'conf_hash' => hash('sha256', $confContent),
+    ];
+}
+
+function assert_upgrade_noop_preserved(PDO $pdo, string $dbname, string $confFile, string $root, array $snapshot): void
+{
+    if (kv_value($pdo, $dbname, 'xn_migrations') !== $snapshot['migrations']) {
+        throw new RuntimeException('No-op upgrade changed the migration record.');
+    }
+    if (kv_value($pdo, $dbname, 'xn_upgraded_from') !== $snapshot['upgraded_from']) {
+        throw new RuntimeException('No-op upgrade changed the original upgrade version metadata.');
+    }
+    if (kv_value($pdo, $dbname, 'xn_upgraded_date') !== $snapshot['upgraded_date']) {
+        throw new RuntimeException('No-op upgrade changed the upgrade timestamp metadata.');
+    }
+
+    $confContent = file_get_contents($confFile);
+    if ($confContent === false || hash('sha256', $confContent) !== $snapshot['conf_hash']) {
+        throw new RuntimeException('No-op upgrade rewrote conf.php.');
+    }
+
+    assert_conf_upgraded($confFile);
+    assert_upgrade_cache_cleaned($root);
+}
+
 function kv_value(PDO $pdo, string $dbname, string $key): string
 {
     $pdo->exec('USE ' . quote_identifier($dbname));
@@ -1061,6 +1138,76 @@ function restore_upgrade_cache_files(array $backup): void
             if (file_put_contents($path, $content) === false) {
                 throw new RuntimeException("Unable to restore upgrade cache fixture: $path");
             }
+        }
+    }
+}
+
+function restore_smoke_conf(string $confFile, ?string $confBackup, ?int $confBackupMode, ?int $confBackupOwner, ?int $confBackupGroup): void
+{
+    if ($confBackup === null) {
+        if (is_link($confFile)) {
+            throw new RuntimeException('Refusing to remove symlinked conf/conf.php during smoke restore.');
+        }
+        if (is_file($confFile)) {
+            if (!unlink($confFile)) {
+                throw new RuntimeException('Unable to remove smoke conf.php.');
+            }
+        } elseif (file_exists($confFile)) {
+            throw new RuntimeException('Refusing to leave non-regular conf/conf.php after smoke restore.');
+        }
+        return;
+    }
+
+    $mode = $confBackupMode ?? 0600;
+    $tmpFile = dirname($confFile) . '/conf.php.smoke-restore.' . getmypid() . '.' . bin2hex(random_bytes(8)) . '.tmp';
+    $oldUmask = umask(0177);
+    try {
+        $handle = fopen($tmpFile, 'xb');
+        if ($handle === false) {
+            throw new RuntimeException('Unable to create temporary conf/conf.php restore file.');
+        }
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                throw new RuntimeException('Unable to lock temporary conf/conf.php restore file.');
+            }
+            $length = strlen($confBackup);
+            $offset = 0;
+            while ($offset < $length) {
+                $written = fwrite($handle, substr($confBackup, $offset));
+                if ($written === false || $written === 0) {
+                    throw new RuntimeException('Unable to write temporary conf/conf.php restore file.');
+                }
+                $offset += $written;
+            }
+            if (!fflush($handle)) {
+                throw new RuntimeException('Unable to flush temporary conf/conf.php restore file.');
+            }
+        } finally {
+            fclose($handle);
+        }
+        $metadataErrors = [];
+        if (!chmod($tmpFile, $mode)) {
+            $metadataErrors[] = 'Unable to restore conf/conf.php permissions.';
+        }
+        if ($confBackupOwner !== null && function_exists('chown') && !chown($tmpFile, $confBackupOwner)) {
+            $metadataErrors[] = 'Unable to restore conf/conf.php owner.';
+        }
+        if ($confBackupGroup !== null && function_exists('chgrp') && !chgrp($tmpFile, $confBackupGroup)) {
+            $metadataErrors[] = 'Unable to restore conf/conf.php group.';
+        }
+        if (is_link($confFile)) {
+            throw new RuntimeException('Refusing to replace symlinked conf/conf.php during smoke restore.');
+        }
+        if (!rename($tmpFile, $confFile)) {
+            throw new RuntimeException('Unable to restore conf/conf.php.');
+        }
+        if (!empty($metadataErrors)) {
+            throw new RuntimeException(implode(' ', $metadataErrors));
+        }
+    } finally {
+        umask($oldUmask);
+        if (is_file($tmpFile)) {
+            unlink($tmpFile);
         }
     }
 }
