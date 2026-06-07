@@ -174,9 +174,13 @@ jobs:
 
   mysql-schema:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mysql-version: ['8.0', '8.4']
     services:
       mysql:
-        image: mysql:8.0
+        image: mysql:${{ matrix.mysql-version }}
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: xiuno_test
