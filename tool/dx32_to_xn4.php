@@ -222,11 +222,14 @@ $db->exec("TRUNCATE `{$tablepre}post`");
 $i = 0;
 foreach ($postlist as $post) {
 	if(strlen($post['message']) > 1024000) continue;
+	$tid = intval($post['tid']);
+	$pid = intval($post['pid']);
+	$thread = $dx->sql_find_one("SELECT firstpid FROM {$tablepre}thread WHERE tid='$tid'");
 	$arr = array(
-		'tid'=>$post['tid'],
-		'pid'=>$post['pid'],
+		'tid'=>$tid,
+		'pid'=>$pid,
 		'uid'=>$post['uid'],
-		'isfirst'=>($thread['firstpid'] == $post['pid'] ? 1 : 0),
+		'isfirst'=>(!empty($thread) && intval($thread['firstpid']) == $pid ? 1 : 0),
 		'create_date'=>$post['dateline'],
 		'userip'=>$post['userip'],
 		'images'=>$post['imagenum'],
