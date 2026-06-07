@@ -12,6 +12,9 @@ $sample_root = cli_option_value($argv, '--samples');
 foreach (glob($root . '/database/migrations/*.php') ?: [] as $migration) {
     $files[] = str_replace('\\', '/', substr($migration, strlen($root) + 1));
 }
+foreach (glob($root . '/tool/*_to_xn*.php') ?: [] as $migration_tool) {
+    $files[] = str_replace('\\', '/', substr($migration_tool, strlen($root) + 1));
+}
 
 $mysql8_sensitive_columns = [
     'rank' => true,
@@ -248,7 +251,7 @@ function find_create_table_blocks(string $sql): array
     $blocks = [];
     $offset = 0;
 
-    while (preg_match('/CREATE\s+TABLE\s+`?([A-Za-z0-9_]+)`?\s*\(/i', $sql, $matches, PREG_OFFSET_CAPTURE, $offset)) {
+    while (preg_match('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:`?\{\$tablepre\}|`?)([A-Za-z0-9_]+)`?\s*\(/i', $sql, $matches, PREG_OFFSET_CAPTURE, $offset)) {
         $start = $matches[0][1] + strlen($matches[0][0]);
         $end = find_matching_parenthesis($sql, $start - 1);
         if ($end === null) {
