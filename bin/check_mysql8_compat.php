@@ -36,6 +36,7 @@ foreach ($files as $relative) {
 }
 
 mysql8_check_driver_engine_rewrite($root, $errors);
+mysql8_check_driver_sql_mode_config($root, $errors);
 
 if($sample_root !== '') {
     $sample_path = normalize_sample_path($root, $sample_root);
@@ -154,6 +155,34 @@ function mysql8_check_driver_engine_rewrite(string $root, array &$errors): void
         }
         if (strpos($source, "strtoupper(substr(\$sql, 0, 12)) == 'CREATE TABLE'") === false) {
             $errors[] = "$relative: CREATE TABLE engine rewrite guard must inspect the SQL prefix";
+        }
+    }
+}
+
+function mysql8_check_driver_sql_mode_config(string $root, array &$errors): void
+{
+    $conf = file_get_contents($root . '/conf/conf.default.php');
+    if ($conf === false) {
+        $errors[] = 'conf/conf.default.php: unable to read file';
+    } elseif (substr_count($conf, "'sql_mode' => ''") < 2) {
+        $errors[] = 'conf/conf.default.php: mysql and pdo_mysql masters must expose sql_mode defaults';
+    }
+
+    foreach (['xiunophp/db_mysql.class.php', 'xiunophp/db_pdo_mysql.class.php'] as $relative) {
+        $source = file_get_contents($root . '/' . $relative);
+        if ($source === false) {
+            $errors[] = "$relative: unable to read file";
+            continue;
+        }
+        foreach ([
+            "isset(\$conf['sql_mode']) ? \$conf['sql_mode'] : ''",
+            "\$sql_mode = \$this->sql_mode_safe(\$sql_mode);",
+            "sql_mode='\$sql_mode'",
+            "private function sql_mode_safe(\$sql_mode)",
+        ] as $needle) {
+            if (strpos($source, $needle) === false) {
+                $errors[] = "$relative: missing sql_mode configuration guard: $needle";
+            }
         }
     }
 }

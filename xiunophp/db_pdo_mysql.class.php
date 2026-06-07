@@ -29,7 +29,8 @@ class db_pdo_mysql {
 	public function connect_master() {
 		if($this->wlink) return $this->wlink;
 		$conf = $this->conf['master'];
-		$this->wlink = $this->real_connect($conf['host'], $conf['user'], $conf['password'], $conf['name'], $conf['charset'], $conf['engine']);
+		$sql_mode = isset($conf['sql_mode']) ? $conf['sql_mode'] : '';
+		$this->wlink = $this->real_connect($conf['host'], $conf['user'], $conf['password'], $conf['name'], $conf['charset'], $conf['engine'], $sql_mode);
 		return $this->wlink;
 	}
 	
@@ -44,12 +45,13 @@ class db_pdo_mysql {
 			$n = array_rand($this->conf['slaves']);
 			$conf = $this->conf['slaves'][$n];
 			$this->rconf = $conf;
-			$this->rlink = $this->real_connect($conf['host'], $conf['user'], $conf['password'], $conf['name'], $conf['charset'], $conf['engine']);
+			$sql_mode = isset($conf['sql_mode']) ? $conf['sql_mode'] : '';
+			$this->rlink = $this->real_connect($conf['host'], $conf['user'], $conf['password'], $conf['name'], $conf['charset'], $conf['engine'], $sql_mode);
 		}
 		return $this->rlink;
 	}
 	
-	public function real_connect($host, $user, $password, $name, $charset = '', $engine = '') {
+	public function real_connect($host, $user, $password, $name, $charset = '', $engine = '', $sql_mode = '') {
 		if(strpos($host, ':') !== FALSE) {
 			list($host, $port) = explode(':', $host);
 		} else {
@@ -68,9 +70,15 @@ class db_pdo_mysql {
 			return FALSE;
 	        }
 	        //$link->setFetchMode(PDO::FETCH_ASSOC);
-		$charset AND $link->query("SET names $charset, sql_mode=''");
+		$sql_mode = $this->sql_mode_safe($sql_mode);
+		$charset AND $link->query("SET names $charset, sql_mode='$sql_mode'");
 		 //$link->query('SET NAMES '.($charset ? $charset.',' : '').', sql_mode=""');  
 		return $link;
+	}
+
+	private function sql_mode_safe($sql_mode) {
+		$sql_mode = strtoupper(trim((string)$sql_mode));
+		return preg_match('/^[A-Z0-9_,]*$/', $sql_mode) ? $sql_mode : '';
 	}
 	
 	public function sql_find_one($sql) {

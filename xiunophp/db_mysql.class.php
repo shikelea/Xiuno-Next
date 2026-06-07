@@ -29,7 +29,8 @@ class db_mysql {
 	public function connect_master() {
 		if($this->wlink) return $this->wlink;
 		$conf = $this->conf['master'];
-		if(!$this->wlink) $this->wlink = $this->real_connect($conf['host'], $conf['user'], $conf['password'], $conf['name'], $conf['charset'], $conf['engine']);
+		$sql_mode = isset($conf['sql_mode']) ? $conf['sql_mode'] : '';
+		if(!$this->wlink) $this->wlink = $this->real_connect($conf['host'], $conf['user'], $conf['password'], $conf['name'], $conf['charset'], $conf['engine'], $sql_mode);
 		return $this->wlink;
 	}
 	
@@ -44,12 +45,13 @@ class db_mysql {
 			$n = array_rand($this->conf['slaves']);
 			$conf = $this->conf['slaves'][$n];
 			$this->rconf = $conf;
-			$this->rlink = $this->real_connect($conf['host'], $conf['user'], $conf['password'], $conf['name'], $conf['charset'], $conf['engine']);
+			$sql_mode = isset($conf['sql_mode']) ? $conf['sql_mode'] : '';
+			$this->rlink = $this->real_connect($conf['host'], $conf['user'], $conf['password'], $conf['name'], $conf['charset'], $conf['engine'], $sql_mode);
 		}
 		return $this->rlink;
 	}
 	
-	public function real_connect($host, $user, $password, $name, $charset = '', $engine = '') {
+	public function real_connect($host, $user, $password, $name, $charset = '', $engine = '', $sql_mode = '') {
 		if (function_exists('mysql_connect')) {
 			$link = @mysql_connect($host, $user, $password); // 如果用户名相同，则返回同一个连接。 fastcgi 持久连接更省资源
 		} else {
@@ -60,8 +62,14 @@ class db_mysql {
 		if(!$link) { $this->error(mysql_errno(), '连接数据库服务器失败:'.mysql_error()); return FALSE; }
 		if(!mysql_select_db($name, $link)) { $this->error(mysql_errno(), '选择数据库失败:'.mysql_error()); return FALSE; }
 		//strtolower($engine) == 'innodb' AND $this->query("SET innodb_flush_log_at_trx_commit=no", $link);
-		$charset AND $this->query("SET names $charset, sql_mode=''", $link);
+		$sql_mode = $this->sql_mode_safe($sql_mode);
+		$charset AND $this->query("SET names $charset, sql_mode='$sql_mode'", $link);
 		return $link;
+	}
+
+	private function sql_mode_safe($sql_mode) {
+		$sql_mode = strtoupper(trim((string)$sql_mode));
+		return preg_match('/^[A-Z0-9_,]*$/', $sql_mode) ? $sql_mode : '';
 	}
 	public function sql_find_one($sql) {
 		$query = $this->query($sql);
