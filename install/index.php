@@ -163,7 +163,9 @@ if(empty($action)) {
 							//PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
 						);
 						$link = new PDO("mysql:host=$host;port=$port", $user, $password, $attr);
-						$r = $link->exec("CREATE DATABASE `$name`");
+						$db_charset = isset($conf['db'][$type]['master']['charset']) ? $conf['db'][$type]['master']['charset'] : 'utf8';
+						$charset_clause = install_db_charset_clause($db_charset);
+						$r = $link->exec("CREATE DATABASE `$name` $charset_clause");
 						if($r === FALSE) {
 							$error = $link->errorInfo();
 							$errno = $error[1];
@@ -250,6 +252,13 @@ function install_lock_end() {
 
 function install_db_name_safe($name) {
 	return is_string($name) && preg_match('/^[A-Za-z0-9_]{1,64}$/', $name);
+}
+
+function install_db_charset_clause($charset) {
+	$charset = strtolower(trim((string)$charset));
+	if($charset == 'utf8mb4') return 'CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
+	if($charset == 'utf8') return 'CHARACTER SET utf8 COLLATE utf8_general_ci';
+	return 'CHARACTER SET utf8 COLLATE utf8_general_ci';
 }
 
 function install_post($key, $defval = '', $htmlspecialchars = TRUE) {
