@@ -37,6 +37,7 @@ try {
     $dbname = safe_database_name($baseName . '_plugin_sql');
     reset_database($pdo, $dbname);
     install_core_schema($pdo, $root);
+    seed_post_table($pdo);
 
     smoke_till_post_replies_sql($pdo);
     smoke_sa_shop_sql($pdo);
@@ -88,17 +89,42 @@ function install_core_schema(PDO $pdo, string $root): void
     }
 }
 
+function seed_post_table(PDO $pdo): void
+{
+    $pdo->exec("INSERT INTO bbs_post SET tid=1, uid=1, isfirst=1, create_date=1700000000, userip=2130706433, message='seed message', message_fmt='seed message'");
+
+    $count = (int)$pdo->query('SELECT COUNT(*) FROM bbs_post')->fetchColumn();
+    if ($count < 1) {
+        throw new RuntimeException('Unable to seed bbs_post before plugin ALTER smoke.');
+    }
+}
+
 function smoke_till_post_replies_sql(PDO $pdo): void
 {
     $pdo->exec("ALTER TABLE bbs_post ADD COLUMN `repeat_follow` LONGTEXT NOT NULL, ADD COLUMN `r_f_c` SMALLINT(6) UNSIGNED DEFAULT 0 NOT NULL, ADD COLUMN `r_f_a` SMALLINT(6) UNSIGNED DEFAULT 0 NOT NULL");
     assert_column_exists($pdo, 'bbs_post', 'repeat_follow');
     assert_column_exists($pdo, 'bbs_post', 'r_f_c');
     assert_column_exists($pdo, 'bbs_post', 'r_f_a');
+    assert_seed_post_alter_defaults($pdo);
 
     $pdo->exec("ALTER TABLE bbs_post DROP COLUMN `repeat_follow`, DROP COLUMN `r_f_c`, DROP COLUMN `r_f_a`");
     assert_column_missing($pdo, 'bbs_post', 'repeat_follow');
     assert_column_missing($pdo, 'bbs_post', 'r_f_c');
     assert_column_missing($pdo, 'bbs_post', 'r_f_a');
+}
+
+function assert_seed_post_alter_defaults(PDO $pdo): void
+{
+    $row = $pdo->query('SELECT repeat_follow, r_f_c, r_f_a FROM bbs_post WHERE pid = 1')->fetch();
+    if (!$row) {
+        throw new RuntimeException('Missing seeded post after plugin ALTER smoke.');
+    }
+    if ($row['repeat_follow'] === null) {
+        throw new RuntimeException('repeat_follow should be NOT NULL on existing rows after plugin ALTER smoke.');
+    }
+    if ((int)$row['r_f_c'] !== 0 || (int)$row['r_f_a'] !== 0) {
+        throw new RuntimeException('reply follow counters should default to 0 on existing rows after plugin ALTER smoke.');
+    }
 }
 
 function smoke_sa_shop_sql(PDO $pdo): void
