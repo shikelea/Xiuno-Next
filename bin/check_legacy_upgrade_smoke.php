@@ -170,6 +170,7 @@ function reset_old_database(PDO $pdo, string $dbname): void
     ");
     $pdo->exec("INSERT INTO bbs_forum SET fid = 3, `name` = 'legacy_forum', threads = 1");
     $pdo->exec("INSERT INTO bbs_forum SET fid = 4, `name` = 'legacy_media', threads = 1");
+    $pdo->exec("INSERT INTO bbs_forum SET fid = 5, `name` = 'legacy_edge', threads = 1");
     $pdo->exec("
         CREATE TABLE bbs_forum_access (
             fid int unsigned NOT NULL DEFAULT '0',
@@ -252,6 +253,27 @@ function reset_old_database(PDO $pdo, string $dbname): void
             lastuid = 8,
             lastpid = 201
     ");
+    $edgeSubject = legacy_exact_subject();
+    $stmt = $pdo->prepare("
+        INSERT INTO bbs_thread SET
+            fid = 5,
+            tid = 13,
+            top = 0,
+            uid = 7,
+            userip = 4294967295,
+            subject = ?,
+            create_date = 0,
+            last_date = 4294967295,
+            posts = 0,
+            images = 0,
+            files = 1,
+            mods = 0,
+            closed = 0,
+            firstpid = 301,
+            lastuid = 0,
+            lastpid = 301
+    ");
+    $stmt->execute([$edgeSubject]);
     $pdo->exec("
         CREATE TABLE bbs_thread_top (
             fid smallint NOT NULL DEFAULT '0',
@@ -340,6 +362,21 @@ function reset_old_database(PDO $pdo, string $dbname): void
             message_fmt = 'legacy image post'
     ");
     $pdo->exec("
+        INSERT INTO bbs_post SET
+            tid = 13,
+            pid = 301,
+            uid = 7,
+            isfirst = 1,
+            create_date = 0,
+            userip = 0,
+            images = 0,
+            files = 1,
+            doctype = 0,
+            quotepid = 0,
+            message = '',
+            message_fmt = ''
+    ");
+    $pdo->exec("
         CREATE TABLE bbs_attach (
             aid int unsigned NOT NULL AUTO_INCREMENT,
             tid int NOT NULL DEFAULT '0',
@@ -397,6 +434,23 @@ function reset_old_database(PDO $pdo, string $dbname): void
             create_date = 1700000202,
             isimage = 1
     ");
+    $edgeFilename = legacy_exact_filename();
+    $stmt = $pdo->prepare("
+        INSERT INTO bbs_attach SET
+            aid = 701,
+            tid = 13,
+            pid = 301,
+            uid = 7,
+            filesize = 4294967295,
+            width = 0,
+            height = 0,
+            filename = ?,
+            orgfilename = ?,
+            filetype = '',
+            create_date = 0,
+            isimage = 0
+    ");
+    $stmt->execute([$edgeFilename, $edgeFilename]);
     $pdo->exec("
         CREATE TABLE bbs_mythread (
             uid int unsigned NOT NULL DEFAULT '0',
@@ -406,6 +460,7 @@ function reset_old_database(PDO $pdo, string $dbname): void
     ");
     $pdo->exec("INSERT INTO bbs_mythread SET uid = 7, tid = 11");
     $pdo->exec("INSERT INTO bbs_mythread SET uid = 8, tid = 12");
+    $pdo->exec("INSERT INTO bbs_mythread SET uid = 7, tid = 13");
     $pdo->exec("
         CREATE TABLE bbs_mypost (
             uid int unsigned NOT NULL DEFAULT '0',
@@ -420,13 +475,24 @@ function reset_old_database(PDO $pdo, string $dbname): void
             (7, 11, 101),
             (7, 11, 102),
             (8, 11, 103),
-            (8, 12, 201)
+            (8, 12, 201),
+            (7, 13, 301)
     ");
 }
 
 function legacy_long_message(): string
 {
     return str_repeat('Legacy quoted body line with safe ASCII punctuation 0123456789. ', 1200);
+}
+
+function legacy_exact_subject(): string
+{
+    return str_repeat('S', 128);
+}
+
+function legacy_exact_filename(): string
+{
+    return str_repeat('f', 116) . '.dat';
 }
 
 function write_cli_conf(string $confFile, string $host, string $port, string $dbname, string $user, string $password, string $version, string $sqlMode): void
@@ -638,6 +704,7 @@ function assert_legacy_content_preserved(PDO $pdo, string $dbname): void
 
     assert_legacy_long_quote_preserved($pdo, $dbname);
     assert_legacy_multi_scope_content_preserved($pdo, $dbname);
+    assert_legacy_boundary_values_preserved($pdo, $dbname);
 }
 
 function assert_legacy_long_quote_preserved(PDO $pdo, string $dbname): void
@@ -748,6 +815,84 @@ function assert_legacy_multi_scope_content_preserved(PDO $pdo, string $dbname): 
     $mypost = $pdo->query("SELECT COUNT(*) FROM bbs_mypost WHERE uid = 8 AND tid = 12 AND pid = 201")->fetchColumn();
     if ((int) $mypost !== 1) {
         throw new RuntimeException('Legacy second-user mypost index was not preserved after migration.');
+    }
+}
+
+function assert_legacy_boundary_values_preserved(PDO $pdo, string $dbname): void
+{
+    $pdo->exec('USE ' . quote_identifier($dbname));
+    $sql = "
+        SELECT
+            f.name AS forum_name,
+            t.subject,
+            t.userip AS thread_userip,
+            t.create_date AS thread_create_date,
+            t.last_date,
+            t.posts,
+            t.files,
+            t.firstpid,
+            t.lastuid,
+            t.lastpid,
+            p.uid AS post_uid,
+            p.userip AS post_userip,
+            p.create_date AS post_create_date,
+            p.message,
+            p.message_fmt,
+            a.aid,
+            a.filesize,
+            a.filename,
+            a.orgfilename,
+            a.filetype,
+            a.create_date AS attach_create_date,
+            a.isimage
+        FROM bbs_thread t
+        INNER JOIN bbs_forum f ON f.fid = t.fid
+        INNER JOIN bbs_post p ON p.pid = t.firstpid AND p.tid = t.tid
+        INNER JOIN bbs_attach a ON a.pid = p.pid AND a.tid = t.tid
+        WHERE t.tid = 13
+    ";
+    $rows = $pdo->query($sql)->fetchAll();
+    if (count($rows) !== 1) {
+        throw new RuntimeException('Legacy boundary-value thread relation count changed after migration.');
+    }
+    $row = $rows[0];
+
+    $expectedSubject = legacy_exact_subject();
+    if ($row['forum_name'] !== 'legacy_edge' || strlen($row['subject']) !== 128 || hash('sha256', $row['subject']) !== hash('sha256', $expectedSubject)) {
+        throw new RuntimeException('Legacy boundary-value forum or subject changed after migration.');
+    }
+    if ((int) $row['thread_userip'] !== 4294967295 || (int) $row['thread_create_date'] !== 0 || (int) $row['last_date'] !== 4294967295) {
+        throw new RuntimeException('Legacy boundary-value thread IP or date fields changed after migration.');
+    }
+    if ((int) $row['posts'] !== 0 || (int) $row['files'] !== 1 || (int) $row['firstpid'] !== 301 || (int) $row['lastuid'] !== 0 || (int) $row['lastpid'] !== 301) {
+        throw new RuntimeException('Legacy boundary-value thread counters changed after migration.');
+    }
+    if ((int) $row['post_uid'] !== 7 || (int) $row['post_userip'] !== 0 || (int) $row['post_create_date'] !== 0) {
+        throw new RuntimeException('Legacy boundary-value post metadata changed after migration.');
+    }
+    if ($row['message'] !== '' || $row['message_fmt'] !== '') {
+        throw new RuntimeException('Legacy boundary-value empty post content changed after migration.');
+    }
+
+    $expectedFilename = legacy_exact_filename();
+    if ((int) $row['aid'] !== 701 || (int) $row['filesize'] !== 4294967295 || (int) $row['attach_create_date'] !== 0 || (int) $row['isimage'] !== 0) {
+        throw new RuntimeException('Legacy boundary-value attachment numeric metadata changed after migration.');
+    }
+    if (strlen($row['filename']) !== 120 || strlen($row['orgfilename']) !== 120 || hash('sha256', $row['filename']) !== hash('sha256', $expectedFilename) || hash('sha256', $row['orgfilename']) !== hash('sha256', $expectedFilename)) {
+        throw new RuntimeException('Legacy boundary-value attachment filename changed after migration.');
+    }
+    if ($row['filetype'] !== '') {
+        throw new RuntimeException('Legacy boundary-value empty attachment filetype changed after migration.');
+    }
+
+    $mythread = $pdo->query("SELECT COUNT(*) FROM bbs_mythread WHERE uid = 7 AND tid = 13")->fetchColumn();
+    if ((int) $mythread !== 1) {
+        throw new RuntimeException('Legacy boundary-value mythread index was not preserved after migration.');
+    }
+
+    $mypost = $pdo->query("SELECT COUNT(*) FROM bbs_mypost WHERE uid = 7 AND tid = 13 AND pid = 301")->fetchColumn();
+    if ((int) $mypost !== 1) {
+        throw new RuntimeException('Legacy boundary-value mypost index was not preserved after migration.');
     }
 }
 
