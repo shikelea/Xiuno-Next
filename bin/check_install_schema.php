@@ -12,6 +12,7 @@ $dbname = getenv('XIUNO_DB_NAME') ?: 'xiuno_test';
 $user = getenv('XIUNO_DB_USER') ?: 'root';
 $password = getenv('XIUNO_DB_PASSWORD') ?: 'root';
 $expected_mysql_major = getenv('XIUNO_EXPECT_MYSQL_MAJOR') ?: '';
+$sqlMode = getenv('XIUNO_SQL_MODE') ?: '';
 
 $dsn = "mysql:host=$host;port=$port;charset=utf8mb4";
 
@@ -20,6 +21,8 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
+
+    apply_sql_mode($pdo, $sqlMode);
 
     $mysql_version = (string) $pdo->query('SELECT VERSION()')->fetchColumn();
     assert_mysql_major_version($mysql_version, $expected_mysql_major);
@@ -45,6 +48,18 @@ try {
 } catch (Throwable $e) {
     fwrite(STDERR, "Install schema smoke failed: " . $e->getMessage() . "\n");
     exit(1);
+}
+
+function apply_sql_mode(PDO $pdo, string $sqlMode): void
+{
+    $sqlMode = strtoupper(trim($sqlMode));
+    if ($sqlMode === '') {
+        return;
+    }
+    if (!preg_match('/^[A-Z0-9_,]+$/', $sqlMode)) {
+        throw new RuntimeException("Unsafe XIUNO_SQL_MODE value: $sqlMode");
+    }
+    $pdo->exec("SET SESSION sql_mode = '$sqlMode'");
 }
 
 function quote_mysql_identifier(string $identifier): string

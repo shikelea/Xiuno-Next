@@ -216,6 +216,17 @@ jobs:
           XIUNO_EXPECT_MYSQL_MAJOR: 8
         run: php bin/check_install_schema.php
 
+      - name: Smoke test install schema under strict SQL mode
+        env:
+          XIUNO_DB_HOST: 127.0.0.1
+          XIUNO_DB_PORT: 3306
+          XIUNO_DB_NAME: xiuno_test_strict
+          XIUNO_DB_USER: root
+          XIUNO_DB_PASSWORD: root
+          XIUNO_EXPECT_MYSQL_MAJOR: 8
+          XIUNO_SQL_MODE: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION
+        run: php bin/check_install_schema.php
+
       - name: Smoke test old-version upgrade and migrations
         env:
           XIUNO_DB_HOST: 127.0.0.1
@@ -226,6 +237,17 @@ jobs:
           XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
         run: php bin/check_legacy_upgrade_smoke.php
 
+      - name: Smoke test old-version upgrade and migrations under strict SQL mode
+        env:
+          XIUNO_DB_HOST: 127.0.0.1
+          XIUNO_DB_PORT: 3306
+          XIUNO_DB_NAME: xiuno_test_strict
+          XIUNO_DB_USER: root
+          XIUNO_DB_PASSWORD: root
+          XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
+          XIUNO_SQL_MODE: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION
+        run: php bin/check_legacy_upgrade_smoke.php
+
       - name: Smoke test plugin install SQL samples
         env:
           XIUNO_DB_HOST: 127.0.0.1
@@ -234,4 +256,15 @@ jobs:
           XIUNO_DB_USER: root
           XIUNO_DB_PASSWORD: root
           XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
+        run: php bin/check_plugin_install_sql_smoke.php
+
+      - name: Smoke test plugin install SQL samples under strict SQL mode
+        env:
+          XIUNO_DB_HOST: 127.0.0.1
+          XIUNO_DB_PORT: 3306
+          XIUNO_DB_NAME: xiuno_test_strict
+          XIUNO_DB_USER: root
+          XIUNO_DB_PASSWORD: root
+          XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
+          XIUNO_SQL_MODE: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION
         run: php bin/check_plugin_install_sql_smoke.php

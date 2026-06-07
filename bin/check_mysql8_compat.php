@@ -37,6 +37,7 @@ foreach ($files as $relative) {
 
 mysql8_check_driver_engine_rewrite($root, $errors);
 mysql8_check_driver_sql_mode_config($root, $errors);
+mysql8_check_strict_mode_smoke_config($root, $errors);
 
 if($sample_root !== '') {
     $sample_path = normalize_sample_path($root, $sample_root);
@@ -184,6 +185,39 @@ function mysql8_check_driver_sql_mode_config(string $root, array &$errors): void
                 $errors[] = "$relative: missing sql_mode configuration guard: $needle";
             }
         }
+    }
+}
+
+function mysql8_check_strict_mode_smoke_config(string $root, array &$errors): void
+{
+    foreach ([
+        'bin/check_install_schema.php',
+        'bin/check_legacy_upgrade_smoke.php',
+        'bin/check_plugin_install_sql_smoke.php',
+    ] as $relative) {
+        $source = file_get_contents($root . '/' . $relative);
+        if ($source === false) {
+            $errors[] = "$relative: unable to read file";
+            continue;
+        }
+        foreach ([
+            "getenv('XIUNO_SQL_MODE') ?: ''",
+            'function apply_sql_mode(PDO $pdo, string $sqlMode): void',
+            "SET SESSION sql_mode = '\$sqlMode'",
+        ] as $needle) {
+            if (strpos($source, $needle) === false) {
+                $errors[] = "$relative: missing strict sql_mode smoke support: $needle";
+            }
+        }
+    }
+
+    $workflow = file_get_contents($root . '/.github/workflows/ci.yml');
+    if ($workflow === false) {
+        $errors[] = '.github/workflows/ci.yml: unable to read file';
+        return;
+    }
+    if (substr_count($workflow, 'XIUNO_SQL_MODE: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION') < 3) {
+        $errors[] = '.github/workflows/ci.yml: strict sql_mode must cover install, legacy upgrade, and plugin SQL smokes';
     }
 }
 
