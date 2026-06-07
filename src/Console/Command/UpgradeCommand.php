@@ -12,7 +12,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(name: 'upgrade', description: '从旧版 Xiuno BBS 升级到 Xiuno Next')]
 class UpgradeCommand extends Command
 {
-    private const TARGET_VERSION = '4.4.5';
+    private const TARGET_VERSION = '4.5.0';
 
     // 旧版可能缺失的配置项及其默认值
     private const CONFIG_DEFAULTS = [
@@ -25,7 +25,7 @@ class UpgradeCommand extends Command
         'cdn_on' => 0,
         'url_rewrite_on' => 0,
         'allow_unverified_update' => 0,
-        'static_version' => '?v=4.4.5',
+        'static_version' => '?v=4.5.0',
     ];
 
     // 已知旧版主流版本号

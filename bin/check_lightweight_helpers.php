@@ -17,7 +17,7 @@ include_once APP_PATH . 'model/misc.func.php';
 
 $errors = array();
 
-if (conf_get('version') !== '4.4.5') {
+if (conf_get('version') !== '4.5.0') {
 	$errors[] = 'conf_get(version) failed';
 }
 
@@ -92,10 +92,10 @@ $_REQUEST[1] = 'noop';
 include_once APP_PATH . 'admin/route/update.php';
 unset($_REQUEST[1]);
 $hash = str_repeat('a', 64);
-if (update_parse_sha256_text($hash . '  v4.4.5.zip', 'v4.4.5.zip', 'v4.4.5') !== $hash) {
+if (update_parse_sha256_text($hash . '  v4.5.0.zip', 'v4.5.0.zip', 'v4.5.0') !== $hash) {
 	$errors[] = 'update_parse_sha256_text did not parse targeted checksum lines';
 }
-if (update_parse_sha256_text(str_repeat('b', 64) . '  other.zip', 'v4.4.5.zip', 'v4.4.5') !== '') {
+if (update_parse_sha256_text(str_repeat('b', 64) . '  other.zip', 'v4.5.0.zip', 'v4.5.0') !== '') {
 	$errors[] = 'update_parse_sha256_text accepted checksum for another file';
 }
 if (!update_public_ip_allowed('8.8.8.8')) {
