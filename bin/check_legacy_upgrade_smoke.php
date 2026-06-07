@@ -32,6 +32,8 @@ if ($confBackup === false) {
     fwrite(STDERR, "Unable to back up conf/conf.php.\n");
     exit(1);
 }
+$cacheBackup = [];
+$cacheLock = acquire_upgrade_cache_lock($root);
 
 try {
     $pdo = new PDO("mysql:host=$host;port=$port;charset=utf8mb4", $user, $password, [
@@ -55,6 +57,7 @@ try {
     $upgradeDb = safe_database_name($baseName . '_upgrade');
     reset_old_database($pdo, $upgradeDb);
     write_cli_conf($confFile, $host, $port, $upgradeDb, $user, $password, '4.0.7', $sqlMode);
+    $cacheBackup = seed_upgrade_cache_files($root);
     run_cli($root, ['upgrade'], "yes\n");
     assert_column_type($pdo, $upgradeDb, 'bbs_user', 'password', 'varchar(255)');
     assert_legacy_user_preserved($pdo, $upgradeDb);
@@ -63,6 +66,7 @@ try {
     assert_kv_exists($pdo, $upgradeDb, 'xn_upgraded_from');
     assert_kv_exists($pdo, $upgradeDb, 'xn_upgraded_date');
     assert_conf_upgraded($confFile);
+    assert_upgrade_cache_cleaned($root);
 
     echo "OK: legacy upgrade and migration smoke passed\n";
 } catch (Throwable $e) {
@@ -75,6 +79,11 @@ try {
         }
     } else {
         file_put_contents($confFile, $confBackup);
+    }
+    try {
+        restore_upgrade_cache_files($cacheBackup);
+    } finally {
+        release_upgrade_cache_lock($cacheLock);
     }
 }
 
@@ -984,6 +993,87 @@ function assert_conf_upgraded(string $confFile): void
             throw new RuntimeException("upgrade did not backfill config key: $key");
         }
     }
+}
+
+function seed_upgrade_cache_files(string $root): array
+{
+    $tmpPath = $root . '/tmp/';
+    if (!is_dir($tmpPath) && !mkdir($tmpPath, 0777, true) && !is_dir($tmpPath)) {
+        throw new RuntimeException('Unable to create tmp directory for upgrade cache smoke.');
+    }
+
+    $backup = [];
+    foreach (upgrade_cache_files($root) as $path) {
+        $backup[$path] = is_file($path) ? file_get_contents($path) : null;
+        if ($backup[$path] === false) {
+            throw new RuntimeException("Unable to back up upgrade cache fixture: $path");
+        }
+        if (file_put_contents($path, 'legacy-upgrade-cache-fixture') === false) {
+            throw new RuntimeException("Unable to seed upgrade cache fixture: $path");
+        }
+    }
+    return $backup;
+}
+
+function acquire_upgrade_cache_lock(string $root)
+{
+    $tmpPath = $root . '/tmp/';
+    if (!is_dir($tmpPath) && !mkdir($tmpPath, 0777, true) && !is_dir($tmpPath)) {
+        throw new RuntimeException('Unable to create tmp directory for upgrade cache lock.');
+    }
+
+    $lock = fopen($tmpPath . 'legacy_upgrade_smoke.lock', 'c');
+    if ($lock === false) {
+        throw new RuntimeException('Unable to open upgrade cache smoke lock.');
+    }
+    if (!flock($lock, LOCK_EX)) {
+        fclose($lock);
+        throw new RuntimeException('Unable to acquire upgrade cache smoke lock.');
+    }
+    return $lock;
+}
+
+function release_upgrade_cache_lock($lock): void
+{
+    if (is_resource($lock)) {
+        flock($lock, LOCK_UN);
+        fclose($lock);
+    }
+}
+
+function assert_upgrade_cache_cleaned(string $root): void
+{
+    foreach (upgrade_cache_files($root) as $path) {
+        if (is_file($path)) {
+            throw new RuntimeException('upgrade did not clean legacy cache/safe-mode file: ' . basename($path));
+        }
+    }
+}
+
+function restore_upgrade_cache_files(array $backup): void
+{
+    foreach ($backup as $path => $content) {
+        if ($content === null) {
+            if (is_file($path) && !unlink($path)) {
+                throw new RuntimeException("Unable to remove upgrade cache fixture: $path");
+            }
+        } else {
+            if (file_put_contents($path, $content) === false) {
+                throw new RuntimeException("Unable to restore upgrade cache fixture: $path");
+            }
+        }
+    }
+}
+
+function upgrade_cache_files(string $root): array
+{
+    $tmpPath = $root . '/tmp/';
+    return [
+        $tmpPath . 'model.min.php',
+        $tmpPath . 'plugin_hook.php',
+        $tmpPath . 'safe_mode.php',
+        $tmpPath . 'safe_mode',
+    ];
 }
 
 function normalize_column_type(string $type): string
