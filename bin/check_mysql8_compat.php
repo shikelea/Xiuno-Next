@@ -126,8 +126,10 @@ function mysql8_check_sql_text(string $relative, string $sql, array $mysql8_sens
 
     foreach (find_create_table_blocks($sql) as $block) {
         mysql8_check_text_blob_default_definitions($relative, $block['body'], $errors, $block['line'] - 1);
+        mysql8_check_unsigned_type_order_definitions($relative, $block['body'], $errors, $block['line']);
     }
     mysql8_check_alter_text_blob_defaults($relative, $sql, $errors);
+    mysql8_check_alter_unsigned_type_order($relative, $sql, $errors);
 
     foreach (find_create_table_blocks($sql) as $block) {
         foreach (preg_split('/\R/', $block['body']) as $line_number => $line) {
@@ -174,6 +176,35 @@ function mysql8_check_text_blob_default_definitions(string $relative, string $bo
     }
 }
 
+function mysql8_check_unsigned_type_order_definitions(string $relative, string $body, array &$errors, int $base_line): void
+{
+    $definition = '';
+    $definition_line = 0;
+    $lines = preg_split('/\R/', $body);
+
+    foreach ($lines as $line_number => $line) {
+        $clean = mysql8_strip_sql_line_comment($line);
+        if (trim($clean) === '') {
+            continue;
+        }
+
+        if ($definition === '') {
+            $definition_line = $line_number;
+        }
+        $definition .= ' ' . $clean;
+
+        while (($comma = mysql8_find_unquoted_comma_position($definition)) !== null) {
+            mysql8_check_unsigned_type_order_definition($relative, substr($definition, 0, $comma), $errors, $base_line + $definition_line);
+            $definition = ltrim(substr($definition, $comma + 1));
+            $definition_line = $line_number;
+        }
+    }
+
+    if ($definition !== '') {
+        mysql8_check_unsigned_type_order_definition($relative, $definition, $errors, $base_line + $definition_line);
+    }
+}
+
 function mysql8_check_alter_text_blob_defaults(string $relative, string $sql, array &$errors): void
 {
     $statement = '';
@@ -214,6 +245,46 @@ function mysql8_check_alter_text_blob_defaults(string $relative, string $sql, ar
     }
 }
 
+function mysql8_check_alter_unsigned_type_order(string $relative, string $sql, array &$errors): void
+{
+    $statement = '';
+    $statement_line = 0;
+
+    foreach (preg_split('/\R/', $sql) as $line_number => $line) {
+        $clean = mysql8_strip_sql_line_comment($line);
+        if (trim($clean) === '') {
+            continue;
+        }
+        if ($statement === '') {
+            $statement_line = $line_number + 1;
+        }
+        $statement .= ' ' . $clean;
+
+        if (!mysql8_has_unquoted_semicolon($clean)) {
+            continue;
+        }
+        $alter = mysql8_extract_alter_table_fragment($statement);
+        if ($alter !== null && mysql8_alter_statement_has_invalid_unsigned_type_order($alter)) {
+            $errors[] = sprintf(
+                '%s:%d: MySQL numeric columns must use type before UNSIGNED',
+                $relative,
+                $statement_line
+            );
+        }
+        $statement = '';
+        $statement_line = 0;
+    }
+
+    $alter = mysql8_extract_alter_table_fragment($statement);
+    if ($alter !== null && mysql8_alter_statement_has_invalid_unsigned_type_order($alter)) {
+        $errors[] = sprintf(
+            '%s:%d: MySQL numeric columns must use type before UNSIGNED',
+            $relative,
+            $statement_line
+        );
+    }
+}
+
 function mysql8_extract_alter_table_fragment(string $statement): ?string
 {
     $position = stripos($statement, 'ALTER TABLE');
@@ -235,10 +306,27 @@ function mysql8_check_text_blob_definition(string $relative, string $definition,
     }
 }
 
+function mysql8_check_unsigned_type_order_definition(string $relative, string $definition, array &$errors, int $line): void
+{
+    if (mysql8_definition_has_invalid_unsigned_type_order($definition)) {
+        $errors[] = sprintf(
+            '%s:%d: MySQL numeric columns must use type before UNSIGNED',
+            $relative,
+            $line
+        );
+    }
+}
+
 function mysql8_alter_statement_has_text_blob_default(string $statement): bool
 {
     return mysql8_alter_add_parenthesized_clause_has_text_blob_default($statement)
         || mysql8_direct_alter_clause_has_text_blob_default($statement);
+}
+
+function mysql8_alter_statement_has_invalid_unsigned_type_order(string $statement): bool
+{
+    return mysql8_alter_add_parenthesized_clause_has_invalid_unsigned_type_order($statement)
+        || mysql8_direct_alter_clause_has_invalid_unsigned_type_order($statement);
 }
 
 function mysql8_identifier_pattern(): string
@@ -246,11 +334,22 @@ function mysql8_identifier_pattern(): string
     return '(?:`(?:``|[^`])+`|[A-Za-z_][A-Za-z0-9_]*)';
 }
 
+function mysql8_unsigned_numeric_type_pattern(): string
+{
+    return '(?:tinyint|smallint|mediumint|int|integer|bigint|decimal|dec|numeric|fixed|float|double|real)';
+}
+
 function mysql8_text_blob_definition_has_literal_default(string $definition): bool
 {
     $identifier = mysql8_identifier_pattern();
     return preg_match('/^\s*' . $identifier . '\s+(?:tinytext|mediumtext|longtext|text|tinyblob|mediumblob|longblob|blob)\b/i', $definition)
         && mysql8_definition_has_literal_default($definition);
+}
+
+function mysql8_definition_has_invalid_unsigned_type_order(string $definition): bool
+{
+    $identifier = mysql8_identifier_pattern();
+    return preg_match('/^\s*' . $identifier . '\s+UNSIGNED\s+' . mysql8_unsigned_numeric_type_pattern() . '\b/i', $definition) === 1;
 }
 
 function mysql8_definition_has_literal_default(string $definition): bool
@@ -277,6 +376,10 @@ function mysql8_find_unquoted_keyword(string $source, string $keyword): ?int
         $char = $source[$i];
         if ($quote !== null) {
             if ($quote === '`' && $char === '`' && ($source[$i + 1] ?? '') === '`') {
+                $i++;
+                continue;
+            }
+            if (($quote === "'" || $quote === '"') && $char === $quote && ($source[$i + 1] ?? '') === $quote) {
                 $i++;
                 continue;
             }
@@ -312,7 +415,12 @@ function mysql8_alter_add_parenthesized_clause_has_text_blob_default(string $sta
 {
     $offset = 0;
     while (preg_match('/\bADD\s+(?:COLUMN\s+)?\(/i', $statement, $match, PREG_OFFSET_CAPTURE, $offset)) {
-        $open = $match[0][1] + strlen($match[0][0]) - 1;
+        $start = $match[0][1];
+        if (mysql8_sql_offset_is_quoted($statement, $start)) {
+            $offset = $start + strlen($match[0][0]);
+            continue;
+        }
+        $open = $start + strlen($match[0][0]) - 1;
         $close = find_matching_parenthesis($statement, $open);
         if ($close === null) {
             return false;
@@ -344,6 +452,46 @@ function mysql8_direct_alter_clause_has_text_blob_default(string $statement): bo
     return false;
 }
 
+function mysql8_alter_add_parenthesized_clause_has_invalid_unsigned_type_order(string $statement): bool
+{
+    $offset = 0;
+    while (preg_match('/\bADD\s+(?:COLUMN\s+)?\(/i', $statement, $match, PREG_OFFSET_CAPTURE, $offset)) {
+        $start = $match[0][1];
+        if (mysql8_sql_offset_is_quoted($statement, $start)) {
+            $offset = $start + strlen($match[0][0]);
+            continue;
+        }
+        $open = $start + strlen($match[0][0]) - 1;
+        $close = find_matching_parenthesis($statement, $open);
+        if ($close === null) {
+            return false;
+        }
+        $body = substr($statement, $open + 1, $close - $open - 1);
+        if (mysql8_definition_body_has_invalid_unsigned_type_order($body)) {
+            return true;
+        }
+        $offset = $close + 1;
+    }
+    return false;
+}
+
+function mysql8_direct_alter_clause_has_invalid_unsigned_type_order(string $statement): bool
+{
+    $identifier = mysql8_identifier_pattern();
+    $pattern = '/\b(?:(?:ADD|MODIFY)\s+(?:COLUMN\s+)?' . $identifier . '|CHANGE\s+(?:COLUMN\s+)?' . $identifier . '\s+' . $identifier . ')\s+UNSIGNED\s+' . mysql8_unsigned_numeric_type_pattern() . '\b/i';
+    $offset = 0;
+
+    while (preg_match($pattern, $statement, $match, PREG_OFFSET_CAPTURE, $offset)) {
+        $start = $match[0][1];
+        if (!mysql8_sql_offset_is_quoted($statement, $start)) {
+            return true;
+        }
+        $offset = $start + strlen($match[0][0]);
+    }
+
+    return false;
+}
+
 function mysql8_sql_segment_until_clause_delimiter(string $source): string
 {
     $quote = null;
@@ -353,6 +501,14 @@ function mysql8_sql_segment_until_clause_delimiter(string $source): string
     for ($i = 0; $i < $length; $i++) {
         $char = $source[$i];
         if ($quote !== null) {
+            if ($quote === '`' && $char === '`' && ($source[$i + 1] ?? '') === '`') {
+                $i++;
+                continue;
+            }
+            if (($quote === "'" || $quote === '"') && $char === $quote && ($source[$i + 1] ?? '') === $quote) {
+                $i++;
+                continue;
+            }
             if ($char === '\\') {
                 $i++;
                 continue;
@@ -362,7 +518,7 @@ function mysql8_sql_segment_until_clause_delimiter(string $source): string
             }
             continue;
         }
-        if ($char === "'" || $char === '"') {
+        if ($char === "'" || $char === '"' || $char === '`') {
             $quote = $char;
             continue;
         }
@@ -380,6 +536,40 @@ function mysql8_sql_segment_until_clause_delimiter(string $source): string
     }
 
     return $source;
+}
+
+function mysql8_sql_offset_is_quoted(string $source, int $offset): bool
+{
+    $quote = null;
+    $length = min(strlen($source), $offset);
+
+    for ($i = 0; $i < $length; $i++) {
+        $char = $source[$i];
+        if ($quote !== null) {
+            if ($quote === '`' && $char === '`' && ($source[$i + 1] ?? '') === '`') {
+                $i++;
+                continue;
+            }
+            if (($quote === "'" || $quote === '"') && $char === $quote && ($source[$i + 1] ?? '') === $quote) {
+                $i++;
+                continue;
+            }
+            if ($char === '\\') {
+                $i++;
+                continue;
+            }
+            if ($char === $quote) {
+                $quote = null;
+            }
+            continue;
+        }
+
+        if ($char === "'" || $char === '"' || $char === '`') {
+            $quote = $char;
+        }
+    }
+
+    return $quote !== null;
 }
 
 function mysql8_text_blob_definition_body_has_literal_default(string $body): bool
@@ -400,6 +590,26 @@ function mysql8_text_blob_definition_body_has_literal_default(string $body): boo
     }
 
     return $definition !== '' && mysql8_text_blob_definition_has_literal_default($definition);
+}
+
+function mysql8_definition_body_has_invalid_unsigned_type_order(string $body): bool
+{
+    $definition = '';
+    foreach (preg_split('/\R/', $body) as $line) {
+        $clean = mysql8_strip_sql_line_comment($line);
+        if (trim($clean) === '') {
+            continue;
+        }
+        $definition .= ' ' . $clean;
+        while (($comma = mysql8_find_unquoted_comma_position($definition)) !== null) {
+            if (mysql8_definition_has_invalid_unsigned_type_order(substr($definition, 0, $comma))) {
+                return true;
+            }
+            $definition = ltrim(substr($definition, $comma + 1));
+        }
+    }
+
+    return $definition !== '' && mysql8_definition_has_invalid_unsigned_type_order($definition);
 }
 
 function mysql8_has_unquoted_comma(string $line): bool
@@ -660,6 +870,14 @@ function find_matching_parenthesis(string $source, int $open_position): ?int
         $char = $source[$i];
 
         if ($quote !== null) {
+            if ($quote === '`' && $char === '`' && ($source[$i + 1] ?? '') === '`') {
+                $i++;
+                continue;
+            }
+            if (($quote === "'" || $quote === '"') && $char === $quote && ($source[$i + 1] ?? '') === $quote) {
+                $i++;
+                continue;
+            }
             if ($char === '\\') {
                 $i++;
                 continue;
@@ -670,7 +888,7 @@ function find_matching_parenthesis(string $source, int $open_position): ?int
             continue;
         }
 
-        if ($char === "'" || $char === '"') {
+        if ($char === "'" || $char === '"' || $char === '`') {
             $quote = $char;
             continue;
         }
