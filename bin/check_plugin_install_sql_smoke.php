@@ -11,6 +11,7 @@ $port = getenv('XIUNO_DB_PORT') ?: '3306';
 $baseName = getenv('XIUNO_DB_NAME') ?: '';
 $user = getenv('XIUNO_DB_USER') ?: '';
 $password = getenv('XIUNO_DB_PASSWORD') ?: '';
+$sqlMode = getenv('XIUNO_SQL_MODE') ?: '';
 
 if ($host === '' || $baseName === '' || $user === '') {
     echo "SKIP: database environment is not configured.\n";
@@ -31,6 +32,8 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 
+    apply_sql_mode($pdo, $sqlMode);
+
     $dbname = safe_database_name($baseName . '_plugin_sql');
     reset_database($pdo, $dbname);
     install_core_schema($pdo, $root);
@@ -42,6 +45,18 @@ try {
 } catch (Throwable $e) {
     fwrite(STDERR, "FAIL: " . $e->getMessage() . "\n");
     exit(1);
+}
+
+function apply_sql_mode(PDO $pdo, string $sqlMode): void
+{
+    $sqlMode = strtoupper(trim($sqlMode));
+    if ($sqlMode === '') {
+        return;
+    }
+    if (!preg_match('/^[A-Z0-9_,]+$/', $sqlMode)) {
+        throw new RuntimeException("Unsafe XIUNO_SQL_MODE value: $sqlMode");
+    }
+    $pdo->exec("SET SESSION sql_mode = '$sqlMode'");
 }
 
 function safe_database_name(string $name): string

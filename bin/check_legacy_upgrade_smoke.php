@@ -11,6 +11,7 @@ $port = getenv('XIUNO_DB_PORT') ?: '3306';
 $baseName = getenv('XIUNO_DB_NAME') ?: '';
 $user = getenv('XIUNO_DB_USER') ?: '';
 $password = getenv('XIUNO_DB_PASSWORD') ?: '';
+$sqlMode = getenv('XIUNO_SQL_MODE') ?: '';
 
 if ($host === '' || $baseName === '' || $user === '') {
     echo "SKIP: database environment is not configured.\n";
@@ -38,18 +39,20 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 
+    apply_sql_mode($pdo, $sqlMode);
+
     assert_missing_conf_fails($root, $confFile);
 
     $migrateDb = safe_database_name($baseName . '_migrate');
     reset_old_database($pdo, $migrateDb);
-    write_cli_conf($confFile, $host, $port, $migrateDb, $user, $password, '4.4.5');
+    write_cli_conf($confFile, $host, $port, $migrateDb, $user, $password, '4.4.5', $sqlMode);
     run_cli($root, ['migrate', '--no-interaction']);
     assert_column_type($pdo, $migrateDb, 'bbs_user', 'password', 'varchar(255)');
     assert_migration_recorded($pdo, $migrateDb, '0001_alter_user_password_field');
 
     $upgradeDb = safe_database_name($baseName . '_upgrade');
     reset_old_database($pdo, $upgradeDb);
-    write_cli_conf($confFile, $host, $port, $upgradeDb, $user, $password, '4.0.7');
+    write_cli_conf($confFile, $host, $port, $upgradeDb, $user, $password, '4.0.7', $sqlMode);
     run_cli($root, ['upgrade'], "yes\n");
     assert_column_type($pdo, $upgradeDb, 'bbs_user', 'password', 'varchar(255)');
     assert_migration_recorded($pdo, $upgradeDb, '0001_alter_user_password_field');
@@ -69,6 +72,18 @@ try {
     } else {
         file_put_contents($confFile, $confBackup);
     }
+}
+
+function apply_sql_mode(PDO $pdo, string $sqlMode): void
+{
+    $sqlMode = strtoupper(trim($sqlMode));
+    if ($sqlMode === '') {
+        return;
+    }
+    if (!preg_match('/^[A-Z0-9_,]+$/', $sqlMode)) {
+        throw new RuntimeException("Unsafe XIUNO_SQL_MODE value: $sqlMode");
+    }
+    $pdo->exec("SET SESSION sql_mode = '$sqlMode'");
 }
 
 function assert_missing_conf_fails(string $root, string $confFile): void
@@ -126,7 +141,7 @@ function reset_old_database(PDO $pdo, string $dbname): void
     ");
 }
 
-function write_cli_conf(string $confFile, string $host, string $port, string $dbname, string $user, string $password, string $version): void
+function write_cli_conf(string $confFile, string $host, string $port, string $dbname, string $user, string $password, string $version, string $sqlMode): void
 {
     $dbHost = $host . ':' . $port;
     $conf = [
@@ -141,6 +156,7 @@ function write_cli_conf(string $confFile, string $host, string $port, string $db
                     'tablepre' => 'bbs_',
                     'charset' => 'utf8mb4',
                     'engine' => 'innodb',
+                    'sql_mode' => $sqlMode,
                 ],
                 'slaves' => [],
             ],
