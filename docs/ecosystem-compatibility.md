@@ -92,6 +92,8 @@ The same guard now watches the database driver `CREATE TABLE` engine-rewrite che
 
 The remote MySQL schema smoke now runs against both MySQL 8.0 and MySQL 8.4. Each version executes the fresh install schema smoke, old-version upgrade/migration smoke, and local-sample-derived plugin install SQL fixtures. This keeps MySQL 8.4 LTS compatibility visible before the project decides on any default charset or engine migration.
 
+Database connections now expose an explicit `sql_mode` configuration key for both legacy `mysql` and supported `pdo_mysql` masters. The default remains empty to preserve Xiuno's historical compatibility behavior, but maintainers can opt into strict-mode smoke by setting a safe comma-separated SQL mode list in configuration without patching the DB driver. The MySQL 8 guard keeps both drivers aligned.
+
 `bin/check_plugin_install_sql_smoke.php` now turns two local-sample-derived install SQL paths into CI fixtures without committing third-party packages: a `till_post_replies`-style `ALTER TABLE bbs_post` add/drop flow, and a `sa_shop`-style MyISAM/utf8 create/drop flow. This keeps MySQL 8 compatibility honest while preserving the rule that ignored sample packages and raw reports stay out of the repository.
 
 `bin/check_plugin_dependency_flow_smoke.php` now runs real dependency failure flows in a temporary plugin app. It verifies that install-time missing/downloaded/disabled/old dependencies and uninstall-time reverse dependencies release `plugin_task`, include structured status text, link only to locally available dependency detail pages, and avoid dead links for missing remote packages.
