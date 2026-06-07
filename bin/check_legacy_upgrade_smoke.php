@@ -49,6 +49,7 @@ try {
     run_cli($root, ['migrate', '--no-interaction']);
     assert_column_type($pdo, $migrateDb, 'bbs_user', 'password', 'varchar(255)');
     assert_legacy_user_preserved($pdo, $migrateDb);
+    assert_legacy_content_preserved($pdo, $migrateDb);
     assert_migration_recorded($pdo, $migrateDb, '0001_alter_user_password_field');
 
     $upgradeDb = safe_database_name($baseName . '_upgrade');
@@ -57,6 +58,7 @@ try {
     run_cli($root, ['upgrade'], "yes\n");
     assert_column_type($pdo, $upgradeDb, 'bbs_user', 'password', 'varchar(255)');
     assert_legacy_user_preserved($pdo, $upgradeDb);
+    assert_legacy_content_preserved($pdo, $upgradeDb);
     assert_migration_recorded($pdo, $upgradeDb, '0001_alter_user_password_field');
     assert_kv_exists($pdo, $upgradeDb, 'xn_upgraded_from');
     assert_kv_exists($pdo, $upgradeDb, 'xn_upgraded_date');
@@ -150,6 +152,90 @@ function reset_old_database(PDO $pdo, string $dbname): void
             expiry int unsigned NOT NULL DEFAULT '0',
             PRIMARY KEY (k)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        CREATE TABLE bbs_forum (
+            fid int unsigned NOT NULL AUTO_INCREMENT,
+            `name` char(16) NOT NULL DEFAULT '',
+            threads mediumint unsigned NOT NULL DEFAULT '0',
+            PRIMARY KEY (fid)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("INSERT INTO bbs_forum SET fid = 3, `name` = 'legacy_forum', threads = 1");
+    $pdo->exec("
+        CREATE TABLE bbs_thread (
+            fid smallint NOT NULL DEFAULT '0',
+            tid int unsigned NOT NULL AUTO_INCREMENT,
+            uid int unsigned NOT NULL DEFAULT '0',
+            subject char(128) NOT NULL DEFAULT '',
+            create_date int unsigned NOT NULL DEFAULT '0',
+            firstpid int unsigned NOT NULL DEFAULT '0',
+            lastpid int unsigned NOT NULL DEFAULT '0',
+            PRIMARY KEY (tid),
+            KEY (fid, tid)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        INSERT INTO bbs_thread SET
+            fid = 3,
+            tid = 11,
+            uid = 7,
+            subject = 'legacy subject',
+            create_date = 1700000100,
+            firstpid = 101,
+            lastpid = 101
+    ");
+    $pdo->exec("
+        CREATE TABLE bbs_post (
+            tid int unsigned NOT NULL DEFAULT '0',
+            pid int unsigned NOT NULL AUTO_INCREMENT,
+            uid int unsigned NOT NULL DEFAULT '0',
+            isfirst int unsigned NOT NULL DEFAULT '0',
+            create_date int unsigned NOT NULL DEFAULT '0',
+            message longtext NOT NULL,
+            message_fmt longtext NOT NULL,
+            PRIMARY KEY (pid),
+            KEY (tid, pid),
+            KEY (uid)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        INSERT INTO bbs_post SET
+            tid = 11,
+            pid = 101,
+            uid = 7,
+            isfirst = 1,
+            create_date = 1700000101,
+            message = 'legacy post',
+            message_fmt = 'legacy post'
+    ");
+    $pdo->exec("
+        CREATE TABLE bbs_attach (
+            aid int unsigned NOT NULL AUTO_INCREMENT,
+            tid int NOT NULL DEFAULT '0',
+            pid int NOT NULL DEFAULT '0',
+            uid int NOT NULL DEFAULT '0',
+            filesize int unsigned NOT NULL DEFAULT '0',
+            filename char(120) NOT NULL DEFAULT '',
+            orgfilename char(120) NOT NULL DEFAULT '',
+            filetype char(7) NOT NULL DEFAULT '',
+            create_date int unsigned NOT NULL DEFAULT '0',
+            PRIMARY KEY (aid),
+            KEY pid (pid),
+            KEY uid (uid)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        INSERT INTO bbs_attach SET
+            aid = 501,
+            tid = 11,
+            pid = 101,
+            uid = 7,
+            filesize = 1234,
+            filename = 'legacy/attach.txt',
+            orgfilename = 'attach.txt',
+            filetype = 'txt',
+            create_date = 1700000102
     ");
 }
 
@@ -258,6 +344,37 @@ function assert_legacy_user_preserved(PDO $pdo, string $dbname): void
     }
     if ($row['password'] !== '1a1dc91c907325c69271ddf0c944bc72') {
         throw new RuntimeException('Legacy md5 password hash changed before login-time upgrade.');
+    }
+}
+
+function assert_legacy_content_preserved(PDO $pdo, string $dbname): void
+{
+    $pdo->exec('USE ' . quote_identifier($dbname));
+    $sql = "
+        SELECT
+            f.name AS forum_name,
+            t.subject,
+            p.message,
+            a.filename,
+            a.orgfilename
+        FROM bbs_thread t
+        INNER JOIN bbs_forum f ON f.fid = t.fid
+        INNER JOIN bbs_post p ON p.pid = t.firstpid AND p.tid = t.tid
+        INNER JOIN bbs_attach a ON a.pid = p.pid AND a.tid = t.tid
+        WHERE t.tid = 11
+    ";
+    $row = $pdo->query($sql)->fetch();
+    if (!$row) {
+        throw new RuntimeException('Legacy forum/thread/post/attachment relation was not preserved after migration.');
+    }
+    if ($row['forum_name'] !== 'legacy_forum' || $row['subject'] !== 'legacy subject') {
+        throw new RuntimeException('Legacy forum or thread fields changed after migration.');
+    }
+    if ($row['message'] !== 'legacy post') {
+        throw new RuntimeException('Legacy post content changed after migration.');
+    }
+    if ($row['filename'] !== 'legacy/attach.txt' || $row['orgfilename'] !== 'attach.txt') {
+        throw new RuntimeException('Legacy attachment metadata changed after migration.');
     }
 }
 
