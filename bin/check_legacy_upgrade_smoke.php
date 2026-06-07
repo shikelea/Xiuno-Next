@@ -163,13 +163,38 @@ function reset_old_database(PDO $pdo, string $dbname): void
     ");
     $pdo->exec("INSERT INTO bbs_forum SET fid = 3, `name` = 'legacy_forum', threads = 1");
     $pdo->exec("
+        CREATE TABLE bbs_forum_access (
+            fid int unsigned NOT NULL DEFAULT '0',
+            gid int unsigned NOT NULL DEFAULT '0',
+            allowread tinyint unsigned NOT NULL DEFAULT '0',
+            allowthread tinyint unsigned NOT NULL DEFAULT '0',
+            allowpost tinyint unsigned NOT NULL DEFAULT '0',
+            allowattach tinyint unsigned NOT NULL DEFAULT '0',
+            allowdown tinyint unsigned NOT NULL DEFAULT '0',
+            PRIMARY KEY (fid, gid)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        INSERT INTO bbs_forum_access SET
+            fid = 3,
+            gid = 101,
+            allowread = 1,
+            allowthread = 1,
+            allowpost = 1,
+            allowattach = 1,
+            allowdown = 1
+    ");
+    $pdo->exec("
         CREATE TABLE bbs_thread (
             fid smallint NOT NULL DEFAULT '0',
             tid int unsigned NOT NULL AUTO_INCREMENT,
+            top tinyint NOT NULL DEFAULT '0',
             uid int unsigned NOT NULL DEFAULT '0',
             subject char(128) NOT NULL DEFAULT '',
             create_date int unsigned NOT NULL DEFAULT '0',
+            posts int unsigned NOT NULL DEFAULT '0',
             firstpid int unsigned NOT NULL DEFAULT '0',
+            lastuid int unsigned NOT NULL DEFAULT '0',
             lastpid int unsigned NOT NULL DEFAULT '0',
             PRIMARY KEY (tid),
             KEY (fid, tid)
@@ -179,11 +204,30 @@ function reset_old_database(PDO $pdo, string $dbname): void
         INSERT INTO bbs_thread SET
             fid = 3,
             tid = 11,
+            top = 1,
             uid = 7,
             subject = 'legacy subject',
             create_date = 1700000100,
+            posts = 1,
             firstpid = 101,
-            lastpid = 101
+            lastuid = 7,
+            lastpid = 102
+    ");
+    $pdo->exec("
+        CREATE TABLE bbs_thread_top (
+            fid smallint NOT NULL DEFAULT '0',
+            tid int unsigned NOT NULL DEFAULT '0',
+            top int unsigned NOT NULL DEFAULT '0',
+            PRIMARY KEY (tid),
+            KEY (top, tid),
+            KEY (fid, top)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        INSERT INTO bbs_thread_top SET
+            fid = 3,
+            tid = 11,
+            top = 1
     ");
     $pdo->exec("
         CREATE TABLE bbs_post (
@@ -208,6 +252,16 @@ function reset_old_database(PDO $pdo, string $dbname): void
             create_date = 1700000101,
             message = 'legacy post',
             message_fmt = 'legacy post'
+    ");
+    $pdo->exec("
+        INSERT INTO bbs_post SET
+            tid = 11,
+            pid = 102,
+            uid = 7,
+            isfirst = 0,
+            create_date = 1700000103,
+            message = 'legacy reply',
+            message_fmt = 'legacy reply'
     ");
     $pdo->exec("
         CREATE TABLE bbs_attach (
@@ -236,6 +290,40 @@ function reset_old_database(PDO $pdo, string $dbname): void
             orgfilename = 'attach.txt',
             filetype = 'txt',
             create_date = 1700000102
+    ");
+    $pdo->exec("
+        INSERT INTO bbs_attach SET
+            aid = 502,
+            tid = 11,
+            pid = 102,
+            uid = 7,
+            filesize = 5678,
+            filename = 'legacy/reply.txt',
+            orgfilename = 'reply.txt',
+            filetype = 'txt',
+            create_date = 1700000104
+    ");
+    $pdo->exec("
+        CREATE TABLE bbs_mythread (
+            uid int unsigned NOT NULL DEFAULT '0',
+            tid int unsigned NOT NULL DEFAULT '0',
+            PRIMARY KEY (uid, tid)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("INSERT INTO bbs_mythread SET uid = 7, tid = 11");
+    $pdo->exec("
+        CREATE TABLE bbs_mypost (
+            uid int unsigned NOT NULL DEFAULT '0',
+            tid int unsigned NOT NULL DEFAULT '0',
+            pid int unsigned NOT NULL DEFAULT '0',
+            KEY (tid),
+            PRIMARY KEY (uid, pid)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        INSERT INTO bbs_mypost (uid, tid, pid) VALUES
+            (7, 11, 101),
+            (7, 11, 102)
     ");
 }
 
@@ -354,6 +442,10 @@ function assert_legacy_content_preserved(PDO $pdo, string $dbname): void
         SELECT
             f.name AS forum_name,
             t.subject,
+            t.top,
+            t.posts,
+            t.firstpid,
+            t.lastpid,
             p.message,
             a.filename,
             a.orgfilename
@@ -370,11 +462,59 @@ function assert_legacy_content_preserved(PDO $pdo, string $dbname): void
     if ($row['forum_name'] !== 'legacy_forum' || $row['subject'] !== 'legacy subject') {
         throw new RuntimeException('Legacy forum or thread fields changed after migration.');
     }
+    if ((int) $row['top'] !== 1 || (int) $row['posts'] !== 1 || (int) $row['firstpid'] !== 101 || (int) $row['lastpid'] !== 102) {
+        throw new RuntimeException('Legacy thread counters or first/last post pointers changed after migration.');
+    }
     if ($row['message'] !== 'legacy post') {
         throw new RuntimeException('Legacy post content changed after migration.');
     }
     if ($row['filename'] !== 'legacy/attach.txt' || $row['orgfilename'] !== 'attach.txt') {
         throw new RuntimeException('Legacy attachment metadata changed after migration.');
+    }
+
+    $reply = $pdo->query("SELECT message, isfirst FROM bbs_post WHERE tid = 11 AND pid = 102")->fetch();
+    if (!$reply || $reply['message'] !== 'legacy reply' || (int) $reply['isfirst'] !== 0) {
+        throw new RuntimeException('Legacy reply post was not preserved after migration.');
+    }
+
+    $attachments = $pdo->query("SELECT pid, filename, orgfilename FROM bbs_attach WHERE tid = 11 ORDER BY aid")->fetchAll();
+    if (count($attachments) !== 2) {
+        throw new RuntimeException('Legacy attachment count changed after migration.');
+    }
+    $expectedAttachments = [
+        ['pid' => 101, 'filename' => 'legacy/attach.txt', 'orgfilename' => 'attach.txt'],
+        ['pid' => 102, 'filename' => 'legacy/reply.txt', 'orgfilename' => 'reply.txt'],
+    ];
+    foreach ($expectedAttachments as $offset => $expected) {
+        $actual = $attachments[$offset];
+        if ((int) $actual['pid'] !== $expected['pid'] || $actual['filename'] !== $expected['filename'] || $actual['orgfilename'] !== $expected['orgfilename']) {
+            throw new RuntimeException('Legacy attachment relation changed after migration.');
+        }
+    }
+
+    $top = $pdo->query("SELECT fid, top FROM bbs_thread_top WHERE tid = 11")->fetch();
+    if (!$top || (int) $top['fid'] !== 3 || (int) $top['top'] !== 1) {
+        throw new RuntimeException('Legacy thread top relation was not preserved after migration.');
+    }
+
+    $forumAccess = $pdo->query("SELECT allowread, allowthread, allowpost, allowattach, allowdown FROM bbs_forum_access WHERE fid = 3 AND gid = 101")->fetch();
+    if (!$forumAccess) {
+        throw new RuntimeException('Legacy forum access relation was not preserved after migration.');
+    }
+    foreach (['allowread', 'allowthread', 'allowpost', 'allowattach', 'allowdown'] as $field) {
+        if ((int) $forumAccess[$field] !== 1) {
+            throw new RuntimeException('Legacy forum access flags changed after migration.');
+        }
+    }
+
+    $mythread = $pdo->query("SELECT COUNT(*) FROM bbs_mythread WHERE uid = 7 AND tid = 11")->fetchColumn();
+    if ((int) $mythread !== 1) {
+        throw new RuntimeException('Legacy mythread index was not preserved after migration.');
+    }
+
+    $myposts = $pdo->query("SELECT pid FROM bbs_mypost WHERE uid = 7 AND tid = 11 ORDER BY pid")->fetchAll(PDO::FETCH_COLUMN);
+    if (array_map('intval', $myposts) !== [101, 102]) {
+        throw new RuntimeException('Legacy mypost index was not preserved after migration.');
     }
 }
 
