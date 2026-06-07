@@ -43,6 +43,8 @@ try {
     smoke_till_post_replies_sql($pdo);
     smoke_haya_post_like_sql($pdo);
     smoke_aitu_source_sql($pdo);
+    smoke_huux_notice_user_sql($pdo);
+    smoke_tt_read_stately_sql($pdo);
     smoke_sa_shop_sql($pdo);
 
     echo "OK: plugin install SQL smoke passed\n";
@@ -170,6 +172,43 @@ function smoke_aitu_source_sql(PDO $pdo): void
     $pdo->exec('ALTER TABLE bbs_thread DROP COLUMN thumbnail');
     assert_column_missing($pdo, 'bbs_post', 'source');
     assert_column_missing($pdo, 'bbs_thread', 'thumbnail');
+}
+
+function smoke_huux_notice_user_sql(PDO $pdo): void
+{
+    $pdo->exec("ALTER TABLE bbs_user ADD COLUMN notices mediumint(8) unsigned NOT NULL default '0'");
+    $pdo->exec("ALTER TABLE bbs_user ADD COLUMN unread_notices mediumint(8) unsigned NOT NULL default '0'");
+
+    assert_column_exists($pdo, 'bbs_user', 'notices');
+    assert_column_exists($pdo, 'bbs_user', 'unread_notices');
+    assert_seed_numeric_default($pdo, 'bbs_user', 'uid', 1, 'notices', 0);
+    assert_seed_numeric_default($pdo, 'bbs_user', 'uid', 1, 'unread_notices', 0);
+
+    $pdo->exec('ALTER TABLE bbs_user DROP COLUMN notices');
+    $pdo->exec('ALTER TABLE bbs_user DROP COLUMN unread_notices');
+    assert_column_missing($pdo, 'bbs_user', 'notices');
+    assert_column_missing($pdo, 'bbs_user', 'unread_notices');
+}
+
+function smoke_tt_read_stately_sql(PDO $pdo): void
+{
+    $pdo->exec("ALTER TABLE bbs_group ADD readp int(5) NOT NULL default '1'");
+    $pdo->exec("ALTER TABLE bbs_thread ADD readp int(5) NOT NULL default '0'");
+    $pdo->exec("ALTER TABLE bbs_group ADD allowPostRead int(5) NOT NULL default '1'");
+
+    assert_column_exists($pdo, 'bbs_group', 'readp');
+    assert_column_exists($pdo, 'bbs_group', 'allowPostRead');
+    assert_column_exists($pdo, 'bbs_thread', 'readp');
+    assert_seed_numeric_default($pdo, 'bbs_group', 'gid', 1, 'readp', 1);
+    assert_seed_numeric_default($pdo, 'bbs_group', 'gid', 1, 'allowPostRead', 1);
+    assert_seed_numeric_default($pdo, 'bbs_thread', 'tid', 1, 'readp', 0);
+
+    $pdo->exec('ALTER TABLE bbs_group DROP COLUMN readp');
+    $pdo->exec('ALTER TABLE bbs_group DROP COLUMN allowPostRead');
+    $pdo->exec('ALTER TABLE bbs_thread DROP COLUMN readp');
+    assert_column_missing($pdo, 'bbs_group', 'readp');
+    assert_column_missing($pdo, 'bbs_group', 'allowPostRead');
+    assert_column_missing($pdo, 'bbs_thread', 'readp');
 }
 
 function assert_seed_post_alter_defaults(PDO $pdo): void
