@@ -198,11 +198,14 @@ function reset_old_database(PDO $pdo, string $dbname): void
             tid int unsigned NOT NULL AUTO_INCREMENT,
             top tinyint NOT NULL DEFAULT '0',
             uid int unsigned NOT NULL DEFAULT '0',
+            userip int unsigned NOT NULL DEFAULT '0',
             subject char(128) NOT NULL DEFAULT '',
             create_date int unsigned NOT NULL DEFAULT '0',
+            last_date int unsigned NOT NULL DEFAULT '0',
             posts int unsigned NOT NULL DEFAULT '0',
             images tinyint NOT NULL DEFAULT '0',
             files tinyint NOT NULL DEFAULT '0',
+            mods tinyint NOT NULL DEFAULT '0',
             closed tinyint unsigned NOT NULL DEFAULT '0',
             firstpid int unsigned NOT NULL DEFAULT '0',
             lastuid int unsigned NOT NULL DEFAULT '0',
@@ -217,15 +220,18 @@ function reset_old_database(PDO $pdo, string $dbname): void
             tid = 11,
             top = 1,
             uid = 7,
+            userip = 2130706433,
             subject = 'legacy subject',
             create_date = 1700000100,
-            posts = 1,
+            last_date = 1700000105,
+            posts = 2,
             images = 0,
             files = 2,
+            mods = 2,
             closed = 0,
             firstpid = 101,
-            lastuid = 7,
-            lastpid = 102
+            lastuid = 8,
+            lastpid = 103
     ");
     $pdo->exec("
         INSERT INTO bbs_thread SET
@@ -233,11 +239,14 @@ function reset_old_database(PDO $pdo, string $dbname): void
             tid = 12,
             top = 0,
             uid = 8,
+            userip = 2130706434,
             subject = 'legacy closed image',
             create_date = 1700000200,
+            last_date = 1700000201,
             posts = 0,
             images = 1,
             files = 1,
+            mods = 1,
             closed = 1,
             firstpid = 201,
             lastuid = 8,
@@ -266,6 +275,11 @@ function reset_old_database(PDO $pdo, string $dbname): void
             uid int unsigned NOT NULL DEFAULT '0',
             isfirst int unsigned NOT NULL DEFAULT '0',
             create_date int unsigned NOT NULL DEFAULT '0',
+            userip int unsigned NOT NULL DEFAULT '0',
+            images smallint NOT NULL DEFAULT '0',
+            files smallint NOT NULL DEFAULT '0',
+            doctype tinyint NOT NULL DEFAULT '0',
+            quotepid int NOT NULL DEFAULT '0',
             message longtext NOT NULL,
             message_fmt longtext NOT NULL,
             PRIMARY KEY (pid),
@@ -280,6 +294,7 @@ function reset_old_database(PDO $pdo, string $dbname): void
             uid = 7,
             isfirst = 1,
             create_date = 1700000101,
+            userip = 2130706433,
             message = 'legacy post',
             message_fmt = 'legacy post'
     ");
@@ -290,9 +305,27 @@ function reset_old_database(PDO $pdo, string $dbname): void
             uid = 7,
             isfirst = 0,
             create_date = 1700000103,
+            userip = 2130706433,
             message = 'legacy reply',
             message_fmt = 'legacy reply'
     ");
+    $longMessage = legacy_long_message();
+    $stmt = $pdo->prepare("
+        INSERT INTO bbs_post SET
+            tid = 11,
+            pid = 103,
+            uid = 8,
+            isfirst = 0,
+            create_date = 1700000105,
+            userip = 2130706434,
+            images = 0,
+            files = 0,
+            doctype = 1,
+            quotepid = 101,
+            message = ?,
+            message_fmt = ?
+    ");
+    $stmt->execute([$longMessage, $longMessage]);
     $pdo->exec("
         INSERT INTO bbs_post SET
             tid = 12,
@@ -300,6 +333,9 @@ function reset_old_database(PDO $pdo, string $dbname): void
             uid = 8,
             isfirst = 1,
             create_date = 1700000201,
+            userip = 2130706434,
+            images = 1,
+            files = 1,
             message = 'legacy image post',
             message_fmt = 'legacy image post'
     ");
@@ -383,8 +419,14 @@ function reset_old_database(PDO $pdo, string $dbname): void
         INSERT INTO bbs_mypost (uid, tid, pid) VALUES
             (7, 11, 101),
             (7, 11, 102),
+            (8, 11, 103),
             (8, 12, 201)
     ");
+}
+
+function legacy_long_message(): string
+{
+    return str_repeat('Legacy quoted body line with safe ASCII punctuation 0123456789. ', 1200);
 }
 
 function write_cli_conf(string $confFile, string $host, string $port, string $dbname, string $user, string $password, string $version, string $sqlMode): void
@@ -515,7 +557,10 @@ function assert_legacy_content_preserved(PDO $pdo, string $dbname): void
             t.subject,
             t.top,
             t.posts,
+            t.last_date,
+            t.mods,
             t.firstpid,
+            t.lastuid,
             t.lastpid,
             p.message,
             a.filename,
@@ -533,8 +578,11 @@ function assert_legacy_content_preserved(PDO $pdo, string $dbname): void
     if ($row['forum_name'] !== 'legacy_forum' || $row['subject'] !== 'legacy subject') {
         throw new RuntimeException('Legacy forum or thread fields changed after migration.');
     }
-    if ((int) $row['top'] !== 1 || (int) $row['posts'] !== 1 || (int) $row['firstpid'] !== 101 || (int) $row['lastpid'] !== 102) {
+    if ((int) $row['top'] !== 1 || (int) $row['posts'] !== 2 || (int) $row['firstpid'] !== 101 || (int) $row['lastuid'] !== 8 || (int) $row['lastpid'] !== 103) {
         throw new RuntimeException('Legacy thread counters or first/last post pointers changed after migration.');
+    }
+    if ((int) $row['last_date'] !== 1700000105 || (int) $row['mods'] !== 2) {
+        throw new RuntimeException('Legacy thread last-date or moderation metadata changed after migration.');
     }
     if ($row['message'] !== 'legacy post') {
         throw new RuntimeException('Legacy post content changed after migration.');
@@ -588,7 +636,38 @@ function assert_legacy_content_preserved(PDO $pdo, string $dbname): void
         throw new RuntimeException('Legacy mypost index was not preserved after migration.');
     }
 
+    assert_legacy_long_quote_preserved($pdo, $dbname);
     assert_legacy_multi_scope_content_preserved($pdo, $dbname);
+}
+
+function assert_legacy_long_quote_preserved(PDO $pdo, string $dbname): void
+{
+    $pdo->exec('USE ' . quote_identifier($dbname));
+    $stmt = $pdo->prepare('SELECT uid, isfirst, create_date, userip, doctype, quotepid, message, message_fmt FROM bbs_post WHERE tid = ? AND pid = ?');
+    $stmt->execute([11, 103]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        throw new RuntimeException('Legacy long quoted reply was not preserved after migration.');
+    }
+    if ((int) $row['uid'] !== 8 || (int) $row['isfirst'] !== 0 || (int) $row['create_date'] !== 1700000105 || (int) $row['userip'] !== 2130706434) {
+        throw new RuntimeException('Legacy long quoted reply identity metadata changed after migration.');
+    }
+    if ((int) $row['doctype'] !== 1 || (int) $row['quotepid'] !== 101) {
+        throw new RuntimeException('Legacy long quoted reply doctype or quote relation changed after migration.');
+    }
+
+    $expected = legacy_long_message();
+    if (strlen($row['message']) !== strlen($expected) || hash('sha256', $row['message']) !== hash('sha256', $expected)) {
+        throw new RuntimeException('Legacy long quoted reply raw message changed after migration.');
+    }
+    if (strlen($row['message_fmt']) !== strlen($expected) || hash('sha256', $row['message_fmt']) !== hash('sha256', $expected)) {
+        throw new RuntimeException('Legacy long quoted reply formatted message changed after migration.');
+    }
+
+    $mypost = $pdo->query("SELECT COUNT(*) FROM bbs_mypost WHERE uid = 8 AND tid = 11 AND pid = 103")->fetchColumn();
+    if ((int) $mypost !== 1) {
+        throw new RuntimeException('Legacy long quoted reply mypost index was not preserved after migration.');
+    }
 }
 
 function assert_legacy_multi_scope_content_preserved(PDO $pdo, string $dbname): void
@@ -602,6 +681,7 @@ function assert_legacy_multi_scope_content_preserved(PDO $pdo, string $dbname): 
             t.closed,
             t.images,
             t.files,
+            t.mods,
             t.firstpid,
             t.lastpid,
             p.uid AS post_uid,
@@ -641,7 +721,7 @@ function assert_legacy_multi_scope_content_preserved(PDO $pdo, string $dbname): 
     if ($row['forum_name'] !== 'legacy_media' || $row['subject'] !== 'legacy closed image' || (int) $row['uid'] !== 8) {
         throw new RuntimeException('Legacy multi-forum thread identity changed after migration.');
     }
-    if ((int) $row['closed'] !== 1 || (int) $row['images'] !== 1 || (int) $row['files'] !== 1 || (int) $row['firstpid'] !== 201 || (int) $row['lastpid'] !== 201) {
+    if ((int) $row['closed'] !== 1 || (int) $row['images'] !== 1 || (int) $row['files'] !== 1 || (int) $row['mods'] !== 1 || (int) $row['firstpid'] !== 201 || (int) $row['lastpid'] !== 201) {
         throw new RuntimeException('Legacy closed/image thread metadata changed after migration.');
     }
     if ((int) $row['post_uid'] !== 8 || (int) $row['isfirst'] !== 1 || (int) $row['post_create_date'] !== 1700000201) {
