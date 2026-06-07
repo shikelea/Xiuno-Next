@@ -38,6 +38,7 @@ foreach ($files as $relative) {
 mysql8_check_driver_engine_rewrite($root, $errors);
 mysql8_check_driver_sql_mode_config($root, $errors);
 mysql8_check_strict_mode_smoke_config($root, $errors);
+mysql8_check_plugin_sql_non_empty_fixture($root, $errors);
 
 if($sample_root !== '') {
     $sample_path = normalize_sample_path($root, $sample_root);
@@ -218,6 +219,27 @@ function mysql8_check_strict_mode_smoke_config(string $root, array &$errors): vo
     }
     if (substr_count($workflow, 'XIUNO_SQL_MODE: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION') < 3) {
         $errors[] = '.github/workflows/ci.yml: strict sql_mode must cover install, legacy upgrade, and plugin SQL smokes';
+    }
+}
+
+function mysql8_check_plugin_sql_non_empty_fixture(string $root, array &$errors): void
+{
+    $relative = 'bin/check_plugin_install_sql_smoke.php';
+    $source = file_get_contents($root . '/' . $relative);
+    if ($source === false) {
+        $errors[] = "$relative: unable to read file";
+        return;
+    }
+    foreach ([
+        'seed_post_table($pdo);',
+        'function seed_post_table(PDO $pdo): void',
+        'INSERT INTO bbs_post SET',
+        'assert_seed_post_alter_defaults($pdo);',
+        'function assert_seed_post_alter_defaults(PDO $pdo): void',
+    ] as $needle) {
+        if (strpos($source, $needle) === false) {
+            $errors[] = "$relative: plugin SQL smoke must cover non-empty post table ALTER: $needle";
+        }
     }
 }
 
