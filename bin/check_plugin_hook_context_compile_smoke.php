@@ -58,10 +58,12 @@ mkdir($app.'view/htm/', 0777, TRUE);
 $case_target = $app.'route/case_target.php';
 $template_target = $app.'view/htm/template_target.htm';
 $guard_target = $app.'route/guard_target.php';
+$hook_comment = '// hoo'.'k ';
+$hook_template = '<!--{hoo'.'k template_hook.htm}-->';
 
-file_put_contents($case_target, "<?php\nswitch(\$action) {\n// hook case_hook.php\n\tdefault: echo 'default';\n}\n");
-file_put_contents($template_target, "before <!--{hook template_hook.htm}--> after");
-file_put_contents($guard_target, "<?php\n// hook guarded_hook.php\n");
+file_put_contents($case_target, "<?php\nswitch(\$action) {\n".$hook_comment."case_hook.php\n\tdefault: echo 'default';\n}\n");
+file_put_contents($template_target, 'before '.$hook_template.' after');
+file_put_contents($guard_target, "<?php\n".$hook_comment."guarded_hook.php\n");
 
 write_plugin($app, 'enabled_low_hook', 1, 1, array(
 	'case_hook.php'=>10,
