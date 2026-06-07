@@ -62,10 +62,18 @@ foreach (array('type', 'engine', 'host', 'name', 'user', 'password', 'force', 'a
 		|| fail("Installer DB POST flow must read $field from POST only.");
 }
 
-$create_pos = strpos($db_post, 'CREATE DATABASE `$name`');
+$create_pos = strpos($db_post, 'CREATE DATABASE `$name` $charset_clause');
 $validate_pos = strpos($db_post, 'install_db_name_safe($name)');
 ($create_pos !== FALSE && $validate_pos !== FALSE && $validate_pos < $create_pos)
 	|| fail('Installer must validate database names before CREATE DATABASE uses them.');
+strpos($db_post, 'install_db_charset_clause(') !== FALSE
+	|| fail('Installer must derive a safe database charset clause before CREATE DATABASE.');
+strpos($install, "function install_db_charset_clause(\$charset)") !== FALSE
+	|| fail('Installer database charset whitelist helper is missing.');
+strpos($install, "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci") !== FALSE
+	|| fail('Installer must support explicit utf8mb4 database creation.');
+strpos($install, "CHARACTER SET utf8 COLLATE utf8_general_ci") !== FALSE
+	|| fail('Installer must keep explicit utf8 fallback database creation.');
 
 strpos($db_post, "install_lock_start();") !== FALSE
 	|| fail('Installer DB POST flow must acquire the install lock.');

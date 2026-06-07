@@ -4,6 +4,7 @@ $root = dirname(__DIR__);
 $files = [
     'install/install.sql',
     'install/alter.sql',
+    'install/upgrade.sql',
     'tool/alter.sql',
 ];
 $sample_root = cli_option_value($argv, '--samples');
