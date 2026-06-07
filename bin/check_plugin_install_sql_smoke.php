@@ -45,6 +45,7 @@ try {
     smoke_aitu_source_sql($pdo);
     smoke_huux_notice_user_sql($pdo);
     smoke_tt_read_stately_sql($pdo);
+    smoke_tt_offer_forum_sql($pdo);
     smoke_sa_shop_sql($pdo);
 
     echo "OK: plugin install SQL smoke passed\n";
@@ -209,6 +210,32 @@ function smoke_tt_read_stately_sql(PDO $pdo): void
     assert_column_missing($pdo, 'bbs_group', 'readp');
     assert_column_missing($pdo, 'bbs_group', 'allowPostRead');
     assert_column_missing($pdo, 'bbs_thread', 'readp');
+}
+
+function smoke_tt_offer_forum_sql(PDO $pdo): void
+{
+    $pdo->exec("ALTER TABLE bbs_group ADD allowOffer INT(5) NOT NULL default '0'");
+    $pdo->exec("ALTER TABLE bbs_forum ADD allowOffer INT(5) NOT NULL default '0'");
+    $pdo->exec("ALTER TABLE bbs_thread ADD offerNum INT(20) NOT NULL default '0'");
+    $pdo->exec("ALTER TABLE bbs_thread ADD offerStatus INT(20) NOT NULL default '0'");
+
+    assert_column_exists($pdo, 'bbs_group', 'allowOffer');
+    assert_column_exists($pdo, 'bbs_forum', 'allowOffer');
+    assert_column_exists($pdo, 'bbs_thread', 'offerNum');
+    assert_column_exists($pdo, 'bbs_thread', 'offerStatus');
+    assert_seed_numeric_default($pdo, 'bbs_group', 'gid', 1, 'allowOffer', 0);
+    assert_seed_numeric_default($pdo, 'bbs_forum', 'fid', 1, 'allowOffer', 0);
+    assert_seed_numeric_default($pdo, 'bbs_thread', 'tid', 1, 'offerNum', 0);
+    assert_seed_numeric_default($pdo, 'bbs_thread', 'tid', 1, 'offerStatus', 0);
+
+    $pdo->exec('ALTER TABLE bbs_group DROP COLUMN allowOffer');
+    $pdo->exec('ALTER TABLE bbs_forum DROP COLUMN allowOffer');
+    $pdo->exec('ALTER TABLE bbs_thread DROP COLUMN offerNum');
+    $pdo->exec('ALTER TABLE bbs_thread DROP COLUMN offerStatus');
+    assert_column_missing($pdo, 'bbs_group', 'allowOffer');
+    assert_column_missing($pdo, 'bbs_forum', 'allowOffer');
+    assert_column_missing($pdo, 'bbs_thread', 'offerNum');
+    assert_column_missing($pdo, 'bbs_thread', 'offerStatus');
 }
 
 function assert_seed_post_alter_defaults(PDO $pdo): void
