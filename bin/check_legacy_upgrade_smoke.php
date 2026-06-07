@@ -134,6 +134,7 @@ function reset_old_database(PDO $pdo, string $dbname): void
             username char(32) NOT NULL DEFAULT '',
             salt char(16) NOT NULL DEFAULT '',
             `password` char(32) NOT NULL DEFAULT '',
+            digests tinyint unsigned NOT NULL DEFAULT '0',
             PRIMARY KEY (uid),
             UNIQUE KEY username (username)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -143,14 +144,16 @@ function reset_old_database(PDO $pdo, string $dbname): void
             uid = 7,
             username = 'legacy_user',
             salt = 'oldsalt',
-            `password` = '1a1dc91c907325c69271ddf0c944bc72'
+            `password` = '1a1dc91c907325c69271ddf0c944bc72',
+            digests = 2
     ");
     $pdo->exec("
         INSERT INTO bbs_user SET
             uid = 8,
             username = 'legacy_editor',
             salt = 'oldsalt2',
-            `password` = '5f4dcc3b5aa765d61d8327deb882cf99'
+            `password` = '5f4dcc3b5aa765d61d8327deb882cf99',
+            digests = 1
     ");
     $pdo->exec("
         CREATE TABLE bbs_kv (
@@ -208,6 +211,7 @@ function reset_old_database(PDO $pdo, string $dbname): void
             files tinyint NOT NULL DEFAULT '0',
             mods tinyint NOT NULL DEFAULT '0',
             closed tinyint unsigned NOT NULL DEFAULT '0',
+            digest tinyint unsigned NOT NULL DEFAULT '0',
             firstpid int unsigned NOT NULL DEFAULT '0',
             lastuid int unsigned NOT NULL DEFAULT '0',
             lastpid int unsigned NOT NULL DEFAULT '0',
@@ -230,6 +234,7 @@ function reset_old_database(PDO $pdo, string $dbname): void
             files = 2,
             mods = 2,
             closed = 0,
+            digest = 2,
             firstpid = 101,
             lastuid = 8,
             lastpid = 103
@@ -249,6 +254,7 @@ function reset_old_database(PDO $pdo, string $dbname): void
             files = 1,
             mods = 1,
             closed = 1,
+            digest = 1,
             firstpid = 201,
             lastuid = 8,
             lastpid = 201
@@ -269,6 +275,7 @@ function reset_old_database(PDO $pdo, string $dbname): void
             files = 1,
             mods = 0,
             closed = 0,
+            digest = 0,
             firstpid = 301,
             lastuid = 0,
             lastpid = 301
@@ -289,6 +296,22 @@ function reset_old_database(PDO $pdo, string $dbname): void
             fid = 3,
             tid = 11,
             top = 1
+    ");
+    $pdo->exec("
+        CREATE TABLE bbs_thread_digest (
+            fid smallint unsigned NOT NULL DEFAULT '0',
+            tid int unsigned NOT NULL DEFAULT '0',
+            uid int unsigned NOT NULL DEFAULT '0',
+            digest tinyint unsigned NOT NULL DEFAULT '0',
+            PRIMARY KEY (tid),
+            KEY (uid),
+            UNIQUE KEY (fid, tid)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        INSERT INTO bbs_thread_digest (fid, tid, uid, digest) VALUES
+            (3, 11, 7, 2),
+            (4, 12, 8, 1)
     ");
     $pdo->exec("
         CREATE TABLE bbs_post (
@@ -589,7 +612,7 @@ function assert_column_type(PDO $pdo, string $dbname, string $table, string $col
 function assert_legacy_user_preserved(PDO $pdo, string $dbname): void
 {
     $pdo->exec('USE ' . quote_identifier($dbname));
-    $stmt = $pdo->prepare('SELECT uid, username, salt, `password` FROM bbs_user WHERE uid IN (?, ?) ORDER BY uid');
+    $stmt = $pdo->prepare('SELECT uid, username, salt, `password`, digests FROM bbs_user WHERE uid IN (?, ?) ORDER BY uid');
     $stmt->execute([7, 8]);
     $rows = $stmt->fetchAll();
     if (count($rows) !== 2) {
@@ -597,8 +620,8 @@ function assert_legacy_user_preserved(PDO $pdo, string $dbname): void
     }
 
     $expected = [
-        7 => ['username' => 'legacy_user', 'salt' => 'oldsalt', 'password' => '1a1dc91c907325c69271ddf0c944bc72'],
-        8 => ['username' => 'legacy_editor', 'salt' => 'oldsalt2', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99'],
+        7 => ['username' => 'legacy_user', 'salt' => 'oldsalt', 'password' => '1a1dc91c907325c69271ddf0c944bc72', 'digests' => 2],
+        8 => ['username' => 'legacy_editor', 'salt' => 'oldsalt2', 'password' => '5f4dcc3b5aa765d61d8327deb882cf99', 'digests' => 1],
     ];
     foreach ($rows as $row) {
         $uid = (int) $row['uid'];
@@ -610,6 +633,9 @@ function assert_legacy_user_preserved(PDO $pdo, string $dbname): void
         }
         if ($row['password'] !== $expected[$uid]['password']) {
             throw new RuntimeException('Legacy md5 password hash changed before login-time upgrade.');
+        }
+        if ((int) $row['digests'] !== $expected[$uid]['digests']) {
+            throw new RuntimeException('Legacy user digest counter changed after migration.');
         }
     }
 }
@@ -625,6 +651,7 @@ function assert_legacy_content_preserved(PDO $pdo, string $dbname): void
             t.posts,
             t.last_date,
             t.mods,
+            t.digest,
             t.firstpid,
             t.lastuid,
             t.lastpid,
@@ -647,7 +674,7 @@ function assert_legacy_content_preserved(PDO $pdo, string $dbname): void
     if ((int) $row['top'] !== 1 || (int) $row['posts'] !== 2 || (int) $row['firstpid'] !== 101 || (int) $row['lastuid'] !== 8 || (int) $row['lastpid'] !== 103) {
         throw new RuntimeException('Legacy thread counters or first/last post pointers changed after migration.');
     }
-    if ((int) $row['last_date'] !== 1700000105 || (int) $row['mods'] !== 2) {
+    if ((int) $row['last_date'] !== 1700000105 || (int) $row['mods'] !== 2 || (int) $row['digest'] !== 2) {
         throw new RuntimeException('Legacy thread last-date or moderation metadata changed after migration.');
     }
     if ($row['message'] !== 'legacy post') {
@@ -703,6 +730,7 @@ function assert_legacy_content_preserved(PDO $pdo, string $dbname): void
     }
 
     assert_legacy_long_quote_preserved($pdo, $dbname);
+    assert_legacy_digest_extension_preserved($pdo, $dbname);
     assert_legacy_multi_scope_content_preserved($pdo, $dbname);
     assert_legacy_boundary_values_preserved($pdo, $dbname);
 }
@@ -749,6 +777,7 @@ function assert_legacy_multi_scope_content_preserved(PDO $pdo, string $dbname): 
             t.images,
             t.files,
             t.mods,
+            t.digest,
             t.firstpid,
             t.lastpid,
             p.uid AS post_uid,
@@ -788,7 +817,7 @@ function assert_legacy_multi_scope_content_preserved(PDO $pdo, string $dbname): 
     if ($row['forum_name'] !== 'legacy_media' || $row['subject'] !== 'legacy closed image' || (int) $row['uid'] !== 8) {
         throw new RuntimeException('Legacy multi-forum thread identity changed after migration.');
     }
-    if ((int) $row['closed'] !== 1 || (int) $row['images'] !== 1 || (int) $row['files'] !== 1 || (int) $row['mods'] !== 1 || (int) $row['firstpid'] !== 201 || (int) $row['lastpid'] !== 201) {
+    if ((int) $row['closed'] !== 1 || (int) $row['images'] !== 1 || (int) $row['files'] !== 1 || (int) $row['mods'] !== 1 || (int) $row['digest'] !== 1 || (int) $row['firstpid'] !== 201 || (int) $row['lastpid'] !== 201) {
         throw new RuntimeException('Legacy closed/image thread metadata changed after migration.');
     }
     if ((int) $row['post_uid'] !== 8 || (int) $row['isfirst'] !== 1 || (int) $row['post_create_date'] !== 1700000201) {
@@ -815,6 +844,28 @@ function assert_legacy_multi_scope_content_preserved(PDO $pdo, string $dbname): 
     $mypost = $pdo->query("SELECT COUNT(*) FROM bbs_mypost WHERE uid = 8 AND tid = 12 AND pid = 201")->fetchColumn();
     if ((int) $mypost !== 1) {
         throw new RuntimeException('Legacy second-user mypost index was not preserved after migration.');
+    }
+}
+
+function assert_legacy_digest_extension_preserved(PDO $pdo, string $dbname): void
+{
+    $pdo->exec('USE ' . quote_identifier($dbname));
+    $rows = $pdo->query('SELECT fid, tid, uid, digest FROM bbs_thread_digest ORDER BY tid')->fetchAll();
+    if (count($rows) !== 2) {
+        throw new RuntimeException('Legacy thread digest extension row count changed after migration.');
+    }
+
+    $expected = [
+        ['fid' => 3, 'tid' => 11, 'uid' => 7, 'digest' => 2],
+        ['fid' => 4, 'tid' => 12, 'uid' => 8, 'digest' => 1],
+    ];
+    foreach ($expected as $offset => $expectedRow) {
+        $row = $rows[$offset];
+        foreach ($expectedRow as $field => $expectedValue) {
+            if ((int) $row[$field] !== $expectedValue) {
+                throw new RuntimeException('Legacy thread digest extension fields changed after migration.');
+            }
+        }
     }
 }
 
