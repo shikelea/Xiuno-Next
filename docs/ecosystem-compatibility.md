@@ -106,6 +106,8 @@ Forum-level permission extensions are covered as well through a `tt_offer`-style
 
 The MySQL 8 static guard now rejects literal defaults on `TEXT`/`BLOB`-family columns. In the ignored local sample set this class currently maps to cover/note/lucky-post package patches rather than core compatibility-layer behavior: `till_forum_cover`, `till_user_cover`, `sa_noteapp`, and `xn_lucky_post` use `TEXT DEFAULT ''`-style column definitions. These should be fixed in package SQL or migration shims before they are promoted to positive install smoke fixtures.
 
+The same MySQL 8 guard now rejects invalid integer type order such as `UNSIGNED int`. The current ignored sample hit is `qg_auction/install.php`, where `auction_log.aid` is declared as `UNSIGNED int` instead of `int unsigned`. This remains a package repair or future migration-shim candidate, not a positive plugin install SQL fixture.
+
 Discuz import converters are now out of scope for Xiuno Next. The legacy import scripts `tool/dx_to_xn4.php`, `tool/dx32_to_xn4.php`, and `tool/dx34_to_xn4.php` have been removed, and `bin/check_legacy_converter_safety.php` now guards against restoring them. The active old-site migration target for this phase is Xiuno BBS 4.0.4-style upgrades through the maintained `migrate` / `upgrade` path, not cross-product imports.
 
 The legacy upgrade smoke now seeds an old `bbs_user` row with a `char(32)` MD5-style password hash before running both `migrate` and `upgrade`. The smoke verifies that the password column is widened to `varchar(255)` while the legacy user, salt, and hash remain intact for the normal login-time bcrypt upgrade path.
