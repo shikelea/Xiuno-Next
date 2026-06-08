@@ -78,9 +78,9 @@ Local scan scripts and generated reports remain ignored. Only stable conclusions
 
 ## 2026-05-30 Sample Smoke Delta
 
-The current ignored local sample scan still covers 58 packages, with 2 theme-like packages in this pass. Metadata is clean, while the remaining blocking backend signals are one standalone PHP syntax error and one PHP 8 removed-function call (`each()`) in a theme overwrite package. The frontend signals are still dominated by BS4 compatibility markers already represented in the compatibility-layer guard surface.
+The current ignored local sample scan still covers 58 packages, with 2 theme-like packages in this pass. Metadata is clean, while the remaining blocking backend signal is one standalone PHP syntax error from an unparenthesized nested ternary. A raw `each()` signal in a theme overwrite template was reviewed as frontend jQuery `.each()`, not a removed PHP function call. The frontend signals are still dominated by BS4 compatibility markers already represented in the compatibility-layer guard surface.
 
-The PHP package guard now checks standalone plugin PHP files for removed PHP 8 function calls in addition to `php -l`, while continuing to skip `hook/` fragments that compile into Xiuno route/template context. This converts a runtime fatal class found by real samples into a pre-install/pre-enable/pre-upgrade blocker. The guard fixture includes `overwrite/` package files as standalone PHP, matching the current theme overwrite sample that still calls `each()`.
+The PHP package guard now checks standalone plugin PHP files for removed PHP 8 function calls in addition to `php -l`, while continuing to skip `hook/` fragments that compile into Xiuno route/template context. This converts runtime fatal classes found by real samples into pre-install/pre-enable/pre-upgrade blockers. The guard fixture now explicitly covers unsupported unparenthesized nested ternaries, overwrite package PHP files with removed functions, and HTML/JS template files using jQuery `.each()` that must not be misclassified as PHP `each()`.
 
 The BS4 runtime compatibility layer already covers the high-frequency frontend markers from this scan. The CI guard now also asserts the sample-driven `custom-control` subselectors and the full contextual badge family, so future frontend cleanup cannot silently remove compatibility that real packages still use.
 
