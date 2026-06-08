@@ -162,7 +162,7 @@ bin\benchmark.bat
 
 ## 开发者资料
 
-写给开发者的资料统一放在 [docs/](docs/) 目录。社区扩展版原始开发手册仅作为本地参考资料，不纳入仓库；相关边界见 [docs/community-manual-notes.md](docs/community-manual-notes.md)。
+写给开发者的资料统一放在 [docs/](docs/) 目录。社区扩展版原始开发手册仅作为本地参考资料，不纳入仓库。
 
 ## 🤝 参与贡献
 

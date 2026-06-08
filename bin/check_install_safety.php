@@ -38,6 +38,8 @@ strpos($install, "function install_post(\$key") !== FALSE
 	|| fail('Installer must use a POST-only helper for submitted setup fields.');
 strpos($install, "\$_lang = install_post('lang')") !== FALSE
 	|| fail('Installer language POST branch must not read from merged request data.');
+strpos($install, "include APP_PATH.'model/check.func.php';") !== FALSE
+	|| fail('Installer must load the shared user input validators.');
 
 strpos($db_post, "install_db_name_safe(\$name)") !== FALSE
 	|| fail('Installer must validate the database name before connecting or creating databases.');
@@ -60,6 +62,29 @@ foreach (array('type', 'engine', 'host', 'name', 'user', 'password', 'force', 'a
 		|| fail("Installer DB POST flow must not read $field from merged request data.");
 	strpos($db_post, "install_post('$field") !== FALSE
 		|| fail("Installer DB POST flow must read $field from POST only.");
+}
+$adminemail_required_pos = strpos($db_post, "empty(\$adminemail) AND message('adminemail', lang('please_input_email'));");
+$adminuser_required_pos = strpos($db_post, "empty(\$adminuser) AND message('adminuser', lang('please_input_username'));");
+$adminpass_required_pos = strpos($db_post, "empty(\$adminpass) AND message('adminpass', lang('please_input_password'));");
+$adminemail_validate_pos = strpos($db_post, "!is_email(\$adminemail, \$err) AND message('adminemail', \$err);");
+$adminuser_validate_pos = strpos($db_post, "!is_username(\$adminuser, \$err) AND message('adminuser', \$err);");
+$adminpass_validate_pos = strpos($db_post, "!is_password(md5(\$adminpass), \$err) AND message('adminpass', \$err);");
+$install_lock_pos = strpos($db_post, "install_lock_start();");
+$adminemail_required_pos !== FALSE
+	|| fail('Installer must require the initial admin email before setup writes.');
+$adminuser_required_pos !== FALSE
+	|| fail('Installer must require the initial admin username before setup writes.');
+$adminpass_required_pos !== FALSE
+	|| fail('Installer must require the initial admin password before setup writes.');
+$adminemail_validate_pos !== FALSE
+	|| fail('Installer must validate the initial admin email with the shared email validator.');
+$adminuser_validate_pos !== FALSE
+	|| fail('Installer must validate the initial admin username with the shared username validator.');
+$adminpass_validate_pos !== FALSE
+	|| fail('Installer must validate the initial admin password with the shared password validator.');
+foreach(array($adminemail_required_pos, $adminuser_required_pos, $adminpass_required_pos, $adminemail_validate_pos, $adminuser_validate_pos, $adminpass_validate_pos) as $admin_check_pos) {
+	($install_lock_pos !== FALSE && $admin_check_pos < $install_lock_pos)
+		|| fail('Installer must validate initial admin credentials before acquiring the install lock and writing setup state.');
 }
 
 $create_pos = strpos($db_post, 'CREATE DATABASE `$name` $charset_clause');

@@ -26,6 +26,7 @@ include APP_PATH.'model/misc.func.php';
 include APP_PATH.'model/plugin.func.php';
 include APP_PATH.'model/user.func.php';
 include APP_PATH.'model/group.func.php';
+include APP_PATH.'model/check.func.php';
 include APP_PATH.'model/form.func.php';
 include APP_PATH.'model/forum.func.php';
 include INSTALL_PATH.'install.func.php';
@@ -127,8 +128,12 @@ if(empty($action)) {
 		empty($name) AND message('name', lang('dbname_is_empty'));
 		!install_db_name_safe($name) AND message('name', 'Database name may only contain letters, numbers and underscores.');
 		empty($user) AND message('user', lang('dbuser_is_empty'));
-		empty($adminpass) AND message('adminpass', lang('adminuser_is_empty'));
-		empty($adminemail) AND message('adminemail', lang('adminpass_is_empty'));
+		empty($adminemail) AND message('adminemail', lang('please_input_email'));
+		empty($adminuser) AND message('adminuser', lang('please_input_username'));
+		empty($adminpass) AND message('adminpass', lang('please_input_password'));
+		!is_email($adminemail, $err) AND message('adminemail', $err);
+		!is_username($adminuser, $err) AND message('adminuser', $err);
+		!is_password(md5($adminpass), $err) AND message('adminpass', $err);
 
 		install_lock_start();
 		
