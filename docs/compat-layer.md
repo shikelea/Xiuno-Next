@@ -392,3 +392,11 @@ if (!function_exists('new_function_name')) {
 | `index.php` | PHP | 通用注入器（ob_start 回调） |
 | `view/htm/header.inc.htm` | HTM | 调用 `theme_render_styles()` |
 | `view/htm/footer.inc.htm` | HTM | 调用 `theme_render_scripts()` |
+
+## 2026-06-08 Compatibility Notes
+
+- Plugin lifecycle SQL now treats successful DDL that reports zero affected rows as success. This matches PDO/MySQL behavior for `CREATE TABLE`, `ALTER TABLE`, `DROP` and `TRUNCATE`.
+- During plugin lifecycle files only, repeated idempotent DDL errors such as existing tables, duplicate columns, duplicate indexes and missing columns during cleanup are logged to `plugin_sql_compat` and allowed to continue. Non-idempotent SQL errors still fail.
+- New plugin scaffolds should prefer `plugin_db_exec_or_throw($sql)` in `install.php`, `unstall.php` and `upgrade.php` so database failures are visible in the admin UI.
+- Legacy admin themes that override `plugin_list.htm` may miss `data-method="post"` on plugin action links. `bs4-compat.js` repairs known plugin write actions so they still flow through the core POST/confirm handlers.
+- Legacy admin themes that omit the core admin footer may also expose frontend-style `view/js/...` paths under `/admin/`. The compatibility injector now emits `../view/...` assets for admin requests and does not treat broken `/admin/view/...` compatibility assets as loaded.

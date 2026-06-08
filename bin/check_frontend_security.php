@@ -72,6 +72,15 @@ if ($indexEntry === FALSE) {
 	if (strpos($indexEntry, "substr(\$view_url, 0, 2) === '//'") === FALSE) {
 		$errors[] = 'compatibility injector view_url must reject protocol-relative URLs';
 	}
+	if (strpos($indexEntry, '$is_admin_request = strpos($script_name, \'/admin/\') !== FALSE') === FALSE) {
+		$errors[] = 'compatibility injector must detect admin requests before building relative asset URLs';
+	}
+	if (strpos($indexEntry, "\$view_url = '../' . \$view_url;") === FALSE) {
+		$errors[] = 'compatibility injector must prefix relative view_url with ../ for admin requests';
+	}
+	if (strpos($indexEntry, "stripos(\$html, '../view/js/bs4-compat') === false") === FALSE) {
+		$errors[] = 'compatibility injector must not treat admin/view bs4-compat paths as valid admin assets';
+	}
 	if (strpos($indexEntry, "\$html .= \$body_inject;") === FALSE) {
 		$errors[] = 'compatibility injector must append JS when an overwritten theme omits closing body/html tags';
 	}
@@ -105,6 +114,18 @@ if ($bs4Compat === FALSE) {
 	if (strpos($bs4Compat, "method === 'POST' && isSameOrigin(input)") === FALSE) {
 		$errors[] = 'fetch CSRF injector must only attach tokens to same-origin POST requests';
 	}
+	if (strpos($bs4Compat, "jfeedback.text(message).addClass('d-block');") === FALSE) {
+		$errors[] = 'form alert helper must render visible invalid-feedback text, not only tooltips';
+	}
+	if (strpos($bs4Compat, "jthis.one('focus input'") !== FALSE) {
+		$errors[] = 'form alert helper must not clear errors on focus before users can read them';
+	}
+	if (strpos($bs4Compat, "jthis.off('input.xn-alert change.xn-alert').one('input.xn-alert change.xn-alert'") === FALSE) {
+		$errors[] = 'form alert helper must clear errors only after user input or change';
+	}
+	if (strpos($bs4Compat, "xn-alert-original-aria-describedby") === FALSE) {
+		$errors[] = 'form alert helper must preserve existing aria-describedby values';
+	}
 }
 
 $bbsJs = file_get_contents($root . 'view/js/bbs.js');
@@ -122,6 +143,21 @@ if ($bbsJs === FALSE) {
 	}
 	if (strpos($bbsJs, 'function xn_post_link_unlock(jlink)') === FALSE || strpos($bbsJs, "removeData('post-pending')") === FALSE) {
 		$errors[] = 'data-method POST links must restore the pending state on failure';
+	}
+}
+
+$loginTemplate = file_get_contents($root . 'view/htm/user_login.htm');
+if ($loginTemplate === FALSE) {
+	$errors[] = 'failed to read view/htm/user_login.htm';
+} else {
+	if (strpos($loginTemplate, "lang('email');?> / <?php echo lang('username')") === FALSE) {
+		$errors[] = 'login account field must tell users email or username are both accepted';
+	}
+	if (strpos($loginTemplate, "jform.find(':input').filter(function() { return this.name == code; }).first()") === FALSE) {
+		$errors[] = 'login field error lookup must avoid selector interpolation';
+	}
+	if (strpos($loginTemplate, 'delay(1000).location(referer)') !== FALSE) {
+		$errors[] = 'login success redirect must not keep the legacy one-second delay';
 	}
 }
 

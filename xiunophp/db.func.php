@@ -83,10 +83,64 @@ function db_exec($sql, $d = NULL) {
 	if (empty($sql)) return FALSE;
 
 	$n = $d->exec($sql);
+
+	if($n === FALSE && db_plugin_lifecycle_idempotent_ddl_error($sql, $d)) {
+		return TRUE;
+	}
+
+	if($n !== FALSE && $n === 0 && db_exec_is_ddl($sql)) {
+		return TRUE;
+	}
 	
 	db_errno_errstr($n, $d, $sql);
 	
 	return $n;
+}
+
+function db_exec_is_ddl($sql) {
+	$sql = ltrim((string)$sql);
+	return preg_match('#^(CREATE|ALTER|DROP|TRUNCATE)\s+#i', $sql) === 1;
+}
+
+function db_plugin_lifecycle_active() {
+	global $plugin_lifecycle_guard;
+	return !empty($plugin_lifecycle_guard) && is_array($plugin_lifecycle_guard);
+}
+
+function db_plugin_lifecycle_idempotent_ddl_error($sql, $d) {
+	if(!db_plugin_lifecycle_active() || !db_exec_is_ddl($sql)) return FALSE;
+	$errno = isset($d->errno) ? intval($d->errno) : 0;
+	$errstr = isset($d->errstr) ? strtolower((string)$d->errstr) : '';
+	$idempotent_errno = array(1050, 1051, 1060, 1061, 1068, 1091);
+	$idempotent_text = array(
+		'already exists',
+		'duplicate column',
+		'duplicate key name',
+		'multiple primary key',
+		"can't drop",
+		'check that column/key exists',
+		'unknown table',
+	);
+	$ok = in_array($errno, $idempotent_errno, TRUE);
+	if(!$ok && $errstr !== '') {
+		foreach($idempotent_text as $needle) {
+			if(strpos($errstr, $needle) !== FALSE) {
+				$ok = TRUE;
+				break;
+			}
+		}
+	}
+	if(!$ok) return FALSE;
+	global $plugin_lifecycle_guard;
+	$dir = isset($plugin_lifecycle_guard['dir']) ? $plugin_lifecycle_guard['dir'] : '';
+	$action = isset($plugin_lifecycle_guard['action']) ? $plugin_lifecycle_guard['action'] : '';
+	$s = 'Plugin lifecycle idempotent DDL ignored'
+		."\r\nplugin: ".$dir
+		."\r\naction: ".$action
+		."\r\nSQL:".$sql
+		."\r\nerrno: ".$errno.", errstr: ".(isset($d->errstr) ? $d->errstr : '');
+	xn_log($s, 'plugin_sql_compat');
+	return TRUE;
 }
 
 function db_count($table, $cond = array(), $d = NULL) {

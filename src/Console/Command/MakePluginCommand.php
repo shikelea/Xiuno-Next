@@ -119,9 +119,10 @@ PHP;
 */
 !defined('DEBUG') AND exit('Forbidden');
 
-// 在这里编写安装逻辑，例如创建表
+// 在这里编写安装逻辑，例如创建表。建议使用 plugin_db_exec_or_throw()，
+// 这样安装失败时后台能显示明确的数据库错误。
 // \$sql = "CREATE TABLE ...";
-// db_exec(\$sql);
+// plugin_db_exec_or_throw(\$sql);
 
 ?>
 PHP;
@@ -135,9 +136,9 @@ PHP;
 */
 !defined('DEBUG') AND exit('Forbidden');
 
-// 在这里编写卸载逻辑，例如删除表
+// 在这里编写卸载逻辑，例如删除表。DROP TABLE 建议加 IF EXISTS。
 // \$sql = "DROP TABLE ...";
-// db_exec(\$sql);
+// plugin_db_exec_or_throw(\$sql);
 
 ?>
 PHP;

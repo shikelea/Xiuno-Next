@@ -91,6 +91,11 @@ ob_start(function($html) {
 	) {
 		$view_url = 'view/';
 	}
+	$script_name = str_replace('\\', '/', isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '');
+	$is_admin_request = strpos($script_name, '/admin/') !== FALSE || preg_match('#(^|/)admin/index\.php$#', $script_name);
+	if ($is_admin_request && substr($view_url, 0, 1) !== '/' && substr($view_url, 0, 3) !== '../') {
+		$view_url = '../' . $view_url;
+	}
 	$view_url = htmlspecialchars($view_url, ENT_QUOTES, 'UTF-8');
 	$sv = isset($conf['static_version']) ? htmlspecialchars($conf['static_version'], ENT_QUOTES, 'UTF-8') : '';
 
@@ -103,7 +108,11 @@ ob_start(function($html) {
 	}
 
 	// 2) bs4-compat.css
-	if (stripos($html, 'bs4-compat.css') === false) {
+	$has_bs4_css = stripos($html, 'bs4-compat.css') !== false;
+	if ($is_admin_request && $has_bs4_css && stripos($html, '../view/css/bs4-compat') === false && stripos($html, '/view/css/bs4-compat') === false) {
+		$has_bs4_css = false;
+	}
+	if (!$has_bs4_css) {
 		$head_inject .= '<link rel="stylesheet" href="' . $view_url . 'css/bs4-compat.css' . $sv . '">' . "\n";
 	}
 
@@ -112,7 +121,11 @@ ob_start(function($html) {
 	}
 
 	// 3) bs4-compat.js — 包含完整 CSRF 初始化 + 兼容层，无需额外内嵌脚本
-	if (stripos($html, 'bs4-compat.js') === false) {
+	$has_bs4_js = stripos($html, 'bs4-compat.js') !== false;
+	if ($is_admin_request && $has_bs4_js && stripos($html, '../view/js/bs4-compat') === false && stripos($html, '/view/js/bs4-compat') === false) {
+		$has_bs4_js = false;
+	}
+	if (!$has_bs4_js) {
 		$body_inject .= '<script src="' . $view_url . 'js/bs4-compat.js' . $sv . '"></script>' . "\n";
 	}
 
