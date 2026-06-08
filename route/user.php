@@ -72,21 +72,35 @@ if(empty($action)) {
 		$email = param('email');			// 邮箱或者手机号 / email or mobile
 		$password = param('password');
 		empty($email) AND message('email', lang('email_is_empty'));
+		user_login_rate_limited($email) AND message('email', 'Please try again later');
 		if(is_email($email, $err)) {
 			$_user = user_read_by_email($email);
-			empty($_user) AND message('email', lang('email_not_exists'));
+			if(empty($_user)) {
+				user_login_rate_fail($email);
+				message('email', lang('email_not_exists'));
+			}
 		} else {
 			$_user = user_read_by_username($email);
-			empty($_user) AND message('email', lang('username_not_exists'));
+			if(empty($_user)) {
+				user_login_rate_fail($email);
+				message('email', lang('username_not_exists'));
+			}
 		}
 
-		!is_password($password, $err) AND message('password', $err);
-		!user_verify_password($password, $_user) AND message('password', lang('password_incorrect'));
+		if(!is_password($password, $err)) {
+			user_login_rate_fail($email);
+			message('password', $err);
+		}
+		if(!user_verify_password($password, $_user)) {
+			user_login_rate_fail($email);
+			message('password', lang('password_incorrect'));
+		}
 
 		// 渐进式密码升级：旧 MD5 哈希自动迁移为 bcrypt
 		user_password_needs_upgrade($_user) AND user_upgrade_password($_user['uid'], $password);
 
 		user_update($_user['uid'], array('login_ip'=>$longip, 'login_date' =>$time , 'logins+'=>1));
+		user_login_rate_clear($email);
 
 		// 全局变量 $uid 会在结束后，在函数 register_shutdown_function() 中存入 session (文件: model/session.func.php)
 		// global variable $uid will save to session in register_shutdown_function() (file: model/session.func.php)

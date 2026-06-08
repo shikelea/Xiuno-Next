@@ -124,4 +124,17 @@ strpos($append_token, 'http_build_query(array(\'token\'=>$token))') !== FALSE
 strpos($workflow, 'php bin/check_user_auth_safety.php') !== FALSE
 	|| fail('CI must run the user auth safety guard.');
 
+$login = section_between($user_route, "} elseif(\$action == 'login')", "} elseif(\$action == 'create')");
+$rate_check_pos = strpos($login, 'user_login_rate_limited($email)');
+$email_lookup_pos = strpos($login, 'user_read_by_email($email)');
+$username_lookup_pos = strpos($login, 'user_read_by_username($email)');
+($rate_check_pos !== FALSE && $email_lookup_pos !== FALSE && $rate_check_pos < $email_lookup_pos && $rate_check_pos < $username_lookup_pos)
+	|| fail('Browser login must check login failure rate before credential lookup.');
+substr_count($login, 'user_login_rate_fail($email);') >= 4
+	|| fail('Browser login must record missing-account, invalid-password-format and bad-password failures.');
+$password_verify_pos = strpos($login, 'user_verify_password($password, $_user)');
+$rate_clear_pos = strpos($login, 'user_login_rate_clear($email);');
+($password_verify_pos !== FALSE && $rate_clear_pos !== FALSE && $rate_clear_pos > $password_verify_pos)
+	|| fail('Browser login must clear login failure rate after successful authentication.');
+
 echo "OK: user auth safety checks passed\n";
