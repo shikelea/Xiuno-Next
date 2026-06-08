@@ -1,15 +1,16 @@
 <?php
 
 $root = dirname(__DIR__);
-$plugin_route = file_get_contents($root.'/admin/route/plugin.php');
-$misc = file_get_contents($root.'/model/misc.func.php');
-$plugin_list = file_get_contents($root.'/admin/view/htm/plugin_list.htm');
-$plugin_read = file_get_contents($root.'/admin/view/htm/plugin_read.htm');
-$bbs_js = file_get_contents($root.'/view/js/bbs.js');
 
 function fail($message) {
 	fwrite(STDERR, "FAIL: $message\n");
 	exit(1);
+}
+
+function source_text($path) {
+	$source = file_get_contents($path);
+	$source === FALSE AND fail("Unable to read $path");
+	return str_replace(array("\r\n", "\r"), "\n", $source);
 }
 
 function section_between($source, $start, $end) {
@@ -19,6 +20,12 @@ function section_between($source, $start, $end) {
 	if($end_pos === FALSE) fail("Missing section end after $start: $end");
 	return substr($source, $start_pos, $end_pos - $start_pos);
 }
+
+$plugin_route = source_text($root.'/admin/route/plugin.php');
+$misc = source_text($root.'/model/misc.func.php');
+$plugin_list = source_text($root.'/admin/view/htm/plugin_list.htm');
+$plugin_read = source_text($root.'/admin/view/htm/plugin_read.htm');
+$bbs_js = source_text($root.'/view/js/bbs.js');
 
 strpos($plugin_route, "function plugin_message(\$code, \$message)") !== FALSE
 	|| fail('plugin_message() helper is missing.');

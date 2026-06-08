@@ -16,7 +16,7 @@ function read_file_checked($path) {
     if ($content === false) {
         fail("Unable to read $path");
     }
-    return $content;
+    return str_replace(["\r\n", "\r"], "\n", $content);
 }
 
 function remove_dir_checked($path) {

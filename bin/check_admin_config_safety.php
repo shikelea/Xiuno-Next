@@ -1,12 +1,16 @@
 <?php
 
 $root = dirname(__DIR__);
-$setting_route = file_get_contents($root.'/admin/route/setting.php');
-$update_route = file_get_contents($root.'/admin/route/update.php');
 
 function fail($message) {
 	fwrite(STDERR, "FAIL: $message\n");
 	exit(1);
+}
+
+function source_text($path) {
+	$source = file_get_contents($path);
+	$source === FALSE AND fail("Unable to read $path");
+	return str_replace(array("\r\n", "\r"), "\n", $source);
 }
 
 function section_between($source, $start, $end) {
@@ -16,6 +20,9 @@ function section_between($source, $start, $end) {
 	if($end_pos === FALSE) fail("Missing section end after $start: $end");
 	return substr($source, $start_pos, $end_pos - $start_pos);
 }
+
+$setting_route = source_text($root.'/admin/route/setting.php');
+$update_route = source_text($root.'/admin/route/update.php');
 
 strpos($setting_route, "\$r = file_replace_var(APP_PATH.'conf/conf.php', \$replace);") !== FALSE
 	|| fail('Base settings must capture conf.php write result.');
