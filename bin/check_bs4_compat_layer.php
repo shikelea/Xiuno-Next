@@ -100,21 +100,37 @@ if(empty($errors)) {
 		'jQuery.fn.tooltip'=>'tooltip jQuery API proxy',
 		'jQuery.fn.popover'=>'popover jQuery API proxy',
 		'jQuery.fn.location'=>'Xiuno location helper fallback',
+		'button[type="submit"]'=>'submit button reset coverage',
 		'jQuery.fn.reset'=>'Xiuno reset helper fallback',
 		'jQuery.fn.checked'=>'Xiuno checked helper fallback',
 		'jQuery.fn.alert'=>'Xiuno alert helper fallback',
+		"jfeedback.text(message).addClass('d-block');"=>'visible field validation feedback',
+		"jthis.off('input.xn-alert change.xn-alert').one('input.xn-alert change.xn-alert'"=>'field validation feedback clear timing',
+		'xn-alert-original-aria-describedby'=>'field validation aria-describedby preservation',
 		'querySelectorAll(\'.custom-file-input\')'=>'custom-file change binding',
 		'querySelectorAll(\'.dropdown-menu-right, .dropdown-menu-left\')'=>'dropdown alignment binding',
 		'contains(\'close\')'=>'legacy close button click binding',
 		'querySelectorAll(\'[data-toggle="buttons"],[data-bs-toggle="buttons"]\')'=>'btn-group-toggle binding',
 		'querySelectorAll(\'[data-toggle="tab"],[data-bs-toggle="tab"]\')'=>'tab href binding',
+		'actionRe = /(?:^|[?&\\/-])plugin-(download|install|enable|disable|unstall|upgrade)-/'=>'plugin action URL POST repair boundary',
+		"links[i].setAttribute('data-method', 'post');"=>'legacy admin plugin action POST repair',
 		"ajaxMethod === 'POST' && isSameOrigin"=>'same-origin jQuery CSRF boundary',
 		"method === 'POST' && isSameOrigin(input)"=>'same-origin fetch CSRF boundary',
 	) as $needle=>$label) {
 		require_contains($js, $needle, "bs4-compat.js must keep $label.");
 	}
 
-	foreach(array('jQuery.fn.modal', 'jQuery.fn.button', 'data-bs-content', 'isSameOrigin') as $needle) {
+	foreach(array(
+		'jQuery.fn.modal',
+		'jQuery.fn.button',
+		'data-bs-content',
+		'isSameOrigin',
+		"jfeedback.text(message).addClass('d-block');",
+		"jthis.off('input.xn-alert change.xn-alert').one('input.xn-alert change.xn-alert'",
+		'xn-alert-original-aria-describedby',
+		'plugin-(download|install|enable|disable|unstall|upgrade)-',
+		"setAttribute('data-method', 'post')",
+	) as $needle) {
 		require_contains($js_min, $needle, "bs4-compat.min.js must include $needle.");
 	}
 }

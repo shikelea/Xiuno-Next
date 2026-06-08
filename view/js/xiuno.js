@@ -1467,6 +1467,23 @@ $.fn.alert = function (message) {
 	var jthis = $(this);
 	// BS5: is-invalid for input
 	jthis.addClass('is-invalid');
+	jthis.attr('aria-invalid', 'true');
+	if (jthis.data('xn-alert-original-aria-describedby') === undefined) {
+		jthis.data('xn-alert-original-aria-describedby', jthis.attr('aria-describedby') || '');
+	}
+
+	var jfeedback = jthis.siblings('.invalid-feedback').first();
+	if (!jfeedback.length) {
+		jfeedback = jthis.closest('.input-group, .mb-3, .form-group, .form-floating').find('.invalid-feedback').first();
+	}
+	if (!jfeedback.length) {
+		jfeedback = $('<div class="invalid-feedback"></div>').insertAfter(jthis);
+	}
+	jfeedback.text(message).addClass('d-block');
+	if (!jfeedback.attr('id')) {
+		jfeedback.attr('id', 'invalid-feedback-' + Math.random().toString(36).slice(2));
+	}
+	jthis.data('xn-alert-feedback', jfeedback);
 
 	// Attempt to use BS5 Tooltip
 	// We need to set the title attribute for the tooltip to pick it up
@@ -1497,9 +1514,22 @@ $.fn.alert = function (message) {
 		} catch (e2) { }
 	}
 
-	// Remove is-invalid and tooltip when user changes input
-	jthis.one('focus input', function () {
+	var feedbackId = jfeedback.attr('id');
+	var originalDescribedby = jthis.data('xn-alert-original-aria-describedby') || '';
+	var describedby = originalDescribedby ? originalDescribedby.split(/\s+/) : [];
+	if ($.inArray(feedbackId, describedby) === -1) {
+		describedby.push(feedbackId);
+	}
+	jthis.attr('aria-describedby', $.trim(describedby.join(' ')));
+
+	// Remove is-invalid and tooltip when user changes input.
+	jthis.off('input.xn-alert change.xn-alert').one('input.xn-alert change.xn-alert', function () {
 		jthis.removeClass('is-invalid');
+		jthis.removeAttr('aria-invalid');
+		var jfeedback = jthis.data('xn-alert-feedback');
+		if (jfeedback && jfeedback.length) {
+			jfeedback.text('').removeClass('d-block');
+		}
 		try {
 			var tooltip = bootstrap.Tooltip.getInstance(jthis[0]);
 			if (tooltip) {
@@ -1508,6 +1538,14 @@ $.fn.alert = function (message) {
 		} catch (e) {
 			try { jthis.tooltip('dispose'); } catch (e2) { }
 		}
+		var originalDescribedby = jthis.data('xn-alert-original-aria-describedby');
+		if (originalDescribedby) {
+			jthis.attr('aria-describedby', originalDescribedby);
+		} else {
+			jthis.removeAttr('aria-describedby');
+		}
+		jthis.removeData('xn-alert-original-aria-describedby');
+		jthis.removeData('xn-alert-feedback');
 	});
 
 	return this;
@@ -1630,8 +1668,24 @@ $.fn.attr_name_index = function (rowid) {
 // 重置 form 状态
 $.fn.reset = function () {
 	var jform = $(this);
-	jform.find('input[type="submit"]').button('reset');
+	jform.find('input[type="submit"], button[type="submit"]').button('reset');
 	jform.find('input').tooltip('dispose');
+	jform.find('.is-invalid').each(function () {
+		var jfield = $(this);
+		var jfeedback = jfield.data('xn-alert-feedback');
+		var originalDescribedby = jfield.data('xn-alert-original-aria-describedby');
+		if (originalDescribedby) {
+			jfield.attr('aria-describedby', originalDescribedby);
+		} else {
+			jfield.removeAttr('aria-describedby');
+		}
+		if (jfeedback && jfeedback.length) {
+			jfeedback.removeClass('d-block').text('');
+		}
+		jfield.removeData('xn-alert-original-aria-describedby');
+		jfield.removeData('xn-alert-feedback');
+	});
+	jform.find('.is-invalid').removeClass('is-invalid').removeAttr('aria-invalid');
 };
 
 // 用来代替 <base href="../" /> 的功能

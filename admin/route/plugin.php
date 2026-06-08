@@ -466,6 +466,16 @@ function plugin_run_lifecycle($dir, $action, $snapshot = NULL, $package_snapshot
 	return TRUE;
 }
 
+function plugin_db_exec_or_throw($sql) {
+	global $errno, $errstr;
+	$r = db_exec($sql);
+	if($r === FALSE) {
+		$msg = $errstr ? $errstr : 'Unknown database error';
+		throw new RuntimeException($msg);
+	}
+	return $r;
+}
+
 function plugin_lifecycle_guard_start($dir, $action, $snapshot = NULL, $package_snapshot = NULL, $extra_state_restore = array()) {
 	global $plugin_lifecycle_guard;
 	$plugin_lifecycle_guard = array(
