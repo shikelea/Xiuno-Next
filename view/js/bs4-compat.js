@@ -109,7 +109,7 @@
         if (!window.csrf_token) return;
 
         // 2. 设置 jQuery AJAX 全局拦截器（如果 jQuery 已加载）
-        if (typeof jQuery !== 'undefined' && !window._csrf_ajax_setup_done) {
+        if (typeof jQuery !== 'undefined' && (!window._csrf_ajax_setup_done || window._csrf_ajax_setup_jquery !== jQuery)) {
             jQuery.ajaxSetup({beforeSend:function(xhr, settings){
                 if (settings && settings.crossDomain) return;
                 var ajaxMethod = settings && (settings.type || settings.method) ? (settings.type || settings.method).toUpperCase() : 'GET';
@@ -118,6 +118,7 @@
                 }
             }});
             window._csrf_ajax_setup_done = true;
+            window._csrf_ajax_setup_jquery = jQuery;
         }
 
         // 3. 设置 fetch 拦截器（部分现代主题使用 fetch 而非 jQuery）
@@ -170,7 +171,7 @@
                 }
             }
             // 每次 DOM 变化也尝试一次（jQuery 可能已就绪）
-            if (typeof jQuery !== 'undefined' && !window._csrf_ajax_setup_done) setupCsrf();
+            if (typeof jQuery !== 'undefined' && (!window._csrf_ajax_setup_done || window._csrf_ajax_setup_jquery !== jQuery)) setupCsrf();
         });
         csrfScriptObserver.observe(document.documentElement, { childList: true, subtree: true });
         // 页面完全加载后停止监听

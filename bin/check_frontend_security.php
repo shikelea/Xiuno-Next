@@ -111,6 +111,9 @@ if ($bs4Compat === FALSE) {
 	if (strpos($bs4Compat, "ajaxMethod === 'POST' && isSameOrigin") === FALSE) {
 		$errors[] = 'jQuery CSRF injector must only attach tokens to same-origin POST requests';
 	}
+	if (strpos($bs4Compat, 'window._csrf_ajax_setup_jquery !== jQuery') === FALSE) {
+		$errors[] = 'jQuery CSRF injector must reinstall when legacy themes replace window.jQuery';
+	}
 	if (strpos($bs4Compat, "method === 'POST' && isSameOrigin(input)") === FALSE) {
 		$errors[] = 'fetch CSRF injector must only attach tokens to same-origin POST requests';
 	}
@@ -125,6 +128,24 @@ if ($bs4Compat === FALSE) {
 	}
 	if (strpos($bs4Compat, "xn-alert-original-aria-describedby") === FALSE) {
 		$errors[] = 'form alert helper must preserve existing aria-describedby values';
+	}
+}
+
+$xiunoJs = file_get_contents($root . 'view/js/xiuno.js');
+if ($xiunoJs === FALSE) {
+	$errors[] = 'failed to read view/js/xiuno.js';
+} else {
+	if (strpos($xiunoJs, 'function xn_postdata_with_csrf(postdata)') === FALSE) {
+		$errors[] = '$.xpost must keep a direct CSRF token fallback for legacy themes that override ajaxSetup';
+	}
+	if (strpos($xiunoJs, "postdata = xn_postdata_with_csrf(postdata);") === FALSE) {
+		$errors[] = '$.xpost must attach CSRF tokens before sending POST requests';
+	}
+	if (strpos($xiunoJs, "postdata._token === undefined") === FALSE) {
+		$errors[] = '$.xpost CSRF fallback must not overwrite explicit _token values';
+	}
+	if (strpos($xiunoJs, 'postdata instanceof FormData') === FALSE || strpos($xiunoJs, "postdata.has('_token')") === FALSE || strpos($xiunoJs, 'postdata.entries()') === FALSE || strpos($xiunoJs, "postdata.append('_token', token)") === FALSE) {
+		$errors[] = '$.xpost CSRF fallback must support FormData and avoid duplicating explicit _token values when detectable';
 	}
 }
 

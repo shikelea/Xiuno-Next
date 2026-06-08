@@ -115,6 +115,7 @@ if(empty($errors)) {
 		'actionRe = /(?:^|[?&\\/-])plugin-(download|install|enable|disable|unstall|upgrade)-/'=>'plugin action URL POST repair boundary',
 		"links[i].setAttribute('data-method', 'post');"=>'legacy admin plugin action POST repair',
 		"ajaxMethod === 'POST' && isSameOrigin"=>'same-origin jQuery CSRF boundary',
+		'window._csrf_ajax_setup_jquery !== jQuery'=>'CSRF rebind after legacy jQuery replacement',
 		"method === 'POST' && isSameOrigin(input)"=>'same-origin fetch CSRF boundary',
 	) as $needle=>$label) {
 		require_contains($js, $needle, "bs4-compat.js must keep $label.");
@@ -130,6 +131,7 @@ if(empty($errors)) {
 		'xn-alert-original-aria-describedby',
 		'plugin-(download|install|enable|disable|unstall|upgrade)-',
 		"setAttribute('data-method', 'post')",
+		'_csrf_ajax_setup_jquery',
 	) as $needle) {
 		require_contains($js_min, $needle, "bs4-compat.min.js must include $needle.");
 	}

@@ -47,6 +47,15 @@ jobs:
       - name: Smoke test frontend security guards
         run: php bin/check_frontend_security.php
 
+      - name: Smoke test CSRF session safety
+        run: php bin/check_csrf_session_safety.php
+
+      - name: Smoke test model cache safety
+        run: php bin/check_model_cache_safety.php
+
+      - name: Smoke test include cache safety
+        run: php bin/check_include_cache_safety.php
+
       - name: Smoke test BS4 compatibility layer
         run: php bin/check_bs4_compat_layer.php
 
