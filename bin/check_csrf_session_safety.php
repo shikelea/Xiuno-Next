@@ -2,6 +2,7 @@
 
 $root = dirname(__DIR__) . '/';
 $session = file_get_contents($root . 'model/session.func.php');
+$misc = file_get_contents($root . 'model/misc.func.php');
 $errors = array();
 
 if($session === FALSE) {
@@ -41,6 +42,65 @@ if($session === FALSE) {
 		if(strpos($sessStart, "xn_setcookie('cookie_test', '', \$time - 86400, \$admin_cookie_path);") === FALSE) {
 			$errors[] = 'sess_start() must expire stale admin-scoped cookie probe cookies.';
 		}
+	}
+}
+
+if($misc === FALSE) {
+	$errors[] = 'failed to read model/misc.func.php';
+} else {
+	$injector = '';
+	if(!preg_match('#function\s+message_compat_inject_csrf_forms\s*\(\s*\$message\s*\)(.*?)(?=^function\s+\w|\z)#ms', $misc, $m)) {
+		$errors[] = 'message() must keep a compatibility injector for CSRF-protected POST forms inside HTML fragments.';
+	} else {
+		$injector = $m[1];
+	}
+	if(!preg_match('#function\s+message\s*\(\s*\$code\s*,\s*\$message\s*,\s*\$extra\s*=\s*array\s*\(\s*\)\s*\)(.*?)(?=^function\s+\w|\z)#ms', $misc, $m)) {
+		$errors[] = 'message() must exist.';
+	} else {
+		$messageBody = $m[1];
+		$injectPos = strpos($messageBody, '$message = message_compat_inject_csrf_forms($message);');
+		$arrMessagePos = strpos($messageBody, '$arr[\'message\'] = $message;');
+		if($injectPos === FALSE) {
+			$errors[] = 'message() must run the CSRF form compatibility injector before output.';
+		} elseif($arrMessagePos !== FALSE && $injectPos > $arrMessagePos) {
+			$errors[] = 'message() must run the CSRF form compatibility injector before message is copied into the response payload.';
+		}
+	}
+	if($injector !== '' && strpos($injector, 'stripos($message, \'<form\')') === FALSE) {
+		$errors[] = 'CSRF fragment injector must skip non-form messages cheaply.';
+	}
+	if($injector !== '' && strpos($injector, 'function_exists(\'csrf_token\')') === FALSE) {
+		$errors[] = 'CSRF fragment injector must require csrf_token() before generating hidden fields.';
+	}
+	if($injector !== '' && (strpos($injector, '\\smethod\\s*=\\s*') === FALSE || strpos($injector, 'post\\1(?=[\\s>/])') === FALSE)) {
+		$errors[] = 'CSRF fragment injector must only inject hidden _token fields into real POST forms with an attribute-value boundary.';
+	}
+	$replaceNeedle = <<<'PHP'
+preg_replace_callback('~(<form\b(?=[^>]*\smethod\s*=\s*([\'"]?)post\2(?=[\s>/]))
+PHP;
+	if($injector !== '' && strpos($injector, $replaceNeedle) === FALSE) {
+		$errors[] = 'CSRF fragment injector must inject only through a POST-form-matching replacement path with an attribute-value boundary.';
+	}
+	if($injector !== '' && strpos($injector, '<input type="hidden" name="_token" value="') === FALSE) {
+		$errors[] = 'CSRF fragment injector must add hidden _token fields to legacy POST forms.';
+	}
+	if($injector !== '' && (strpos($injector, '<input\b[^>]*\sname\s*=\s*([\\\'"]?)_token') === FALSE || strpos($injector, '_token\1(?=[\s>/])') === FALSE)) {
+		$errors[] = 'CSRF fragment injector must avoid duplicating existing _token fields without treating prefixed/suffixed names as _token.';
+	}
+	if($injector !== '' && strpos($injector, 'html_entity_decode(trim($action), ENT_QUOTES, \'UTF-8\')') === FALSE) {
+		$errors[] = 'CSRF fragment injector must decode form actions before external-action checks.';
+	}
+	if($injector !== '' && strpos($injector, 'preg_match(\'~^//~\', $action)') === FALSE) {
+		$errors[] = 'CSRF fragment injector must skip protocol-relative form actions to avoid token disclosure.';
+	}
+	if($injector !== '' && strpos($injector, 'in_array($scheme, array(\'http\', \'https\'), TRUE)') === FALSE) {
+		$errors[] = 'CSRF fragment injector must allow same-site http/https absolute form actions only.';
+	}
+	if($injector !== '' && strpos($injector, 'preg_replace(\'~:(?:80|443)$~\', \'\', $current_host)') === FALSE) {
+		$errors[] = 'CSRF fragment injector must normalize default ports before same-host comparisons.';
+	}
+	if($injector !== '' && strpos($injector, '$action_host !== $current_host') === FALSE) {
+		$errors[] = 'CSRF fragment injector must skip external form actions to avoid token disclosure.';
 	}
 }
 

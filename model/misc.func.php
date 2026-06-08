@@ -93,9 +93,36 @@ function check_runlevel() {
 		= 0 正确
 		> 0 一般业务逻辑错误，可以定位到具体控件，比如：用户名为空/密码为空
 */
+function message_compat_inject_csrf_forms($message) {
+	if(!is_string($message) || stripos($message, '<form') === FALSE) return $message;
+	if(!function_exists('csrf_token')) return $message;
+	if(!preg_match('~<form\b[^>]*\smethod\s*=\s*([\'"]?)post\1(?=[\s>/])~i', $message)) return $message;
+	$token = htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8');
+	return preg_replace_callback('~(<form\b(?=[^>]*\smethod\s*=\s*([\'"]?)post\2(?=[\s>/]))[^>]*>)(.*?</form>)~is', function($m) use ($token) {
+		$form = $m[0];
+		if(preg_match('~<input\b[^>]*\sname\s*=\s*([\'"]?)_token\1(?=[\s>/])~i', $form)) return $form;
+		if(preg_match('~\saction\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]*))~i', $m[1], $am)) {
+			$action = isset($am[1]) && $am[1] !== '' ? $am[1] : (isset($am[2]) && $am[2] !== '' ? $am[2] : (isset($am[3]) ? $am[3] : ''));
+			$action = html_entity_decode(trim($action), ENT_QUOTES, 'UTF-8');
+			if(preg_match('~^//~', $action)) return $form;
+			if(preg_match('~^[a-z][a-z0-9+.-]*:~i', $action)) {
+				$scheme = strtolower((string)parse_url($action, PHP_URL_SCHEME));
+				$action_host = strtolower((string)parse_url($action, PHP_URL_HOST));
+				$action_port = parse_url($action, PHP_URL_PORT);
+				if($action_port !== NULL && !(($scheme == 'http' && intval($action_port) == 80) || ($scheme == 'https' && intval($action_port) == 443))) $action_host .= ':'.$action_port;
+				$current_host = isset($_SERVER['HTTP_HOST']) ? strtolower($_SERVER['HTTP_HOST']) : '';
+				$current_host = preg_replace('~:(?:80|443)$~', '', $current_host);
+				if(!in_array($scheme, array('http', 'https'), TRUE) || $action_host === '' || $current_host === '' || $action_host !== $current_host) return $form;
+			}
+		}
+		return $m[1].'<input type="hidden" name="_token" value="'.$token.'">'.$m[3];
+	}, $message);
+}
+
 function message($code, $message, $extra = array()) {
 	global $ajax, $header, $conf;
 	
+	$message = message_compat_inject_csrf_forms($message);
 	$arr = $extra;
 	$arr['code'] = $code.'';
 	$arr['message'] = $message;
