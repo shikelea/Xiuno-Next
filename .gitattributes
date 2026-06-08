@@ -1,3 +1,6 @@
 /tool/merge.php text eol=lf
 /xiunophp/xiunophp.min.php text eol=lf
 /.github/workflows/*.yml text eol=lf
+/admin/view/css/*.min.css text eol=lf
+/view/css/*.min.css text eol=lf
+/view/js/*.min.js text eol=lf

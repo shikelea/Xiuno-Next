@@ -1,11 +1,16 @@
 <?php
 
 $root = dirname(__DIR__);
-$update_route = file_get_contents($root.'/admin/route/update.php');
 
 function fail($message) {
 	fwrite(STDERR, "FAIL: $message\n");
 	exit(1);
+}
+
+function source_text($path) {
+	$source = file_get_contents($path);
+	$source === FALSE AND fail("Unable to read $path");
+	return str_replace(array("\r\n", "\r"), "\n", $source);
 }
 
 function section_between($source, $start, $end) {
@@ -21,6 +26,8 @@ function section_after($source, $needle) {
 	if ($pos === FALSE) fail("Missing section marker: $needle");
 	return substr($source, $pos + strlen($needle));
 }
+
+$update_route = source_text($root.'/admin/route/update.php');
 
 strpos($update_route, 'function update_lock_start()') !== FALSE
 	|| fail('update_lock_start() helper is missing.');

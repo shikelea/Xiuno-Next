@@ -10,7 +10,7 @@ function fail($message) {
 function read_file_checked($path) {
 	$contents = file_get_contents($path);
 	$contents === FALSE AND fail("Unable to read $path");
-	return $contents;
+	return str_replace(array("\r\n", "\r"), "\n", $contents);
 }
 
 function section_between($source, $start, $end) {

@@ -1,11 +1,16 @@
 <?php
 
 $root = dirname(__DIR__);
-$install = file_get_contents($root.'/install/index.php');
 
 function fail($message) {
 	fwrite(STDERR, "FAIL: $message\n");
 	exit(1);
+}
+
+function source_text($path) {
+	$source = file_get_contents($path);
+	$source === FALSE AND fail("Unable to read $path");
+	return str_replace(array("\r\n", "\r"), "\n", $source);
 }
 
 function section_between($source, $start, $end) {
@@ -15,6 +20,8 @@ function section_between($source, $start, $end) {
 	if($end_pos === FALSE) fail("Missing section end after $start: $end");
 	return substr($source, $start_pos, $end_pos - $start_pos);
 }
+
+$install = source_text($root.'/install/index.php');
 
 $db_post = section_between($install, "} elseif(\$action == 'db')", "\n\t}\n}\n\nfunction install_lock_start");
 

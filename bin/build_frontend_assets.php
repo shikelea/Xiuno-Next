@@ -36,7 +36,7 @@ foreach ($assets as $asset) {
 	}
 
 	$minified = $asset['type'] === 'css' ? minify_css($content) : minify_js($content);
-	$minified = trim($minified) . PHP_EOL;
+	$minified = trim($minified) . "\n";
 
 	if ($check) {
 		$current = is_file($dest) ? file_get_contents($dest) : false;
