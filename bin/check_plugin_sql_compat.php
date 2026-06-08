@@ -17,10 +17,12 @@ class FakePluginSqlDb
 	public $tablepre = 'bbs_';
 	public $next = 0;
 	public $calls = 0;
+	public $lastSql = '';
 
 	public function exec($sql)
 	{
 		$this->calls++;
+		$this->lastSql = $sql;
 		return $this->next;
 	}
 }
@@ -58,6 +60,16 @@ $db->errno = 1050;
 $db->errstr = "Table 'bbs_smoke' already exists";
 $r = db_exec('CREATE TABLE bbs_smoke (id int)');
 if ($r !== TRUE) fail('Existing table inside plugin lifecycle must be treated as idempotent DDL.');
+
+$db->next = 0;
+$r = db_exec('CREATE TABLE bbs_smoke (`n` int(11) COLLATE utf8_general_ci DEFAULT NULL, `s` varchar(32) COLLATE utf8_general_ci DEFAULT NULL)');
+if ($r !== TRUE) fail('Normalized numeric COLLATE DDL must still be treated as successful DDL.');
+if (strpos($db->lastSql, 'int(11) COLLATE') !== FALSE) fail('Plugin lifecycle SQL must remove COLLATE from numeric columns.');
+if (strpos($db->lastSql, 'varchar(32) COLLATE utf8_general_ci') === FALSE) fail('Plugin lifecycle SQL must keep COLLATE on character columns.');
+
+$r = db_exec('CREATE TABLE bbs_smoke (`n` int(11) COLLATE utf8_general_ci DEFAULT NULL COMMENT \'int COLLATE utf8_general_ci\', `s` varchar(32) DEFAULT "int COLLATE utf8_general_ci")');
+if (strpos($db->lastSql, "COMMENT 'int COLLATE utf8_general_ci'") === FALSE) fail('Plugin lifecycle SQL normalization must not rewrite single-quoted literals.');
+if (strpos($db->lastSql, 'DEFAULT "int COLLATE utf8_general_ci"') === FALSE) fail('Plugin lifecycle SQL normalization must not rewrite double-quoted literals.');
 
 $db->next = FALSE;
 $db->errno = 1146;

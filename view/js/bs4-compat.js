@@ -262,9 +262,20 @@
 	function isPluginWriteLink(link) {
 		var href = link.getAttribute('href') || link.getAttribute('data-href') || '';
 		if (!href || href.toLowerCase().indexOf('javascript:') === 0) return false;
+		if (!isSafePluginHref(href)) return false;
 		if (!actionRe.test(href)) return false;
 		var inPluginArea = typeof link.closest === 'function' && link.closest('.plugin, table, .card, .media, .list-group');
 		return classRe.test(link.className || '') || !!inPluginArea;
+	}
+
+	function isSafePluginHref(href) {
+		var url;
+		try {
+			url = new URL(href, window.location.href);
+		} catch (e) {
+			return false;
+		}
+		return url.protocol === window.location.protocol && url.host === window.location.host;
 	}
 
     function fixPluginPostLinks(root) {
@@ -276,6 +287,14 @@
                 links[i].setAttribute('data-method', 'post');
             }
         }
+    }
+
+    if (document.addEventListener) {
+        document.addEventListener('click', function(e) {
+            var link = e.target && e.target.closest ? e.target.closest('a') : null;
+            if (!link || !isPluginWriteLink(link)) return;
+            link.setAttribute('data-method', 'post');
+        }, true);
     }
 
     if (document.readyState === 'loading') {

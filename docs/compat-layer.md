@@ -69,6 +69,8 @@ PHP 输出缓冲支持嵌套。核心的 `ob_start` 在最外层，主题的 `ob
 **文件**: `xiunophp/php8_compat.php`  
 **加载方式**: 由 `xiunophp/xiunophp.php` 自动 include，不依赖任何插件。
 
+插件生命周期内会对旧安装 SQL 做有限规范化：数值字段上的非法 `COLLATE` 会被移除，字符字段和表级 collation 保持不变。该处理只覆盖安装、卸载、启用、升级等插件生命周期路径，不扩大到普通业务 SQL。
+
 ### 2.1 TypeError 异常捕获
 
 旧插件在 PHP 8+ 下常因类型严格化产生 `TypeError`（如 `header()` 传入非 string），导致 500 白屏。
@@ -142,6 +144,7 @@ safe_header('X-Custom: ' . $value);  // 即使 $value 不是 string 也不会报
 | `.text-gray` | 灰色文本（`#6c757d`） |
 | `.avatar-1` ~ `.avatar-5` | 头像尺寸（20px ~ 60px，圆形） |
 | `.icon-calendar-check-o` | FA4 旧图标名映射 |
+| `.las .la-*` | 常见 Line Awesome 图标别名映射到核心 Font Awesome 4 |
 
 #### 资源降级样式
 
@@ -185,6 +188,10 @@ safe_header('X-Custom: ' . $value);  // 即使 $value 不是 string 也不会报
 | `fetch` API 拦截器 | 同源 `fetch()` POST 自动携带 `X-CSRF-TOKEN` 头，跨域请求不会泄露 token |
 | `<form>` hidden field 注入 | 所有 POST 表单自动添加 `_token` 字段 |
 | `MutationObserver` | 动态插入的表单也会被自动注入 |
+
+后台与前台共用站点级 session cookie 路径 `/`，避免后台 `/admin` 下残留同名 `bbs_sid` 导致 CSRF token 读取到错误会话。进入后台时会清理旧的 `/admin` 作用域测试 cookie 和 session cookie。
+
+旧后台主题如果覆盖插件列表模板并漏掉 `data-method="post"`，`bs4-compat.js` 会直接识别后台插件安装、卸载、启用、禁用等写操作链接，并强制走带 CSRF token 的 `xpost` 请求。
 
 #### BS4 组件 jQuery API 代理
 

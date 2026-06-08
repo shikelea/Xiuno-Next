@@ -63,10 +63,10 @@ function sess_new($sid) {
 	if($cookie_test) {
 		$cookie_test_decode = xn_decrypt($cookie_test, $conf['auth_key']);
 		$g_session_invalid = ($cookie_test_decode != md5($agent.$longip));
-		xn_setcookie('cookie_test', '', $time - 86400);
+		xn_setcookie('cookie_test', '', $time - 86400, '/');
 	} else {
 		$cookie_test = xn_encrypt(md5($agent.$longip), $conf['auth_key']);
-		xn_setcookie('cookie_test', $cookie_test, $time + 86400);
+		xn_setcookie('cookie_test', $cookie_test, $time + 86400, '/');
 		$g_session_invalid = FALSE;
 	}
 	
@@ -184,13 +184,13 @@ function sess_gc($maxlifetime) {
 }
 
 function sess_start() {
-	global $conf, $sid, $g_session;
+	global $conf, $sid, $g_session, $time;
 	ini_set('session.name', 'bbs_sid');
 	
 	ini_set('session.use_cookies', 'On');
 	ini_set('session.use_only_cookies', 'On');
 	ini_set('session.cookie_domain', '');
-	ini_set('session.cookie_path', '');	// 为空则表示当前目录和子目录
+	ini_set('session.cookie_path', '/');
 	ini_set('session.cookie_secure', xn_cookie_secure() ? 'On' : 'Off'); // HTTPS 下自动启用 Secure 标志
 	ini_set('session.cookie_lifetime', 86400);
 	ini_set('session.cookie_httponly', 'On'); // 打开后 js 获取不到 HTTP 设置的 cookie, 有效防止 XSS，这个对于安全很重要，除非有 BUG，否则不要关闭。
@@ -206,6 +206,14 @@ function sess_start() {
 	
 	// 这个比须有，否则 ZEND 会提前释放 $db 资源
 	register_shutdown_function('session_write_close');
+
+	$script_name = str_replace('\\', '/', _SERVER('SCRIPT_NAME'));
+	$admin_pos = strpos($script_name, '/admin/');
+	if($admin_pos !== FALSE) {
+		$admin_cookie_path = substr($script_name, 0, $admin_pos + 6);
+		xn_setcookie('bbs_sid', '', $time - 86400, $admin_cookie_path);
+		xn_setcookie('cookie_test', '', $time - 86400, $admin_cookie_path);
+	}
 	
 	session_start();
 	

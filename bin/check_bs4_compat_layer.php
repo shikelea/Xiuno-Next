@@ -62,13 +62,18 @@ if(empty($errors)) {
 		'.pr-1'=>'right padding utility',
 		'.border-right'=>'right border utility',
 		'.rounded-right'=>'right radius utility',
+		'.las'=>'Line Awesome fallback base class',
+		'.la-calendar'=>'Line Awesome calendar icon fallback',
+		'.la-user'=>'Line Awesome user icon fallback',
+		'.la-chart-bar'=>'Line Awesome chart icon fallback',
+		'.la-calendar-check'=>'Line Awesome calendar-check icon fallback',
 		'.btn-group-toggle'=>'button toggle group',
 	);
 	foreach($css_selectors as $selector=>$label) {
 		require_contains($css, $selector, "bs4-compat.css must keep $label ($selector).");
 	}
 
-	foreach(array('.form-group', '.btn-block', '.custom-file', '.custom-control-label', '.badge-danger', '.input-group-prepend', '.btn-group-toggle') as $selector) {
+	foreach(array('.form-group', '.btn-block', '.custom-file', '.custom-control-label', '.badge-danger', '.input-group-prepend', '.btn-group-toggle', '.las', '.la-calendar', '.la-user', '.la-chart-bar', '.la-calendar-check') as $selector) {
 		require_contains($css_min, $selector, "bs4-compat.min.css must include $selector.");
 	}
 
@@ -113,7 +118,12 @@ if(empty($errors)) {
 		'querySelectorAll(\'[data-toggle="buttons"],[data-bs-toggle="buttons"]\')'=>'btn-group-toggle binding',
 		'querySelectorAll(\'[data-toggle="tab"],[data-bs-toggle="tab"]\')'=>'tab href binding',
 		'actionRe = /(?:^|[?&\\/-])plugin-(download|install|enable|disable|unstall|upgrade)-/'=>'plugin action URL POST repair boundary',
+		'function isSafePluginHref(href)'=>'plugin action URL same-origin boundary',
+		'url.protocol === window.location.protocol && url.host === window.location.host'=>'plugin action URL same-origin check',
 		"links[i].setAttribute('data-method', 'post');"=>'legacy admin plugin action POST repair',
+		"e.target.closest ? e.target.closest('a') : null"=>'legacy admin plugin action click repair target lookup',
+		'if (!link || !isPluginWriteLink(link)) return;'=>'legacy admin plugin action click repair boundary',
+		"link.setAttribute('data-method', 'post');"=>'legacy admin plugin action click repair must only delegate POST handling',
 		"ajaxMethod === 'POST' && isSameOrigin"=>'same-origin jQuery CSRF boundary',
 		'window._csrf_ajax_setup_jquery !== jQuery'=>'CSRF rebind after legacy jQuery replacement',
 		"method === 'POST' && isSameOrigin(input)"=>'same-origin fetch CSRF boundary',
@@ -130,6 +140,7 @@ if(empty($errors)) {
 		"jthis.off('input.xn-alert change.xn-alert').one('input.xn-alert change.xn-alert'",
 		'xn-alert-original-aria-describedby',
 		'plugin-(download|install|enable|disable|unstall|upgrade)-',
+		'function isSafePluginHref',
 		"setAttribute('data-method', 'post')",
 		'_csrf_ajax_setup_jquery',
 	) as $needle) {
