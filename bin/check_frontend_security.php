@@ -165,6 +165,33 @@ if ($bbsJs === FALSE) {
 	if (strpos($bbsJs, 'function xn_post_link_unlock(jlink)') === FALSE || strpos($bbsJs, "removeData('post-pending')") === FALSE) {
 		$errors[] = 'data-method POST links must restore the pending state on failure';
 	}
+	if (strpos($bbsJs, 'function xn_post_link_submit_form(href)') === FALSE || strpos($bbsJs, 'form.method = \'post\'') === FALSE) {
+		$errors[] = 'plugin install links must support full-page POST fallback for legacy install wizards';
+	}
+	if (strpos($bbsJs, 'function xn_post_link_csrf_token()') === FALSE || strpos($bbsJs, 'if (!token)') === FALSE || strpos($bbsJs, 'input.name = \'_token\'') === FALSE || strpos($bbsJs, 'input.value = token') === FALSE || strpos($bbsJs, 'form.appendChild(input)') === FALSE) {
+		$errors[] = 'full-page plugin install fallback must include a CSRF token';
+	}
+	if (strpos($bbsJs, 'plugin-install-') === FALSE || strpos($bbsJs, 'xn_post_link_should_submit_form(jlink, href)') === FALSE || strpos($bbsJs, 'xn_post_link_is_same_origin(href)') === FALSE) {
+		$errors[] = 'plugin install links must bypass AJAX reload only for same-origin URLs so legacy installer HTML can render';
+	}
+	if (strpos($bbsJs, 'url.protocol === window.location.protocol && url.host === window.location.host') === FALSE) {
+		$errors[] = 'data-method POST links must reject cross-origin targets before attaching CSRF tokens';
+	}
+	if (strpos($bbsJs, 'function xn_post_link_handle(jlink, href)') === FALSE || strpos($bbsJs, 'return xn_post_link_handle(jthis, href);') === FALSE) {
+		$errors[] = 'data-method POST and confirm POST links must share the same safety/fallback handler';
+	}
+}
+
+$bbsMinJs = file_get_contents($root . 'view/js/bbs.min.js');
+if ($bbsMinJs === FALSE) {
+	$errors[] = 'failed to read view/js/bbs.min.js';
+} else {
+	foreach (array('xn_post_link_submit_form', '_token', 'plugin-install-', 'xn_post_link_is_same_origin', 'window.location.protocol', 'window.location.host', 'xn_post_link_handle') as $needle) {
+		if (strpos($bbsMinJs, $needle) === FALSE) {
+			$errors[] = 'minified bbs.js must include plugin install POST fallback and same-origin CSRF guards';
+			break;
+		}
+	}
 }
 
 $loginTemplate = file_get_contents($root . 'view/htm/user_login.htm');
