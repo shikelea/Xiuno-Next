@@ -96,14 +96,60 @@ if(strpos($threadRoute, '$forum[\'accesson\'] && !forum_access_user') !== FALSE)
 }
 
 $userRoute = api_route_source('route/api/user.php');
+$loginStart = strpos($userRoute, "if(\$action == 'login')");
+$loginEnd = strpos($userRoute, "} elseif(\$action == 'read')");
+if($loginStart === FALSE || $loginEnd === FALSE || $loginEnd <= $loginStart) {
+	$errors[] = 'user route must keep a detectable login branch before read branch';
+	$userLoginRoute = '';
+} else {
+	$userLoginRoute = substr($userRoute, $loginStart, $loginEnd - $loginStart);
+}
 if(strpos($userRoute, 'api_auth_uid(FALSE)') === FALSE) {
 	$errors[] = 'user read API must use api_auth_uid(FALSE) for token fallback';
 }
 if(strpos($userRoute, 'api_method_required(\'POST\');') === FALSE) {
 	$errors[] = 'user login API must require POST through api_method_required()';
 }
+$rateLimitPos = strpos($userLoginRoute, 'user_login_rate_limited($email)');
+$emailLookupPos = strpos($userLoginRoute, 'user_read_by_email($email)');
+$usernameLookupPos = strpos($userLoginRoute, 'user_read_by_username($email)');
+$lookupPositions = array_filter(array($emailLookupPos, $usernameLookupPos), function($pos) { return $pos !== FALSE; });
+$firstLookupPos = empty($lookupPositions) ? FALSE : min($lookupPositions);
+if($firstLookupPos === FALSE) {
+	$errors[] = 'user login API must keep a detectable credential lookup';
+}
+if($rateLimitPos === FALSE || ($firstLookupPos !== FALSE && $rateLimitPos > $firstLookupPos)) {
+	$errors[] = 'user login API must check login failure rate before credential lookup';
+}
+if(substr_count($userLoginRoute, 'user_login_rate_fail($email);') < 2) {
+	$errors[] = 'user login API must record failures for both missing users and bad passwords';
+}
+if(substr_count($userLoginRoute, "api_output(-1, 'Email or password is incorrect')") < 2 || strpos($userLoginRoute, "lang('user_not_exists')") !== FALSE || strpos($userLoginRoute, "lang('password_incorrect')") !== FALSE) {
+	$errors[] = 'user login API must use a generic failure response to avoid account enumeration';
+}
+if(strpos($userLoginRoute, 'user_login_rate_clear($email);') === FALSE) {
+	$errors[] = 'user login API must clear login failure rate after successful authentication';
+}
 if(strpos($userRoute, 'mythread_find_visible_by_uid($_uid, $gid, $page, $pagesize)') === FALSE) {
 	$errors[] = 'user threads API must use visible mythread helper';
+}
+
+$userModel = api_route_source('model/user.func.php');
+foreach(array(
+	'function user_login_rate_key',
+	'function user_login_rate_read',
+	'function user_login_rate_limited',
+	'function user_login_rate_lockname',
+	'function user_login_rate_fail',
+	'function user_login_rate_clear',
+	'hash_hmac(\'sha256\', $account, xn_key())',
+	'xn_lock_start($lockname, 5)',
+	'finally',
+	'cache_set($key, array(\'count\'=>$count, \'time\'=>$time), 900)',
+) as $needle) {
+	if(strpos($userModel, $needle) === FALSE) {
+		$errors[] = 'user model must define cache-backed API login rate limiting helper: '.$needle;
+	}
 }
 
 $miscModel = api_route_source('model/misc.func.php');

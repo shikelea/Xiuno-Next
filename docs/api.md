@@ -52,6 +52,8 @@ Endpoints that need a logged-in user use the shared `api_login_required()` / `ap
 
 Prefer `Authorization: Bearer {token}` for non-browser clients. Query-string tokens are accepted for compatibility, but they can be captured by access logs or referrers.
 
+Login failures are rate-limited by the server. Clients should treat repeated generic login failures or temporary retry messages as normal business errors and avoid relying on exact wording or thresholds.
+
 If a write endpoint is called from an existing browser session without an explicit API token, Xiuno Next requires the normal CSRF token (`_token` or `X-CSRF-Token`). If an explicit API token is present, the token must validate; invalid tokens do not fall back to the browser session.
 
 ## Pagination

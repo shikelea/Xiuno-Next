@@ -38,6 +38,9 @@ jobs:
       - name: Smoke test API routes
         run: php bin/check_api_routes.php
 
+      - name: Smoke test API login rate limiting
+        run: php bin/check_api_login_rate_limit.php
+
       - name: Smoke test HTMX security defaults
         run: php bin/check_htmx_security.php
 
