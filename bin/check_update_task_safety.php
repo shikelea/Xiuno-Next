@@ -28,6 +28,9 @@ strpos($update_route, "!xn_lock_start(update_lock_name(), 600)") !== FALSE
 	|| fail('Online update writes must share an extended update_task lock.');
 strpos($update_route, "return 'update_task';") !== FALSE
 	|| fail('Online update lock must use the stable update_task name.');
+$lock_start = section_between($update_route, 'function update_lock_start()', 'function update_lock_end()');
+strpos($lock_start, "register_shutdown_function('update_lock_end')") !== FALSE
+	|| fail('Online update must release update_task during shutdown after fatal exits.');
 
 strpos($update_route, 'function update_message($code, $message)') !== FALSE
 	|| fail('update_message() helper is missing.');

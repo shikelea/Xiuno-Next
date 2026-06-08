@@ -125,3 +125,9 @@ rg -n "simplexml_load_string|simplexml_load_file|DOMDocument|LIBXML_NOENT|xml_pa
 - Shared task locks now write a per-request owner token and `xn_lock_end()` removes only locks owned by the current request. This prevents an old long-running plugin/update/install task from deleting a newer task's lock after the original lock TTL has expired and another request has acquired the lock.
 - `data-method="post"` links now share a front-end pending guard. Plugin/theme install, enable, disable, uninstall, upgrade, and other POST-link actions ignore duplicate clicks while a request is in flight, expose `aria-disabled`, and restore the link on failed responses.
 - Same-type plugin/theme replacement now re-checks the newly installed package's dependencies after automatic old-package uninstall. If the replacement batch removes something the new package still needs, the new package and every old same-type package touched in the batch are restored before the error is shown.
+
+## 2026-06-08 Post-Release Safety Review
+
+- Online update now registers a shutdown release guard after acquiring `update_task`, matching the installer/plugin lifecycle pattern. Unexpected fatal exits during update or rollback no longer leave the shared update lock stuck until TTL expiry.
+- Email validation now checks the actual UTF-8 email length (`$len > 32`) instead of the digit length of the number. This closes a legacy typo that could allow overlong email values past validation before hitting the storage boundary.
+- `bin/check_update_task_safety.php` and `bin/check_admin_user_safety.php` guard these regressions. Follow-up candidates from the same review remain installer admin credential validation parity and API login rate limiting; both should be handled as separate small hardening tasks rather than mixed into this patch.

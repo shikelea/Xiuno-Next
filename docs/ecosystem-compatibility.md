@@ -128,6 +128,8 @@ The legacy upgrade smoke now also verifies no-op idempotency after a successful 
 
 `bin/check_plugin_hook_context_compile_smoke.php` covers hook fragments that are intentionally not standalone-linted. It compiles `case` route fragments, HTML template fragments, and PHP hooks with legacy `<?php exit;` guards into their target contexts, verifying `hooks_rank` order while excluding disabled or not-installed packages.
 
+The same hook-context smoke now covers array-entry fragments from local samples: `model_inc_file.php` entries inside `model.inc.php` include arrays and `lang_zh_cn_bbs.php` entries inside language `return array(...)` files. These fragments naturally fail standalone `php -l` because they are partial array items, but the compiled target files must lint cleanly. This keeps hook-fragment notes classified as context-dependent compatibility work rather than package PHP blockers.
+
 `bin/check_plugin_upgrade_lifecycle_smoke.php` exercises the trusted-package upgrade rollback boundary that will matter when local or rebuilt-registry upgrades are re-enabled. It snapshots an installed package, replaces it with a new package whose `upgrade.php` exits or throws, and verifies the old package directory, old `conf.json` state, backup snapshot cleanup, and `plugin_task` release.
 
 ## 2026-05-29 Lifecycle Hardening Delta
