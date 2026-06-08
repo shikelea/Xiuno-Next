@@ -8,6 +8,12 @@ function fail($message) {
 	exit(1);
 }
 
+function lang($key, $arr = array()) {
+	return $key.(isset($arr['length']) ? ':'.$arr['length'] : '');
+}
+
+include $root.'/model/check.func.php';
+
 function section_between($source, $start, $end) {
 	$start_pos = strpos($source, $start);
 	if($start_pos === FALSE) fail("Missing section start: $start");
@@ -49,5 +55,14 @@ strpos($update, '!is_password(md5($password), $err)') !== FALSE
 	|| fail('Admin user update must validate non-empty password changes before hashing.');
 strpos($update, 'message(2, $err)') === FALSE
 	|| fail('Admin user update must report validation errors against field names, not numeric codes.');
+
+$err = '';
+is_email(str_repeat('a', 23).'@test.com', $err) === TRUE
+	|| fail('Email validation must allow addresses at the 32-character storage boundary.');
+$err = '';
+is_email(str_repeat('a', 28).'@test.com', $err) === FALSE
+	|| fail('Email validation must reject addresses longer than the 32-character storage boundary.');
+strpos($err, 'email_too_long') !== FALSE
+	|| fail('Long email validation must report the email_too_long error.');
 
 echo "OK: admin user safety checks passed\n";

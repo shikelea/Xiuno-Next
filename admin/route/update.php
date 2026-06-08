@@ -319,7 +319,12 @@ if ($action == 'check') {
  */
 function update_lock_start() {
 	global $update_task_locked;
+	static $shutdown_registered = FALSE;
 	!xn_lock_start(update_lock_name(), 600) AND message(-1, 'Another update task is being executed, current task is locked.');
+	if (!$shutdown_registered) {
+		register_shutdown_function('update_lock_end');
+		$shutdown_registered = TRUE;
+	}
 	$update_task_locked = TRUE;
 }
 

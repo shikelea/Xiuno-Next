@@ -54,55 +54,77 @@ mkdir($app.'plugin/', 0777, TRUE);
 mkdir($app.'tmp/', 0777, TRUE);
 mkdir($app.'route/', 0777, TRUE);
 mkdir($app.'view/htm/', 0777, TRUE);
+mkdir($app.'model/', 0777, TRUE);
+mkdir($app.'lang/zh-cn/', 0777, TRUE);
 
 $case_target = $app.'route/case_target.php';
 $template_target = $app.'view/htm/template_target.htm';
 $guard_target = $app.'route/guard_target.php';
+$model_array_target = $app.'model.inc.php';
+$lang_array_target = $app.'lang/zh-cn/bbs.php';
 $hook_comment = '// hoo'.'k ';
 $hook_template = '<!--{hoo'.'k template_hook.htm}-->';
 
 file_put_contents($case_target, "<?php\nswitch(\$action) {\n".$hook_comment."case_hook.php\n\tdefault: echo 'default';\n}\n");
 file_put_contents($template_target, 'before '.$hook_template.' after');
 file_put_contents($guard_target, "<?php\n".$hook_comment."guarded_hook.php\n");
+file_put_contents($model_array_target, "<?php\n\$include_model_files = array(\n\tAPP_PATH.'model/core.func.php',\n\t".$hook_comment."model_inc_file.php\n);\n");
+file_put_contents($lang_array_target, "<?php\nreturn array(\n\t'core_lang'=>'core',\n\t".$hook_comment."lang_zh_cn_bbs.php\n);\n");
 
 write_plugin($app, 'enabled_low_hook', 1, 1, array(
 	'case_hook.php'=>10,
 	'template_hook.htm'=>10,
 	'guarded_hook.php'=>10,
+	'model_inc_file.php'=>10,
+	'lang_zh_cn_bbs.php'=>10,
 ), array(
 	'case_hook.php'=>"case 'enabled_low': echo 'enabled-low'; break;\n",
 	'template_hook.htm'=>'low-template',
 	'guarded_hook.php'=>"<?php exit; echo 'low-guarded'; ?>",
+	'model_inc_file.php'=>"\tAPP_PATH.'model/low.func.php',\n",
+	'lang_zh_cn_bbs.php'=>"\t'low_lang'=>'low',\n",
 ));
 
 write_plugin($app, 'enabled_high_hook', 1, 1, array(
 	'case_hook.php'=>30,
 	'template_hook.htm'=>30,
 	'guarded_hook.php'=>30,
+	'model_inc_file.php'=>30,
+	'lang_zh_cn_bbs.php'=>30,
 ), array(
 	'case_hook.php'=>"case 'enabled_high': echo 'enabled-high'; break;\n",
 	'template_hook.htm'=>'high-template',
 	'guarded_hook.php'=>"<?php exit; echo 'high-guarded'; ?>",
+	'model_inc_file.php'=>"\tAPP_PATH.'model/high.func.php',\n",
+	'lang_zh_cn_bbs.php'=>"\t'high_lang'=>'high',\n",
 ));
 
 write_plugin($app, 'disabled_hook', 1, 0, array(
 	'case_hook.php'=>80,
 	'template_hook.htm'=>80,
 	'guarded_hook.php'=>80,
+	'model_inc_file.php'=>80,
+	'lang_zh_cn_bbs.php'=>80,
 ), array(
 	'case_hook.php'=>"case 'disabled': echo 'disabled'; break;\n",
 	'template_hook.htm'=>'disabled-template',
 	'guarded_hook.php'=>"<?php exit; echo 'disabled-guarded'; ?>",
+	'model_inc_file.php'=>"\tAPP_PATH.'model/disabled.func.php',\n",
+	'lang_zh_cn_bbs.php'=>"\t'disabled_lang'=>'disabled',\n",
 ));
 
 write_plugin($app, 'not_installed_hook', 0, 1, array(
 	'case_hook.php'=>90,
 	'template_hook.htm'=>90,
 	'guarded_hook.php'=>90,
+	'model_inc_file.php'=>90,
+	'lang_zh_cn_bbs.php'=>90,
 ), array(
 	'case_hook.php'=>"case 'not_installed': echo 'not-installed'; break;\n",
 	'template_hook.htm'=>'not-installed-template',
 	'guarded_hook.php'=>"<?php exit; echo 'not-installed-guarded'; ?>",
+	'model_inc_file.php'=>"\tAPP_PATH.'model/not-installed.func.php',\n",
+	'lang_zh_cn_bbs.php'=>"\t'not_installed_lang'=>'not-installed',\n",
 ));
 
 defined('DEBUG') || define('DEBUG', 0);
@@ -148,6 +170,34 @@ assert_contains($guard_compiled, "echo 'low-guarded';", 'PHP hook guard wrappers
 assert_not_contains($guard_compiled, '<?php exit;', 'Compiled PHP hook fragments must not retain direct-access guard wrappers.');
 assert_not_contains($guard_compiled, 'disabled-guarded', 'Disabled guarded hook packages must not compile.');
 assert_not_contains($guard_compiled, 'not-installed-guarded', 'Not-installed guarded hook packages must not compile.');
+
+$model_array_compiled = plugin_compile_srcfile($model_array_target);
+assert_contains($model_array_compiled, "APP_PATH.'model/high.func.php'", 'Array-entry model hook fragments should compile inside model include arrays.');
+assert_contains($model_array_compiled, "APP_PATH.'model/low.func.php'", 'Low-rank array-entry model hook fragments should also compile.');
+assert_not_contains($model_array_compiled, 'disabled.func.php', 'Disabled array-entry model hooks must not compile.');
+assert_not_contains($model_array_compiled, 'not-installed.func.php', 'Not-installed array-entry model hooks must not compile.');
+if(strpos($model_array_compiled, "APP_PATH.'model/high.func.php'") > strpos($model_array_compiled, "APP_PATH.'model/low.func.php'")) {
+	fail('Array-entry model hook fragments must compile in hooks_rank descending order.');
+}
+file_put_contents($app.'tmp/model_array_compiled.php', $model_array_compiled);
+exec(escapeshellarg(PHP_BINARY).' -l '.escapeshellarg($app.'tmp/model_array_compiled.php').' 2>&1', $model_lint, $model_lint_code);
+if($model_lint_code !== 0) {
+	fail('Compiled model array hook context must pass php -l.'."\n".implode("\n", $model_lint));
+}
+
+$lang_array_compiled = plugin_compile_srcfile($lang_array_target);
+assert_contains($lang_array_compiled, "'high_lang'=>'high'", 'Array-entry language hook fragments should compile inside lang arrays.');
+assert_contains($lang_array_compiled, "'low_lang'=>'low'", 'Low-rank array-entry language hook fragments should also compile.');
+assert_not_contains($lang_array_compiled, 'disabled_lang', 'Disabled array-entry language hooks must not compile.');
+assert_not_contains($lang_array_compiled, 'not_installed_lang', 'Not-installed array-entry language hooks must not compile.');
+if(strpos($lang_array_compiled, "'high_lang'=>'high'") > strpos($lang_array_compiled, "'low_lang'=>'low'")) {
+	fail('Array-entry language hook fragments must compile in hooks_rank descending order.');
+}
+file_put_contents($app.'tmp/lang_array_compiled.php', $lang_array_compiled);
+exec(escapeshellarg(PHP_BINARY).' -l '.escapeshellarg($app.'tmp/lang_array_compiled.php').' 2>&1', $lang_lint, $lang_lint_code);
+if($lang_lint_code !== 0) {
+	fail('Compiled language array hook context must pass php -l.'."\n".implode("\n", $lang_lint));
+}
 
 rm_dir($app);
 
