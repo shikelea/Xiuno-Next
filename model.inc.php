@@ -41,6 +41,21 @@ if(DEBUG) {
 	
 	$model_min_file = $conf['tmp_path'].'model.min.php';
 	$isfile = is_file($model_min_file);
+	if($isfile) {
+		$model_min_mtime = filemtime($model_min_file);
+		if(filemtime(__FILE__) > $model_min_mtime) {
+			$isfile = FALSE;
+		}
+		if($isfile) {
+			foreach($include_model_files as $model_files) {
+				$model_file = _include($model_files);
+				if(is_file($model_file) && filemtime($model_file) > $model_min_mtime) {
+					$isfile = FALSE;
+					break;
+				}
+			}
+		}
+	}
 	if(!$isfile) {
 		$s = '';
 		foreach($include_model_files as $model_files) {

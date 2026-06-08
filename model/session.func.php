@@ -68,7 +68,6 @@ function sess_new($sid) {
 		$cookie_test = xn_encrypt(md5($agent.$longip), $conf['auth_key']);
 		xn_setcookie('cookie_test', $cookie_test, $time + 86400);
 		$g_session_invalid = FALSE;
-		return;
 	}
 	
 	// 可能会暴涨

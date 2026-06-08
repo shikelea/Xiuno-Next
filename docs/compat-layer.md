@@ -400,3 +400,6 @@ if (!function_exists('new_function_name')) {
 - New plugin scaffolds should prefer `plugin_db_exec_or_throw($sql)` in `install.php`, `unstall.php` and `upgrade.php` so database failures are visible in the admin UI.
 - Legacy admin themes that override `plugin_list.htm` may miss `data-method="post"` on plugin action links. `bs4-compat.js` repairs known plugin write actions so they still flow through the core POST/confirm handlers.
 - Legacy admin themes that omit the core admin footer may also expose frontend-style `view/js/...` paths under `/admin/`. The compatibility injector now emits `../view/...` assets for admin requests and does not treat broken `/admin/view/...` compatibility assets as loaded.
+- Core `$.xpost()` now attaches `_token` directly to POST payloads as a fallback. This protects plugin/theme admin operations when a legacy package replaces jQuery or overwrites `ajaxSetup` after the compatibility layer has already installed the CSRF header hook.
+- `bs4-compat.js` also rebinds its jQuery CSRF interceptor when `window.jQuery` changes, which is common in old themes that bundle their own jQuery copy.
+- New visitor sessions must be persisted on the first page view. Otherwise the page can render a CSRF token that is never saved server-side, causing the next POST to fail even when the browser sends the token correctly.

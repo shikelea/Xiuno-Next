@@ -17,7 +17,11 @@ function _include($srcfile) {
 	// 合并插件，存入 tmp_path
 	$len = strlen(APP_PATH);
 	$tmpfile = $conf['tmp_path'].substr(str_replace('/', '_', $srcfile), $len);
-	if(!is_file($tmpfile) || DEBUG > 1) {
+	$compile_srcfile = empty($conf['disabled_plugin']) ? plugin_find_overwrite($srcfile) : $srcfile;
+	$tmp_isfile = is_file($tmpfile);
+	$src_mtime = plugin_include_src_mtime($compile_srcfile);
+	$tmp_mtime = $tmp_isfile ? filemtime($tmpfile) : 0;
+	if(!$tmp_isfile || ($src_mtime && $src_mtime > $tmp_mtime) || DEBUG > 1) {
 		// 开始编译
 		$s = plugin_compile_srcfile($srcfile);
 		
@@ -34,6 +38,30 @@ function _include($srcfile) {
 		
 	}
 	return $tmpfile;
+}
+
+function plugin_include_src_mtime($srcfile) {
+	global $conf;
+	if(!is_file($srcfile)) return 0;
+	$mtime = filemtime($srcfile);
+	if(!empty($conf['disabled_plugin'])) return $mtime;
+	$s = file_get_contents($srcfile);
+	if(strpos($s, 'hook') === FALSE) return $mtime;
+	preg_match_all('#(?:<!--\{hook\s+(.*?)}-->|//\s*hook\s+(\S+))#is', $s, $m);
+	$hooknames = array();
+	foreach(array_merge($m[1], $m[2]) as $hookname) {
+		$hookname = trim($hookname);
+		if($hookname !== '') $hooknames[$hookname] = TRUE;
+	}
+	if(empty($hooknames)) return $mtime;
+	foreach(plugin_paths_enabled() as $path=>$pconf) {
+		$dir = file_name($path);
+		foreach($hooknames as $hookname=>$unused) {
+			$hookfile = APP_PATH."plugin/$dir/hook/$hookname";
+			if(is_file($hookfile)) $mtime = max($mtime, filemtime($hookfile));
+		}
+	}
+	return $mtime;
 }
 
 function _include_callback_1($m) {
