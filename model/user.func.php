@@ -179,6 +179,61 @@ function user_maxid($cond = array()) {
 	return $n;
 }
 
+function user_login_rate_key($account) {
+	global $longip;
+	$account = strtolower(trim((string)$account));
+	$account_hash = hash_hmac('sha256', $account, xn_key());
+	return 'user_login_rate_'.substr(hash('sha256', intval($longip).'|'.$account_hash), 0, 16);
+}
+
+function user_login_rate_read($account) {
+	global $time;
+	$key = user_login_rate_key($account);
+	$record = cache_get($key);
+	if($record === FALSE) {
+		return array('count'=>10, 'time'=>$time);
+	}
+	if(!is_array($record)) {
+		return array('count'=>0, 'time'=>$time);
+	}
+	$count = isset($record['count']) ? intval($record['count']) : 0;
+	$start = isset($record['time']) ? intval($record['time']) : $time;
+	return array('count'=>max(0, $count), 'time'=>$start);
+}
+
+function user_login_rate_limited($account) {
+	$record = user_login_rate_read($account);
+	return $record['count'] >= 10;
+}
+
+function user_login_rate_lockname($key) {
+	return 'login_rate_'.substr(hash('sha256', $key), 0, 16);
+}
+
+function user_login_rate_fail($account) {
+	global $time;
+	$key = user_login_rate_key($account);
+	$lockname = user_login_rate_lockname($key);
+	$locked = FALSE;
+	if(function_exists('xn_lock_start')) {
+		$locked = xn_lock_start($lockname, 5);
+		if(!$locked) {
+			return cache_set($key, array('count'=>10, 'time'=>$time), 900);
+		}
+	}
+	try {
+		$record = user_login_rate_read($account);
+		$count = $record['count'] + 1;
+		return cache_set($key, array('count'=>$count, 'time'=>$time), 900);
+	} finally {
+		$locked AND xn_lock_end($lockname);
+	}
+}
+
+function user_login_rate_clear($account) {
+	return cache_delete(user_login_rate_key($account));
+}
+
 function user_format(&$user) {
 	global $conf, $grouplist;
 	if(empty($user)) return;
