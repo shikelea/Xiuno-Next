@@ -82,6 +82,7 @@ function db_exec($sql, $d = NULL) {
 	// Ensure SQL is not empty
 	if (empty($sql)) return FALSE;
 
+	$sql = db_plugin_lifecycle_normalize_sql($sql);
 	$n = $d->exec($sql);
 
 	if($n === FALSE && db_plugin_lifecycle_idempotent_ddl_error($sql, $d)) {
@@ -105,6 +106,27 @@ function db_exec_is_ddl($sql) {
 function db_plugin_lifecycle_active() {
 	global $plugin_lifecycle_guard;
 	return !empty($plugin_lifecycle_guard) && is_array($plugin_lifecycle_guard);
+}
+
+function db_plugin_lifecycle_normalize_sql($sql) {
+	if(!db_plugin_lifecycle_active() || !db_exec_is_ddl($sql)) return $sql;
+	$normalized = preg_replace_callback(
+		'~(\'(?:\\\\.|\'\'|[^\'])*\'|"(?:\\\\.|""|[^"])*"|`(?:``|[^`])*`|--[^\r\n]*|#[^\r\n]*|/\*.*?\*/)|\b((?:tinyint|smallint|mediumint|int|integer|bigint|float|double|decimal|real|bit|boolean|bool)(?:\s*\([^)]+\))?(?:\s+unsigned)?(?:\s+zerofill)?(?:\s+unsigned)?)\s+COLLATE\s+[a-z0-9_]+~is',
+		function($m) { return isset($m[1]) && $m[1] !== '' ? $m[1] : $m[2]; },
+		$sql
+	);
+	if($normalized !== $sql) {
+		global $plugin_lifecycle_guard;
+		$dir = isset($plugin_lifecycle_guard['dir']) ? $plugin_lifecycle_guard['dir'] : '';
+		$action = isset($plugin_lifecycle_guard['action']) ? $plugin_lifecycle_guard['action'] : '';
+		$s = 'Plugin lifecycle SQL normalized'
+			."\r\nplugin: ".$dir
+			."\r\naction: ".$action
+			."\r\nSQL:".$sql
+			."\r\nnormalized: ".$normalized;
+		xn_log($s, 'plugin_sql_compat');
+	}
+	return $normalized;
 }
 
 function db_plugin_lifecycle_idempotent_ddl_error($sql, $d) {

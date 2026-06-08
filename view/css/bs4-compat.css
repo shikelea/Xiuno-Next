@@ -566,6 +566,23 @@ img.avatar-1, img.avatar-2, img.avatar-3, img.avatar-4, img.avatar-5 {
 /* icon-calendar-check-o (Font Awesome 4 旧名) — 部分签到插件使用 */
 .icon-calendar-check-o:before { content: "\f274"; }
 
+/* Line Awesome 常见图标别名 — 仅兜底已知旧主题/签到插件用到的图标 */
+.las.la-calendar:before,
+.las.la-user:before,
+.las.la-chart-bar:before,
+.las.la-calendar-check:before {
+    font-family: FontAwesome;
+    font-style: normal;
+    font-weight: normal;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+.las.la-calendar:before { content: "\f073"; }
+.las.la-user:before { content: "\f007"; }
+.las.la-chart-bar:before { content: "\f080"; }
+.las.la-calendar-check:before { content: "\f274"; }
+
 /* ===== input-group border-radius 修复 (BS4→BS5) ===== */
 
 /*
