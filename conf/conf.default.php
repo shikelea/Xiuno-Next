@@ -9,13 +9,16 @@
 	支持临时目录设置，独立 Linux 主机，可以设置为 /dev/shm 通过内存加速
 */
 return array (
+	// 🔒 安全警告：数据库默认密码必须修改！
+	// 请勿在生产环境使用默认的 root/root 密码
+	// 建议使用强密码：至少 16 位，包含大小写字母、数字、特殊字符
 	'db' => array (
-		'type' => 'pdo_mysql',	
+		'type' => 'pdo_mysql',
 		'mysql' => array (
 			'master' => array (
 				'host' => 'localhost',
 				'user' => 'root',
-				'password' => 'root',
+				'password' => 'root',  // ⚠️ 警告：必须修改为强密码！
 				'name' => 'test',
 				'tablepre' => 'bbs_',
 				'charset' => 'utf8',
@@ -28,7 +31,7 @@ return array (
 			'master' => array (
 				'host' => 'localhost',
 				'user' => 'root',
-				'password' => 'root',
+				'password' => 'root',  // ⚠️ 警告：必须修改为强密码！
 				'name' => 'test',
 				'tablepre' => 'bbs_',
 				'charset' => 'utf8',
@@ -86,8 +89,13 @@ return array (
 	
 	'cookie_domain' => '',
 	'cookie_path' => '',
-	'auth_key' => 'efdkjfjiiiwurjdmclsldow753jsdj438',
-	
+
+	// 🔒 安全警告：auth_key 必须修改为随机值！切勿使用默认值！
+	// 此密钥用于加密 session 和 cookie，默认值会导致严重的会话劫持漏洞
+	// 生成方法：php -r "echo bin2hex(random_bytes(32));"
+	// 示例：a3f8c2e9b1d4567890abcdef12345678a3f8c2e9b1d4567890abcdef12345678
+	'auth_key' => 'CHANGE_ME_TO_RANDOM_64_CHARS_' . bin2hex(random_bytes(16)),
+
 	'pagesize' => 20,
 	'postlist_pagesize' => 100,
 	'cache_thread_list_pages' => 10,

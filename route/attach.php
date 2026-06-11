@@ -129,12 +129,22 @@ if(empty($action) || $action == 'create') {
 	empty($thread) AND message(-1, lang('thread_not_exists'));
 	$fid = $thread['fid'];
 	$allowdown = forum_access_user($fid, $gid, 'allowdown');
-	empty($allowdown) AND message(-1, lang('insufficient_privilege_to_download'));	
-	
+	empty($allowdown) AND message(-1, lang('insufficient_privilege_to_download'));
+
 	$attachpath = attach_path($attach);
 	$attachurl = $conf['upload_url'].'attach/'.$attach['filename'];
 	(empty($attachpath) || !is_file($attachpath)) AND message(-1, lang('attach_not_exists'));
-	
+
+	// 🔒 安全修复：防止路径遍历攻击，确保下载的文件在 upload_path/attach/ 目录内
+	// 验证附件路径必须在合法的上传目录内，防止读取任意文件（如 conf/conf.php）
+	$real_path = realpath($attachpath);
+	$safe_dir = realpath($conf['upload_path'].'attach/');
+
+	// 如果路径不存在或不在安全目录内，拒绝访问
+	if (!$real_path || strpos($real_path, $safe_dir) !== 0) {
+		message(-1, lang('attach_not_exists'));
+	}
+
 	$type = 'php';
 	
 	// hook attach_output_before.php

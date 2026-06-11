@@ -281,12 +281,28 @@ if($action == 'local') {
 	plugin_official_remote_closed();
 	
 } elseif($action == 'setting') {
-	
+
 	$dir = param_word(2);
 	plugin_check_exists($dir);
+
+	// 🔒 安全修复：插件设置页面必须验证管理员权限，防止普通用户访问后台
+	// 检查用户是否拥有后台管理权限
+	empty($group['allowadminpanel']) AND message(-1, lang('insufficient_privilege'));
+
 	$name = $plugins[$dir]['name'];
-	
-	include _include(APP_PATH."plugin/$dir/setting.php");
+
+	// 🔒 安全修复：防止目录遍历攻击，确保包含的文件在 plugin/ 目录内
+	// 使用 realpath 规范化路径，防止 ../ 等路径遍历
+	$pluginfile = APP_PATH."plugin/$dir/setting.php";
+	$real_path = realpath($pluginfile);
+	$safe_dir = realpath(APP_PATH."plugin/");
+
+	// 验证文件必须在 plugin/ 目录内
+	if (!$real_path || strpos($real_path, $safe_dir) !== 0) {
+		message(-1, 'Invalid plugin path');
+	}
+
+	include _include($pluginfile);
 }
 
 
