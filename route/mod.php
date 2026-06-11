@@ -183,25 +183,28 @@ if($action == 'top') {
 	}
 	
 } elseif($action == 'deleteuser') {
-	
+
 	$_uid = param(2, 0);
-	
+
 	$method != 'POST' AND message(-1, 'Method error');
-	
+
 	empty($group['allowdeleteuser']) AND message(-1, lang('insufficient_delete_user_privilege'));
-	
+
 	$u = user_read($_uid);
 	empty($u) AND message(-1, lang('user_not_exists_or_deleted'));
-	
-	$u['gid'] < 6 AND message(-1, lang('cant_delete_admin_group'));
-	
+
+	// 🔒 安全修复：防止权限提升，版主不能删除同级或更高权限的用户
+	// 原逻辑错误：$u['gid'] < 6 允许删除 gid=1（管理员）
+	// 正确逻辑：被删除用户的权限必须低于当前用户
+	($u['gid'] <= $gid) AND message(-1, lang('cant_delete_higher_privilege_user'));
+
 	// hook mod_delete_user_start.php
-	
+
 	$r = user_delete($_uid);
 	$r === FALSE AND message(-1, lang('delete_failed'));
 
 	// hook mod_delete_user_end.php
-	
+
 	message(0, lang('delete_successfully'));
 }
 
