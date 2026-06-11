@@ -365,13 +365,17 @@ if(empty($action)) {
 	$token = param('token', '', FALSE);
 	$return_url = user_synlogin_return_url(param('return_url', '', FALSE));
 	empty($return_url) AND message(-1, lang('unauthorized_access'));
-	
+
 	$s = xn_decrypt($token);
 	!$s AND message(-1, lang('unauthorized_access'));
 	$token_parts = explode("\t", $s);
 	count($token_parts) != 2 AND message(-1, lang('unauthorized_access'));
 	list($_time, $_useragent) = $token_parts;
-	abs($time - intval($_time)) > 300 AND message(-1, lang('link_has_expired'));
+
+	// 🔒 安全修复：缩短 token 有效期从 300 秒到 60 秒，减少重放攻击窗口
+	// 原 5 分钟窗口过大，攻击者截获 URL 后有充足时间利用
+	abs($time - intval($_time)) > 60 AND message(-1, lang('link_has_expired'));
+
 	$useragent != $_useragent AND message(-1, lang('authorized_get_failed'));
 	
 	$_SESSION['return_url'] = $return_url;
