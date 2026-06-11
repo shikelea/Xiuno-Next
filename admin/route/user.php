@@ -184,18 +184,21 @@ if(empty($action) || $action == 'list') {
 	if($method != 'POST') message(-1, 'Method Error.');
 
 	$_uid = param('uid', 0);
-	
+
 	// hook admin_user_delete_start.php
-	
+
 	$_user = user_read($_uid);
 	empty($_user) AND message(-1, lang('user_not_exists'));
-	($_user['gid'] == 1) AND message(-1, 'admin_cant_be_deleted');
+
+	// 🔒 安全修复：扩展删除限制，保护管理员和超级版主
+	// 原逻辑仅保护 gid=1（管理员），超级版主（gid=2）可被删除
+	($_user['gid'] <= 2) AND message(-1, 'Cannot delete admin or super moderator');
 
 	$r = user_delete($_uid);
 	$r === FALSE AND message(-1, lang('delete_failed'));
-	
+
 	// hook admin_user_delete_end.php
-	
+
 	message(0, lang('delete_successfully'));
 	
 }

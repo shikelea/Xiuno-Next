@@ -38,12 +38,14 @@ if(empty($action) || $action == 'create') {
 	//$data = base64_decode_file_data($data);
 	$size = strlen($data);
 	$size > 20480000 AND message(-1, lang('filesize_too_large', array('maxsize'=>'20M', 'size'=>$size)));
-	
-	// 111.php.shtmll 
+
+	// 🔒 安全修复：拒绝非白名单文件上传，防止恶意文件执行
+	// 原逻辑：非白名单文件添加下划线前缀（如 .php → ._php），配置不当时仍可能被执行
+	// 修复后：直接拒绝非白名单文件类型
 	$ext = file_ext($name, 7);
 	$filetypes = include APP_PATH.'conf/attach.conf.php';
-	!in_array($ext, $filetypes['all']) AND $ext = '_'.$ext;
-	
+	!in_array($ext, $filetypes['all']) AND message(-1, '文件类型不允许上传');
+
 	$tmpanme = $uid.'_'.xn_rand(15).'.'.$ext;
 	$tmpfile = $conf['upload_path'].'tmp/'.$tmpanme;
 	$tmpurl = $conf['upload_url'].'tmp/'.$tmpanme;

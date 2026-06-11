@@ -44,13 +44,17 @@ if($action == 'login') {
 	$method != 'POST' AND message(-1, 'Method Not Allowed');
 
 	// hook admin_index_logout_start.php
-	
+
 	admin_token_clean();
-	
+
 	message(0, jump(lang('logout_successfully'), './'));
 
 } elseif ($action == 'phpinfo') {
-	
+
+	// 🔒 安全修复：限制 phpinfo() 仅管理员可访问，防止敏感信息泄露
+	// phpinfo() 会暴露服务器配置、环境变量、数据库连接等敏感信息
+	$gid != 1 AND message(-1, lang('insufficient_privilege'));
+
 	unset($_SERVER['conf']);
 	unset($_SERVER['db']);
 	unset($_SERVER['cache']);

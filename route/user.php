@@ -68,10 +68,18 @@ if(empty($action)) {
 	} else if($method == 'POST') {
 
 		// hook user_login_post_start.php
-		
+
+		// 🔒 安全修复：邮箱验证前置，防止无效输入污染速率限制
+		// 先验证邮箱格式，避免恶意输入消耗速率限制资源
 		$email = param('email');			// 邮箱或者手机号 / email or mobile
 		$password = param('password');
 		empty($email) AND message('email', lang('email_is_empty'));
+
+		// 验证邮箱格式（邮箱或手机号）
+		if(!is_email($email, $err) && !preg_match('/^1\d{10}$/', $email)) {
+			message('email', lang('email_format_incorrect'));
+		}
+
 		user_login_rate_limited($email) AND message('email', 'Please try again later');
 		if(is_email($email, $err)) {
 			$_user = user_read_by_email($email);
