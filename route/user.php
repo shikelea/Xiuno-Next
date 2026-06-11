@@ -102,18 +102,22 @@ if(empty($action)) {
 		user_update($_user['uid'], array('login_ip'=>$longip, 'login_date' =>$time , 'logins+'=>1));
 		user_login_rate_clear($email);
 
+		// 🔒 安全修复：登录成功后重新生成 Session ID，防止会话固定攻击
+		// 攻击者无法预先设置 Session ID 并在用户登录后劫持会话
+		session_regenerate_id(true);
+
 		// 全局变量 $uid 会在结束后，在函数 register_shutdown_function() 中存入 session (文件: model/session.func.php)
 		// global variable $uid will save to session in register_shutdown_function() (file: model/session.func.php)
 		$uid = $_user['uid'];
-		
+
 		$_SESSION['uid'] = $uid;
-		
+
 		user_token_set($_user['uid']);
-		
+
 		// hook user_login_post_end.php
-		
+
 		// 设置 token，下次自动登陆。
-		
+
 		message(0, lang('user_login_successfully'));
 
 	}

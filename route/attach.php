@@ -42,35 +42,36 @@ if(empty($action) || $action == 'create') {
 	$tmpurl = $conf['upload_url'].'tmp/'.$tmpanme;
 	
 	$filetype = attach_type($name, $filetypes);
-	
+
 	// hook attach_create_save_before.php
-	
+
 	file_put_contents($tmpfile, $data) OR message(-1, lang('write_to_file_failed'));
-	
+
 	// 保存到 session，发帖成功以后，关联到帖子。
 	// save attach information to session, associate to post after create thread.
 
-	// 抛弃之前的 $_SESSION 数据，重新启动 session，降低 session 并发写入的问题
-	// Discard the previous $_SESSION data, restart the session, reduce the problem of concurrent session write
-	sess_restart();
-	
+	// 🔒 安全修复：移除 sess_restart() 调用，避免并发上传时丢失其他附件数据
+	// sess_restart() 会丢弃当前 $_SESSION，导致快速连续上传时只保留最后一个附件
+	// 解决方案：直接使用当前 session，利用 PHP session 自动锁机制保证并发安全
+	// sess_restart(); // 已移除，避免竞态条件
+
 	empty($_SESSION['tmp_files']) AND $_SESSION['tmp_files'] = array();
 	$n = count($_SESSION['tmp_files']);
 	$filesize = filesize($tmpfile);
 	$attach = array(
-		'url'=>$tmpurl, 
-		'path'=>$tmpfile, 
-		'orgfilename'=>$name, 
-		'filetype'=>$filetype, 
-		'filesize'=>$filesize, 
-		'width'=>$width, 
-		'height'=>$height, 
-		'isimage'=>$is_image, 
-		'downloads'=>0, 
+		'url'=>$tmpurl,
+		'path'=>$tmpfile,
+		'orgfilename'=>$name,
+		'filetype'=>$filetype,
+		'filesize'=>$filesize,
+		'width'=>$width,
+		'height'=>$height,
+		'isimage'=>$is_image,
+		'downloads'=>0,
 		'aid'=>'_'.$n
 	);
 	$_SESSION['tmp_files'][$n] = $attach;
-	
+
 	unset($attach['path']);
 	
 	// hook attach_create_end.php
