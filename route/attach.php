@@ -16,17 +16,24 @@ if(empty($action) || $action == 'create') {
 	$height = param('height', 0);
 	$is_image = param('is_image', 0);
 	$name = param('name');
-	$data = param('data', '', FALSE, FALSE);
+
+	// 🔒 安全修复：先检查原始 POST 数据大小，防止 base64 解码前内存溢出
+	// base64 编码会使数据增大约 33%，需要在解码前检查原始大小
+	$raw_data = param('data', '', FALSE, FALSE);
+	$raw_size = strlen($raw_data);
+	// 限制原始数据 30MB（解码后约 22.5MB），避免超大数据消耗内存
+	$raw_size > 31457280 AND message(-1, 'Raw data size too large (max 30MB base64)');
+
 	$data = param_base64('data');
-	
+
 	// hook attach_create_start.php
-	
+
 	// 允许的文件后缀名
 	//$types = include _include(APP_PATH.'conf/attach.conf.php');
 	//$allowtypes = $types['all'];
-	
+
 	empty($group['allowattach']) AND $gid != 1 AND message(-1, '您无权上传');
-	
+
 	empty($data) AND message(-1, lang('data_is_empty'));
 	//$data = base64_decode_file_data($data);
 	$size = strlen($data);
