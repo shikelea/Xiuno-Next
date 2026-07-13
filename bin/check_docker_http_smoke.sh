@@ -61,6 +61,7 @@ for command in docker curl jq md5sum; do
 done
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is required."
 
+mkdir -p "$ROOT/conf" "$ROOT/log" "$ROOT/tmp" "$ROOT/upload" "$ROOT/plugin"
 chmod 0777 "$ROOT/conf" "$ROOT/log" "$ROOT/tmp" "$ROOT/upload" "$ROOT/plugin"
 echo '<?php echo "UPLOAD_PHP_EXECUTED";' > "$UPLOAD_PROBE"
 PROBE_CREATED=1

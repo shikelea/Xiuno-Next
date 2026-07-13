@@ -162,5 +162,7 @@ strpos($docker_smoke, 'REMOVE_INSTALL_STATE=0') !== FALSE
 	|| fail('Docker HTTP smoke cleanup must track whether it owns generated install state.');
 strpos($docker_smoke, 'if (( REMOVE_INSTALL_STATE == 1 )); then') !== FALSE
 	|| fail('Docker HTTP smoke must not remove an existing local installation.');
+strpos($docker_smoke, 'mkdir -p "$ROOT/conf" "$ROOT/log" "$ROOT/tmp" "$ROOT/upload" "$ROOT/plugin"') !== FALSE
+	|| fail('Docker HTTP smoke must recreate ignored runtime directories in a clean checkout.');
 
 echo "OK: install safety checks passed\n";
