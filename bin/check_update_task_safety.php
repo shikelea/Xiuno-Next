@@ -111,12 +111,22 @@ strpos($update_route, "strtolower(\$parts['scheme']) !== 'https'") !== FALSE
 	|| fail('Online update redirects must reject protocol downgrade to HTTP.');
 strpos($update_route, 'update_resolve_public_ips($parts[\'host\'], $ips)') !== FALSE
 	|| fail('Online update redirects must reject private/local hosts after DNS resolution.');
-strpos($download, "empty(\$conf['allow_unverified_update'])") !== FALSE
-	|| fail('Online update must fail closed when release SHA256 metadata is missing unless allow_unverified_update is explicitly enabled.');
+strpos($download, 'update_github_latest_release()') !== FALSE
+	|| fail('Online update must fetch release metadata directly from GitHub.');
+strpos($download, 'update_github_latest_release($proxy)') === FALSE
+	|| fail('Online update must not fetch trusted release metadata through an artifact proxy.');
+strpos($download, "if (\$expected_sha256 === '')") !== FALSE
+	|| fail('Online update must fail closed when release SHA256 metadata is missing.');
 strpos($download, "lang('update_checksum_missing_blocked')") !== FALSE
 	|| fail('Missing release SHA256 metadata must return a dedicated blocked-update error.');
-strpos($download, 'checksum_verified=0') !== FALSE
-	|| fail('Explicitly allowed unverified updates must keep logging checksum_verified=0.');
+strpos($update_route, "empty(\$conf['allow_unverified_update'])") === FALSE
+	|| fail('Online update must not expose an unverified-update bypass.');
+$release_lookup = section_between($update_route, 'function update_github_latest_release', 'function update_proxied_url');
+strpos($release_lookup, 'update_proxied_url') === FALSE
+	|| fail('Release metadata lookup must stay on the direct GitHub trust channel.');
+$checksum_lookup = section_between($update_route, 'function update_release_expected_sha256', 'function update_checksum_asset_name');
+strpos($checksum_lookup, 'update_proxied_url') === FALSE
+	|| fail('Release checksum assets must stay on the direct GitHub trust channel.');
 strpos($download, 'if (!$zip->extractTo($extract_dir))') !== FALSE
 	|| fail('ZIP extraction failures must stop the update before source selection.');
 $source = section_between($update_route, 'function update_find_source_dir', 'function update_zip_validate');

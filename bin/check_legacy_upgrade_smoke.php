@@ -72,7 +72,7 @@ try {
 
     $migrateDb = safe_database_name($baseName . '_migrate');
     reset_old_database($pdo, $migrateDb);
-    write_cli_conf($confFile, $host, $port, $migrateDb, $user, $password, '4.5.0', $sqlMode);
+    write_cli_conf($confFile, $host, $port, $migrateDb, $user, $password, '4.5.1', $sqlMode);
     run_cli($root, ['migrate', '--no-interaction']);
     assert_column_type($pdo, $migrateDb, 'bbs_user', 'password', 'varchar(255)');
     assert_legacy_user_preserved($pdo, $migrateDb);
@@ -1062,7 +1062,7 @@ function kv_value(PDO $pdo, string $dbname, string $key): string
 function assert_conf_upgraded(string $confFile): void
 {
     $conf = include $confFile;
-    if (($conf['version'] ?? '') !== '4.5.0') {
+    if (($conf['version'] ?? '') !== '4.5.1') {
         throw new RuntimeException('upgrade did not write target version to conf.php.');
     }
     foreach (['csrf_on', 'disabled_plugin', 'admin_bind_ip', 'static_version'] as $key) {

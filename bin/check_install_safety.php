@@ -22,6 +22,7 @@ function section_between($source, $start, $end) {
 }
 
 $install = source_text($root.'/install/index.php');
+$nginx = source_text($root.'/docker/nginx/conf.d/default.conf');
 
 $db_post = section_between($install, "} elseif(\$action == 'db')", "\n\t}\n}\n\nfunction install_lock_start");
 
@@ -117,5 +118,20 @@ strpos($db_post, "file_put_contents(INSTALL_LOCK_FILE") !== FALSE
 	|| fail('Installer must write the installed lock file after config replacement.');
 strpos($db_post, "install_lock_end();\n\t\tmessage(0, jump(lang('conguralation_installed'), '../'));") !== FALSE
 	|| fail('Installer must release the lock before reporting success.');
+
+strpos($nginx, 'location = /install/index.php') !== FALSE
+	|| fail('Docker Nginx must expose the installer entry point for first-time setup.');
+strpos($nginx, 'SCRIPT_FILENAME $document_root/install/index.php') !== FALSE
+	|| fail('Docker Nginx installer entry point must execute the expected script.');
+strpos($nginx, 'location ~ ^/install/') !== FALSE
+	|| fail('Docker Nginx must deny direct access to other installer files.');
+strpos($nginx, 'location ~ ^/(conf|log|tmp|data|bin|install)/') === FALSE
+	|| fail('Docker Nginx sensitive-directory rule must not shadow the exact installer entry point.');
+strpos($nginx, 'location ~ ^/(admin/)?view/htm/') !== FALSE
+	|| fail('Docker Nginx must not expose PHP template sources as static files.');
+strpos($nginx, 'location ~ ^/admin/route/') !== FALSE
+	|| fail('Docker Nginx must not execute admin route fragments directly.');
+strpos($nginx, 'location ~ ^/upload/.*\.php$') !== FALSE
+	|| fail('Docker Nginx must deny PHP execution from the upload directory.');
 
 echo "OK: install safety checks passed\n";

@@ -1,8 +1,10 @@
 <?php
 
 $root = dirname(__DIR__);
+$check_model = file_get_contents($root.'/model/check.func.php');
 $user_model = file_get_contents($root.'/model/user.func.php');
 $user_route = file_get_contents($root.'/route/user.php');
+$my_route = file_get_contents($root.'/route/my.php');
 $workflow = file_get_contents($root.'/.github/workflows/ci.yml');
 
 function fail($message) {
@@ -16,6 +18,26 @@ function section_between($source, $start, $end) {
 	$end_pos = strpos($source, $end, $start_pos + strlen($start));
 	if($end_pos === FALSE) fail("Missing section end after $start: $end");
 	return substr($source, $start_pos, $end_pos - $start_pos);
+}
+
+if(!function_exists('lang')) {
+	function lang($key, $args = array()) {
+		return $key;
+	}
+}
+require_once $root.'/model/check.func.php';
+
+$identifier_cases = array(
+	'admin@example.com'=>'email',
+	'admin'=>'username',
+	'测试用户'=>'username',
+	'bad identifier'=>'',
+);
+foreach($identifier_cases as $identifier=>$expected_type) {
+	$identifier_err = '';
+	$actual_type = user_login_identifier_type($identifier, $identifier_err);
+	$actual_type === $expected_type
+		|| fail("Login identifier type mismatch for $identifier: $actual_type != $expected_type");
 }
 
 $token_gen = section_between($user_model, 'function user_token_gen', 'function user_token_fingerprint');
@@ -88,8 +110,8 @@ strpos($synlogin, "user_synlogin_return_url(param('return_url', '', FALSE))") !=
 	|| fail('Synlogin must validate return_url before storing or redirecting.');
 strpos($synlogin, 'count($token_parts) != 2') !== FALSE
 	|| fail('Synlogin must validate incoming token structure.');
-strpos($synlogin, 'abs($time - intval($_time)) > 300') !== FALSE
-	|| fail('Synlogin incoming token must expire after five minutes.');
+strpos($synlogin, 'abs($time - intval($_time)) > 60') !== FALSE
+	|| fail('Synlogin incoming token must expire after one minute.');
 strpos($synlogin, '$_SESSION[\'return_url\'] = $return_url') !== FALSE
 	|| fail('Synlogin must replace stale return_url after validation.');
 strpos($synlogin, 'user_synlogin_append_token($return_url, $s)') !== FALSE
@@ -125,6 +147,15 @@ strpos($workflow, 'php bin/check_user_auth_safety.php') !== FALSE
 	|| fail('CI must run the user auth safety guard.');
 
 $login = section_between($user_route, "} elseif(\$action == 'login')", "} elseif(\$action == 'create')");
+$identifier_helper = section_between($check_model, 'function user_login_identifier_type', 'function is_password');
+strpos($identifier_helper, "return 'email';") !== FALSE
+	|| fail('Login identifier validation must preserve email login.');
+strpos($identifier_helper, "return 'username';") !== FALSE
+	|| fail('Login identifier validation must preserve username login.');
+strpos($login, 'user_login_identifier_type($email, $err)') !== FALSE
+	|| fail('Browser login must validate both email and username identifiers.');
+strpos($login, "if(\$login_identifier_type == 'email')") !== FALSE
+	|| fail('Browser login must choose email lookup from the validated identifier type.');
 $rate_check_pos = strpos($login, 'user_login_rate_limited($email)');
 $email_lookup_pos = strpos($login, 'user_read_by_email($email)');
 $username_lookup_pos = strpos($login, 'user_read_by_username($email)');
@@ -136,5 +167,11 @@ $password_verify_pos = strpos($login, 'user_verify_password($password, $_user)')
 $rate_clear_pos = strpos($login, 'user_login_rate_clear($email);');
 ($password_verify_pos !== FALSE && $rate_clear_pos !== FALSE && $rate_clear_pos > $password_verify_pos)
 	|| fail('Browser login must clear login failure rate after successful authentication.');
+
+$password_change = section_between($my_route, "} elseif(\$action == 'password')", "} elseif(\$action == 'thread')");
+$password_validate_pos = strpos($password_change, 'is_password($password_new, $err)');
+$password_hash_pos = strpos($password_change, 'user_hash_password($password_new)');
+($password_validate_pos !== FALSE && $password_hash_pos !== FALSE && $password_validate_pos < $password_hash_pos)
+	|| fail('Password changes must reject empty or malformed new password digests before hashing.');
 
 echo "OK: user auth safety checks passed\n";

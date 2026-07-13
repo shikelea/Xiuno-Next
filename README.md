@@ -76,8 +76,9 @@
 - [x] **v4.4.2 (Hardening)**: BS4→BS5 兼容垫片、Token 加固、参数注入修复、后台安全面板、安装/API/退出修复。
 - [x] **v4.4.3 (Performance & Compat)**: 插件页性能优化、CSRF 主题兼容、管理操作修复、后台一键在线更新（含 GitHub 加速代理）、BS4→BS5 全面兼容层。
 - [x] **v4.4.4 (Stability)**: 在线更新 ZIP 校验加固、版本号管理修复。
-- [x] **v4.4.5 (Compat Layer)**: 四层兼容层体系：通用注入器（`ob_start` 自动向所有主题注入 CSRF token + bs4-compat）、PHP 8+ 运行时兼容、BS4→BS5 CSS/JS 全面兼容（`input-group-prepend/append`、`custom-file`、`modal/tooltip/popover` API 代理、CSRF 全局保护）、核心主题 API。详见 [docs/compat-layer.md](docs/compat-layer.md)。
+- [x] **v4.4.5 (Compat Layer)**: 四层兼容层体系：通用注入器（`ob_start` 自动向所有主题注入 CSRF token + bs4-compat）、PHP 8+ 运行时兼容、BS4→BS5 CSS/JS 全面兼容（`input-group-prepend/append`、`custom-file`、`modal/tooltip/popover` API 代理、CSRF 全局保护）、核心主题 API。
 - [x] **v4.5.0 (Modernization, 主线完成 / 发行版)**: 轻量现代化主线已完成：轻量 Helper、前端资源审计、HTMX 只读分页试点、CLI/CI 最小闭环、前端安全守卫和生态样本兼容审计结论。API 扩展、发布包签名和兼容矩阵沉淀继续作为 v4.5.x / 阶段六前置项推进。
+- [ ] **v4.5.1 (Hardening, 发布候选)**: 修复 GitHub #6 用户名登录回归、Docker 安装入口、密码修改校验和在线更新代理信任边界；清理版本漂移、CI 守卫和仓库文档边界。
 - [ ] **v5.0.0 (Next)**: 全新的插件市场和主题引擎。
 
 ## 💻 命令行工具 (CLI)
@@ -96,7 +97,7 @@ php bin/xiuno list
 # 创建新插件
 php bin/xiuno make:plugin <plugin_name>
 
-# 生成 Hook 点索引
+# 生成本地 Hook 点索引（输出到已忽略的 docs/）
 php bin/generate_hook_docs.php
 
 # 执行数据库迁移
@@ -132,7 +133,7 @@ php bin/xiuno upgrade
 - **密码渐进升级**：用户下次登录时，密码自动从 MD5+salt 升级为 bcrypt，无需重置
 - **缓存清理**：清理编译缓存、插件 Hook 缓存和安全模式标记
 
-## � 性能测试 (Benchmark)
+## 性能测试 (Benchmark)
 
 项目内置了性能压测脚本，用于采集基线数据和检测性能退化。
 
@@ -150,19 +151,19 @@ bin\benchmark.bat
 
 脚本会自动压测 3 个核心页面（首页、帖子列表、帖子详情），输出 QPS 和 TTFB 汇总，结果保存在 `tmp/bench_*.txt`。
 
-详细基线数据见 [docs/performance_baseline.md](docs/performance_baseline.md)。
+当前 4H8G / PHP 8.2 / MySQL 8.0 本机基线为 220+ QPS，核心页面 TTFB 不高于 220ms；影响全局路由或渲染的改动应将退化控制在 15% 以内。
 
 ## API 文档
 
-本项目提供了一套标准的 RESTful API，方便开发移动端或单页应用。基础 URL、响应结构、鉴权方式、分页约定和接口清单见 [docs/api.md](docs/api.md)。
+本项目提供 RESTful API，实现位于 `route/api/`；统一返回 `{code, message, data}`，并支持 token 鉴权与标准分页参数。
 
 ## 插件体系状态
 
-当前已经可以开发传统兼容插件，使用 `php bin/xiuno make:plugin <plugin_name>` 生成基础结构。Xiuno Next 原生插件规范仍处于预览前准备阶段，计划在 v4.5.x 固定 `plugin.json` 草案、Hook 索引和 CLI smoke test，在 v5.0 形成稳定插件市场闭环。详情见 [docs/plugin-development.md](docs/plugin-development.md) 和 [docs/hooks.md](docs/hooks.md)。
+当前已经可以开发传统兼容插件，使用 `php bin/xiuno make:plugin <plugin_name>` 生成基础结构。Xiuno Next 原生插件规范仍处于预览前准备阶段，v4.5.x 优先固定 `plugin.json` 草案、Hook 索引和可重复的插件/主题 smoke test。
 
 ## 开发者资料
 
-写给开发者的资料统一放在 [docs/](docs/) 目录。社区扩展版原始开发手册仅作为本地参考资料，不纳入仓库。
+`docs/` 仅用于维护者本地的审计、基线和生成索引，不纳入 Git。对外稳定契约以 `README.md`、`CONTRIBUTING.md`、CLI 帮助和代码内容为准。
 
 ## 🤝 参与贡献
 
@@ -170,4 +171,4 @@ Xiuno Next 是一个社区驱动的项目，我们需要你的帮助！无论是
 
 ## 📄 许可证
 
-本项目遵循 [MIT License](LICENSE)。基于 Xiuno BBS 4.0 二次开发。
+本项目遵循 [MIT License](LICENSE.txt)。基于 Xiuno BBS 4.0 二次开发。

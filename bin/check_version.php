@@ -43,13 +43,27 @@ foreach ($versions as $file => $version) {
 
 $docChecks = [
     'README.md' => "v$target",
-    'docs/compat-layer.md' => "v$target",
 ];
 foreach ($docChecks as $file => $needle) {
     $path = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $file);
     $content = is_file($path) ? file_get_contents($path) : false;
     if ($content === false || strpos($content, $needle) === false) {
         $errors[] = "$file: missing $needle";
+    }
+}
+
+if ($target !== null && preg_match('/^\d+\.\d+\.\d+$/', $target)) {
+    $tagRef = 'refs/tags/v' . $target . '^{commit}';
+    $tagOutput = [];
+    $tagStatus = 0;
+    exec('git -C ' . escapeshellarg($root) . ' rev-parse --verify ' . escapeshellarg($tagRef) . ' 2>&1', $tagOutput, $tagStatus);
+    if ($tagStatus === 0 && !empty($tagOutput[0])) {
+        $headOutput = [];
+        $headStatus = 0;
+        exec('git -C ' . escapeshellarg($root) . ' rev-parse HEAD 2>&1', $headOutput, $headStatus);
+        if ($headStatus !== 0 || empty($headOutput[0]) || trim($headOutput[0]) !== trim($tagOutput[0])) {
+            $errors[] = "v$target already points to a different commit; bump the release version.";
+        }
     }
 }
 
