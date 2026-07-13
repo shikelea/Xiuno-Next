@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 应用服务 (PHP)
   app:
