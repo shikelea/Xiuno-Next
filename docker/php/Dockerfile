@@ -8,11 +8,12 @@ RUN apk add --no-cache \
     libjpeg-turbo-dev \
     libpng-dev \
     libzip-dev \
+    oniguruma-dev \
     zip \
     unzip \
     icu-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd pdo_mysql mysqli zip opcache intl pcntl bcmath sockets
+    && docker-php-ext-install -j$(nproc) gd pdo_mysql mysqli zip opcache intl mbstring pcntl bcmath sockets
 
 # 安装 Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

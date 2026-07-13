@@ -29,6 +29,14 @@
     *   用户名：`xiuno`
     *   密码：`xiuno_password_changeme`
 
+提交涉及安装器、认证、Session 或 Docker Nginx 的改动前，应在**未安装的干净工作树**运行完整容器回归：
+
+```bash
+bash bin/check_docker_http_smoke.sh
+```
+
+该脚本会创建并销毁独立 MySQL 数据卷，覆盖 Nginx 配置与敏感路径、Web 安装、用户名登录、退出再登录、空密码拒绝、修改密码和新密码重登。检测到现有 `conf/conf.php` 或安装锁时会拒绝运行，避免破坏本地站点。
+
 ### 方式二：手动搭建 (Manual Setup)
 
 如果你更习惯使用 XAMPP、宝塔或原生环境，请确保满足以下要求：

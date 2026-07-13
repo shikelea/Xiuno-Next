@@ -4,3 +4,4 @@
 /admin/view/css/*.min.css text eol=lf
 /view/css/*.min.css text eol=lf
 /view/js/*.min.js text eol=lf
+*.sh text eol=lf
