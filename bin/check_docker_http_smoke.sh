@@ -70,14 +70,21 @@ PROBE_CREATED=1
 COMPOSE_STARTED=1
 "${COMPOSE[@]}" up -d --build
 
+mysql_ready() {
+	"${COMPOSE[@]}" exec -T -e MYSQL_PWD=root_password_changeme db \
+		mysqladmin ping -h 127.0.0.1 -uroot --silent >/dev/null 2>&1 \
+		&& "${COMPOSE[@]}" exec -T -e "MYSQL_PWD=$DB_PASSWORD" db \
+			mysql -h 127.0.0.1 -u"$DB_USER" "$DB_NAME" -Nse 'SELECT 1' 2>/dev/null \
+			| grep -qx '1'
+}
+
 for _ in $(seq 1 60); do
-	if "${COMPOSE[@]}" exec -T db mysqladmin ping -h localhost -uroot -proot_password_changeme --silent >/dev/null 2>&1; then
+	if mysql_ready; then
 		break
 	fi
 	sleep 2
 done
-"${COMPOSE[@]}" exec -T db mysqladmin ping -h localhost -uroot -proot_password_changeme --silent >/dev/null \
-	|| fail "MySQL did not become ready."
+mysql_ready || fail "MySQL TCP service and application account did not become ready."
 
 for _ in $(seq 1 60); do
 	if curl -fsS --max-time 5 "$BASE_URL/install/index.php?action=db" >/dev/null 2>&1; then

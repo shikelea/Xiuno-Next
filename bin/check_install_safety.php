@@ -164,5 +164,9 @@ strpos($docker_smoke, 'if (( REMOVE_INSTALL_STATE == 1 )); then') !== FALSE
 	|| fail('Docker HTTP smoke must not remove an existing local installation.');
 strpos($docker_smoke, 'mkdir -p "$ROOT/conf" "$ROOT/log" "$ROOT/tmp" "$ROOT/upload" "$ROOT/plugin"') !== FALSE
 	|| fail('Docker HTTP smoke must recreate ignored runtime directories in a clean checkout.');
+strpos($docker_smoke, 'mysqladmin ping -h 127.0.0.1') !== FALSE
+	|| fail('Docker HTTP smoke must wait for the final MySQL TCP service, not its temporary setup socket.');
+strpos($docker_smoke, "mysql -h 127.0.0.1 -u\"\$DB_USER\" \"\$DB_NAME\" -Nse 'SELECT 1'") !== FALSE
+	|| fail('Docker HTTP smoke must verify the application database account before Web installation.');
 
 echo "OK: install safety checks passed\n";
