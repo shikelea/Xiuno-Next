@@ -23,6 +23,9 @@ function section_between($source, $start, $end) {
 
 $install = source_text($root.'/install/index.php');
 $nginx = source_text($root.'/docker/nginx/conf.d/default.conf');
+$dockerfile = source_text($root.'/docker/php/Dockerfile');
+$workflow = source_text($root.'/.github/workflows/ci.yml');
+$docker_smoke = source_text($root.'/bin/check_docker_http_smoke.sh');
 
 $db_post = section_between($install, "} elseif(\$action == 'db')", "\n\t}\n}\n\nfunction install_lock_start");
 
@@ -133,5 +136,31 @@ strpos($nginx, 'location ~ ^/admin/route/') !== FALSE
 	|| fail('Docker Nginx must not execute admin route fragments directly.');
 strpos($nginx, 'location ~ ^/upload/.*\.php$') !== FALSE
 	|| fail('Docker Nginx must deny PHP execution from the upload directory.');
+strpos($dockerfile, 'oniguruma-dev') !== FALSE
+	|| fail('Docker PHP image must install the mbstring build dependency.');
+preg_match('/docker-php-ext-install[^\n]*\bmbstring\b/', $dockerfile) === 1
+	|| fail('Docker PHP image must install the mbstring extension required by the installer.');
+strpos($workflow, 'bash bin/check_docker_http_smoke.sh') !== FALSE
+	|| fail('CI must run the Docker Nginx and HTTP workflow smoke test.');
+foreach(array('/install/install.func.php', '/model/check.func.php', '/view/htm/header.inc.htm', '/admin/route/update.php', '/upload/xiuno-http-smoke.php') as $blocked_path) {
+	strpos($docker_smoke, "assert_status '$blocked_path' '404'") !== FALSE
+		|| fail("Docker HTTP smoke must verify blocked path: $blocked_path");
+}
+strpos($docker_smoke, "login_with_password \"\$ADMIN_PASSWORD\"") !== FALSE
+	|| fail('Docker HTTP smoke must verify username login with the installed password.');
+strpos($docker_smoke, "logout_user\nlogin_with_password \"\$ADMIN_PASSWORD\"") !== FALSE
+	|| fail('Docker HTTP smoke must verify username login again after logout.');
+strpos($docker_smoke, 'password_new=d41d8cd98f00b204e9800998ecf8427e') !== FALSE
+	|| fail('Docker HTTP smoke must verify rejection of the empty-password digest.');
+strpos($docker_smoke, "login_with_password \"\$NEW_PASSWORD\"") !== FALSE
+	|| fail('Docker HTTP smoke must verify login after a password change.');
+strpos($docker_smoke, 'COMPOSE_STARTED=0') !== FALSE
+	|| fail('Docker HTTP smoke cleanup must track whether Compose was started.');
+strpos($docker_smoke, 'if (( COMPOSE_STARTED == 1 )); then') !== FALSE
+	|| fail('Docker HTTP smoke must not stop unrelated containers before starting its own stack.');
+strpos($docker_smoke, 'REMOVE_INSTALL_STATE=0') !== FALSE
+	|| fail('Docker HTTP smoke cleanup must track whether it owns generated install state.');
+strpos($docker_smoke, 'if (( REMOVE_INSTALL_STATE == 1 )); then') !== FALSE
+	|| fail('Docker HTTP smoke must not remove an existing local installation.');
 
 echo "OK: install safety checks passed\n";

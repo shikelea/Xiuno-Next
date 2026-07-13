@@ -285,3 +285,23 @@ jobs:
           XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
           XIUNO_SQL_MODE: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION
         run: php bin/check_plugin_install_sql_smoke.php
+
+  docker-http-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Smoke test Docker Nginx and HTTP workflows
+        run: bash bin/check_docker_http_smoke.sh
