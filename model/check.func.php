@@ -51,6 +51,17 @@ function is_username($username, &$err = '') {
 	return TRUE;
 }
 
+function user_login_identifier_type($identifier, &$err = '') {
+	$email_err = '';
+	if(is_email($identifier, $email_err)) return 'email';
+
+	$username_err = '';
+	if(is_username($identifier, $username_err)) return 'username';
+
+	$err = $username_err ? $username_err : $email_err;
+	return '';
+}
+
 function is_password($password, &$err = '') {
 	$len = strlen($password);
 	// hook model_is_password_start.php

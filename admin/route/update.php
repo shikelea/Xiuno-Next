@@ -25,15 +25,8 @@ if ($action == 'check') {
 
 	// 读取已保存的代理设置
 	$saved_proxy = isset($conf['github_proxy']) ? $conf['github_proxy'] : '';
-	$proxy_fallback = FALSE;
-
 	$current_version = $conf['version'];
-	$latest = update_github_latest_release($saved_proxy);
-	if ($latest === FALSE && !empty($saved_proxy)) {
-		// 代理可能不可用：自动回退直连重试
-		$latest = update_github_latest_release('');
-		$proxy_fallback = ($latest !== FALSE);
-	}
+	$latest = update_github_latest_release();
 	$latest_version = '';
 	$has_update = FALSE;
 	$error = '';
@@ -107,15 +100,10 @@ if ($action == 'check') {
 	$proxy = isset($conf['github_proxy']) ? $conf['github_proxy'] : '';
 	$proxy_fallback_used = FALSE;
 
-	$latest = update_github_latest_release($proxy);
-	if ($latest === FALSE) {
-		// 代理可能不可用：自动回退直连重试
-		if (!empty($proxy)) {
-			$latest = update_github_latest_release('');
-			$proxy_fallback_used = ($latest !== FALSE);
-		}
-		if ($latest === FALSE) update_message(-1, lang('update_check_failed'));
-	}
+	// 发布元数据和校验和必须通过 GitHub TLS 直连获取。
+	// 第三方代理只能传输后续会被校验的 ZIP 字节。
+	$latest = update_github_latest_release();
+	if ($latest === FALSE) update_message(-1, lang('update_check_failed'));
 
 	$tag_name = isset($latest['tag_name']) ? trim($latest['tag_name']) : '';
 	if (!update_tag_valid($tag_name)) {
@@ -158,16 +146,14 @@ if ($action == 'check') {
 
 	$zip_sha256 = hash('sha256', $zipdata);
 	$checksum_source = '';
-	$expected_sha256 = update_release_expected_sha256($latest, $tag_name, $download_url, $proxy, $checksum_source);
-	$checksum_verified = FALSE;
-	if ($expected_sha256 !== '') {
-		if (!hash_equals(strtolower($expected_sha256), strtolower($zip_sha256))) {
-			update_message(-1, lang('update_checksum_mismatch') . " (expected {$expected_sha256}, got {$zip_sha256})");
-		}
-		$checksum_verified = TRUE;
-	} elseif (empty($conf['allow_unverified_update'])) {
+	$expected_sha256 = update_release_expected_sha256($latest, $tag_name, $download_url, $checksum_source);
+	if ($expected_sha256 === '') {
 		update_message(-1, lang('update_checksum_missing_blocked') . " (zip_sha256={$zip_sha256})");
 	}
+	if (!hash_equals(strtolower($expected_sha256), strtolower($zip_sha256))) {
+		update_message(-1, lang('update_checksum_mismatch') . " (expected {$expected_sha256}, got {$zip_sha256})");
+	}
+	$checksum_verified = TRUE;
 
 	if (file_put_contents($zipfile, $zipdata) !== strlen($zipdata)) {
 		update_message(-1, lang('update_download_failed'));
@@ -344,12 +330,12 @@ function update_lock_name() {
 	return 'update_task';
 }
 
-function update_github_latest_release($proxy = '') {
-	$url = update_proxied_url(GITHUB_API_URL . '/releases/latest', $proxy);
+function update_github_latest_release() {
+	$url = GITHUB_API_URL . '/releases/latest';
 	$s = update_http_get_json($url);
 	if ($s === FALSE) {
 		// 没有 release 时尝试获取最新 tag
-		$url = update_proxied_url(GITHUB_API_URL . '/tags', $proxy);
+		$url = GITHUB_API_URL . '/tags';
 		$s = update_http_get_json($url);
 		if ($s === FALSE || empty($s)) return FALSE;
 		// 取第一个 tag 模拟 release 格式
@@ -681,7 +667,7 @@ function update_public_ip_allowed($ip) {
 	return filter_var($ip, FILTER_VALIDATE_IP, $flags) !== FALSE;
 }
 
-function update_release_expected_sha256($release, $tag_name, $download_url, $proxy = '', &$source = '') {
+function update_release_expected_sha256($release, $tag_name, $download_url, &$source = '') {
 	$zip_name = basename(parse_url($download_url, PHP_URL_PATH));
 	$body = isset($release['body']) ? $release['body'] : '';
 	$hash = update_parse_sha256_text($body, $zip_name, $tag_name);
@@ -697,10 +683,7 @@ function update_release_expected_sha256($release, $tag_name, $download_url, $pro
 		if ($name === '' || $url === '' || !update_checksum_asset_name($name)) continue;
 
 		$error = '';
-		$text = update_github_download_binary(update_proxied_url($url, $proxy), 30, $error);
-		if ($text === FALSE && !empty($proxy)) {
-			$text = update_github_download_binary($url, 30, $error);
-		}
+		$text = update_github_download_binary($url, 30, $error);
 		if ($text === FALSE || strlen($text) > 102400) continue;
 		$hash = update_parse_sha256_text($text, $zip_name, $tag_name);
 		if ($hash !== '') {

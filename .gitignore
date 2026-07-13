@@ -1,6 +1,8 @@
 .DS_Store
 .idea/
 .vscode/
+/.codegraph/
+/docs/
 *.log
 /vendor/
 tmp/*
@@ -18,3 +20,24 @@ plugin/*
 开发手册/
 bin/local_*.php
 bin/*_local.php
+
+# Audit & Reports (temporary files, not for Git)
+AUDIT_*.md
+CODE_AUDIT_*.md
+FINAL_AUDIT_*.md
+QUICKREF.md
+COMPATIBILITY_FIX_REPORT.md
+SECURITY_AUDIT_REPORT.md
+*_REPORT_*.md
+BUGS_*.md
+TECHNICAL_DEBT_*.md
+plugin_backup_*/
+*.bak
+/analyze_results.php
+/scan_plugins.php
+/tech_debt_analysis.php
+/plugin_compatibility_report.txt
+/scan_result.txt
+/summary_report.txt
+/bin/fix_plugin_each.php
+/bin/inject_csrf_tokens.php

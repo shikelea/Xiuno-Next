@@ -186,7 +186,7 @@ strpos($bbs_js, 'function xn_post_link_lock(jlink)') !== FALSE
 	|| fail('POST links must share a pending-state guard in bbs.js.');
 strpos($bbs_js, "if(!xn_post_link_lock(jthis)) return false;") !== FALSE
 	|| fail('POST links must ignore duplicate clicks while a request is pending.');
-strpos($bbs_js, 'xn_post_link_done(jthis, code, message);') !== FALSE
+strpos($bbs_js, 'xn_post_link_done(jlink, code, message);') !== FALSE
 	|| fail('POST links must restore pending state on failed requests.');
 
 strpos($misc, "fopen(\$lockfile, 'x')") !== FALSE

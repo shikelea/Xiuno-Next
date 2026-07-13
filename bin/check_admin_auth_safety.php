@@ -55,9 +55,9 @@ $token_clean = section_between($admin_func, 'function admin_token_clean', '// bo
 strpos($token_clean, "xn_setcookie('bbs_admin_token', '', \$time - 86400)") !== FALSE
 	|| fail('Admin token cleanup must use the hardened cookie helper.');
 
-strpos($session_model, "xn_setcookie('cookie_test', '', \$time - 86400)") !== FALSE
+strpos($session_model, "xn_setcookie('cookie_test', '', \$time - 86400, '/')") !== FALSE
 	|| fail('Session cookie_test cleanup must use the hardened cookie helper.');
-strpos($session_model, "xn_setcookie('cookie_test', \$cookie_test, \$time + 86400)") !== FALSE
+strpos($session_model, "xn_setcookie('cookie_test', \$cookie_test, \$time + 86400, '/')") !== FALSE
 	|| fail('Session cookie_test write must use the hardened cookie helper.');
 strpos($session_model, "ini_set('session.cookie_secure', xn_cookie_secure() ? 'On' : 'Off')") !== FALSE
 	|| fail('Session cookie must use the shared HTTPS-aware Secure helper.');

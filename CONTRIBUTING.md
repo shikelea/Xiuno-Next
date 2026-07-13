@@ -72,7 +72,7 @@
     *   所有 SQL 操作必须使用预处理语句（PDO Prepared Statements）或框架提供的安全封装。
     *   输出到 HTML 时必须进行转义（XSS 防护）。
 4.  **性能基线要求**：
-    *   我们在 `docs/performance_baseline.md` 维护了各个核心页面的基础性能指标。
+    *   当前 4H8G / PHP 8.2 / MySQL 8.0 基线为核心页面 220+ QPS、TTFB 不高于 220ms。
     *   提交影响全局渲染或路由的新代码前，建议运行 `bin/benchmark.bat` 进行压测比对，保证 TTFB 退化不超过 15%。
 
 ---
@@ -130,7 +130,7 @@ CLI 工具基于 Symfony Console 组件。
 
 ## 🎨 主题与插件兼容层开发
 
-本项目内置了四层兼容层体系，确保旧插件和第三方主题在新版核心上正常运行。详见 [docs/compat-layer.md](docs/compat-layer.md)。
+本项目内置了通用注入、PHP 8 运行时、BS4→BS5 前端和主题 API 四层兼容体系，确保旧插件和第三方主题在新核心上渐进运行。
 
 **开发原则**：
 

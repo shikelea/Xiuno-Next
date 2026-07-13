@@ -116,8 +116,8 @@ strpos($upgrade, "file_replace_var(APP_PATH . 'conf/conf.php', ['version' => sel
     || fail('upgrade must fail when the target version cannot be written.');
 strpos($upgrade, "Upgrade metadata could not be recorded.") !== false
     || fail('upgrade must fail when upgrade metadata cannot be recorded.');
-strpos($upgrade, "'allow_unverified_update' => 0") !== false
-    || fail('upgrade must add the default online-update integrity setting for older conf.php files.');
+strpos($upgrade, "'allow_unverified_update' => 0") === false
+    || fail('upgrade must not restore the removed unverified-update bypass.');
 strpos($upgrade, 'private function reportErrors(SymfonyStyle $io, array $errors): int') !== false
     || fail('upgrade must centralize failure reporting for staged upgrade errors.');
 $executeSection = substr($upgrade, strpos($upgrade, 'protected function execute'));
