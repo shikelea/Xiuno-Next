@@ -93,6 +93,22 @@ function check_runlevel() {
 		= 0 正确
 		> 0 一般业务逻辑错误，可以定位到具体控件，比如：用户名为空/密码为空
 */
+function message_compat_form_action_is_local($action) {
+	if(preg_match('~^//~', $action)) return FALSE;
+	if(!preg_match('~^[a-z][a-z0-9+.-]*:~i', $action)) return TRUE;
+	$scheme = strtolower((string)parse_url($action, PHP_URL_SCHEME));
+	$action_host = strtolower((string)parse_url($action, PHP_URL_HOST));
+	$action_port = parse_url($action, PHP_URL_PORT);
+	if(!in_array($scheme, array('http', 'https'), TRUE) || $action_host === '') return FALSE;
+	$action_port = $action_port === NULL ? ($scheme === 'https' ? 443 : 80) : intval($action_port);
+
+	$current_scheme = function_exists('xn_cookie_secure') && xn_cookie_secure() ? 'https' : 'http';
+	$current_authority = parse_url($current_scheme.'://'.(isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : ''));
+	$current_host = isset($current_authority['host']) ? strtolower($current_authority['host']) : '';
+	$current_port = isset($current_authority['port']) ? intval($current_authority['port']) : ($current_scheme === 'https' ? 443 : 80);
+	return $current_host !== '' && $scheme === $current_scheme && $action_host === $current_host && $action_port === $current_port;
+}
+
 function message_compat_inject_csrf_forms($message) {
 	if(!is_string($message) || stripos($message, '<form') === FALSE) return $message;
 	if(!function_exists('csrf_token')) return $message;
@@ -104,16 +120,7 @@ function message_compat_inject_csrf_forms($message) {
 		if(preg_match('~\saction\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]*))~i', $m[1], $am)) {
 			$action = isset($am[1]) && $am[1] !== '' ? $am[1] : (isset($am[2]) && $am[2] !== '' ? $am[2] : (isset($am[3]) ? $am[3] : ''));
 			$action = html_entity_decode(trim($action), ENT_QUOTES, 'UTF-8');
-			if(preg_match('~^//~', $action)) return $form;
-			if(preg_match('~^[a-z][a-z0-9+.-]*:~i', $action)) {
-				$scheme = strtolower((string)parse_url($action, PHP_URL_SCHEME));
-				$action_host = strtolower((string)parse_url($action, PHP_URL_HOST));
-				$action_port = parse_url($action, PHP_URL_PORT);
-				if($action_port !== NULL && !(($scheme == 'http' && intval($action_port) == 80) || ($scheme == 'https' && intval($action_port) == 443))) $action_host .= ':'.$action_port;
-				$current_host = isset($_SERVER['HTTP_HOST']) ? strtolower($_SERVER['HTTP_HOST']) : '';
-				$current_host = preg_replace('~:(?:80|443)$~', '', $current_host);
-				if(!in_array($scheme, array('http', 'https'), TRUE) || $action_host === '' || $current_host === '' || $action_host !== $current_host) return $form;
-			}
+			if(!message_compat_form_action_is_local($action)) return $form;
 		}
 		return $m[1].'<input type="hidden" name="_token" value="'.$token.'">'.$m[3];
 	}, $message);
@@ -123,6 +130,9 @@ function message($code, $message, $extra = array()) {
 	global $ajax, $header, $conf;
 	
 	$message = message_compat_inject_csrf_forms($message);
+	if(function_exists('plugin_lifecycle_capture_message')) {
+		plugin_lifecycle_capture_message($code, $message, $extra);
+	}
 	$arr = $extra;
 	$arr['code'] = $code.'';
 	$arr['message'] = $message;
