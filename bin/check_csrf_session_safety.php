@@ -49,6 +49,12 @@ if($misc === FALSE) {
 	$errors[] = 'failed to read model/misc.func.php';
 } else {
 	$injector = '';
+	$actionHelper = '';
+	if(!preg_match('#function\s+message_compat_form_action_is_local\s*\(\s*\$action\s*\)(.*?)(?=^function\s+\w|\z)#ms', $misc, $m)) {
+		$errors[] = 'CSRF fragment injector must keep a same-origin form action helper.';
+	} else {
+		$actionHelper = $m[1];
+	}
 	if(!preg_match('#function\s+message_compat_inject_csrf_forms\s*\(\s*\$message\s*\)(.*?)(?=^function\s+\w|\z)#ms', $misc, $m)) {
 		$errors[] = 'message() must keep a compatibility injector for CSRF-protected POST forms inside HTML fragments.';
 	} else {
@@ -90,17 +96,20 @@ PHP;
 	if($injector !== '' && strpos($injector, 'html_entity_decode(trim($action), ENT_QUOTES, \'UTF-8\')') === FALSE) {
 		$errors[] = 'CSRF fragment injector must decode form actions before external-action checks.';
 	}
-	if($injector !== '' && strpos($injector, 'preg_match(\'~^//~\', $action)') === FALSE) {
+	if($injector !== '' && strpos($injector, 'message_compat_form_action_is_local($action)') === FALSE) {
+		$errors[] = 'CSRF fragment injector must validate decoded actions through the same-origin helper.';
+	}
+	if($actionHelper !== '' && strpos($actionHelper, 'preg_match(\'~^//~\', $action)') === FALSE) {
 		$errors[] = 'CSRF fragment injector must skip protocol-relative form actions to avoid token disclosure.';
 	}
-	if($injector !== '' && strpos($injector, 'in_array($scheme, array(\'http\', \'https\'), TRUE)') === FALSE) {
+	if($actionHelper !== '' && strpos($actionHelper, 'in_array($scheme, array(\'http\', \'https\'), TRUE)') === FALSE) {
 		$errors[] = 'CSRF fragment injector must allow same-site http/https absolute form actions only.';
 	}
-	if($injector !== '' && strpos($injector, 'preg_replace(\'~:(?:80|443)$~\', \'\', $current_host)') === FALSE) {
-		$errors[] = 'CSRF fragment injector must normalize default ports before same-host comparisons.';
+	if($actionHelper !== '' && strpos($actionHelper, "xn_cookie_secure() ? 'https' : 'http'") === FALSE) {
+		$errors[] = 'CSRF fragment injector must compare absolute actions against the current request scheme.';
 	}
-	if($injector !== '' && strpos($injector, '$action_host !== $current_host') === FALSE) {
-		$errors[] = 'CSRF fragment injector must skip external form actions to avoid token disclosure.';
+	if($actionHelper !== '' && (strpos($actionHelper, '$scheme === $current_scheme') === FALSE || strpos($actionHelper, '$action_host === $current_host') === FALSE || strpos($actionHelper, '$action_port === $current_port') === FALSE)) {
+		$errors[] = 'CSRF fragment injector must require matching scheme, host, and port before disclosing a token.';
 	}
 }
 

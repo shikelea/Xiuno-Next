@@ -169,11 +169,14 @@ if($action == 'local') {
 	// 安装插件 / install plugin
 	$plugin_snapshot = plugin_state_snapshot($dir);
 	plugin_require_state_write(plugin_install($dir), $dir, $plugin_snapshot);
-	plugin_run_lifecycle($dir, 'install', $plugin_snapshot);
+	$lifecycle_message = plugin_run_lifecycle($dir, 'install', $plugin_snapshot);
 	
 	plugin_auto_unstall_same_type($dir, $plugin_snapshot);
 
 	plugin_lock_end();
+	if(is_array($lifecycle_message)) {
+		message($lifecycle_message['code'], $lifecycle_message['message'], $lifecycle_message['extra']);
+	}
 
 	$msg = lang('plugin_install_sucessfully', array('name'=>$name));
 	message(0, jump($msg, http_referer(), 3));
@@ -198,12 +201,15 @@ if($action == 'local') {
 	plugin_check_dependency($dir, 'unstall');
 	$plugin_snapshot = plugin_state_snapshot($dir);
 	plugin_require_state_write(plugin_unstall($dir), $dir, $plugin_snapshot);
-	plugin_run_lifecycle($dir, 'unstall', $plugin_snapshot);
+	$lifecycle_message = plugin_run_lifecycle($dir, 'unstall', $plugin_snapshot);
 	
 	// 删除插件
 	//!DEBUG && rmdir_recusive("../plugin/$dir");
 	
 	plugin_lock_end();
+	if(is_array($lifecycle_message)) {
+		message($lifecycle_message['code'], $lifecycle_message['message'], $lifecycle_message['extra']);
+	}
 	
 	$msg = lang('plugin_unstall_sucessfully', array('name'=>$name, 'dir'=>"plugin/$dir"));
 	message(0, jump($msg, http_referer(), 5));
@@ -380,7 +386,12 @@ function plugin_auto_unstall_same_type($dir, $primary_snapshot = NULL) {
 			plugin_restore_extra_states($restore_states);
 			plugin_require_state_write(FALSE, $_dir, $snapshot);
 		}
-		plugin_run_lifecycle($_dir, 'unstall', $snapshot, NULL, $restore_states);
+		$lifecycle_message = plugin_run_lifecycle($_dir, 'unstall', $snapshot, NULL, $restore_states);
+		if(is_array($lifecycle_message)) {
+			plugin_lifecycle_restore_or_fail($_dir, $snapshot, NULL, $restore_states);
+			plugin_lock_end();
+			message($lifecycle_message['code'], $lifecycle_message['message'], $lifecycle_message['extra']);
+		}
 	}
 	plugin_check_auto_unstall_result($dir, $restore_states);
 }
@@ -459,24 +470,120 @@ function plugin_require_state_write($ok, $dir, $snapshot = NULL, $package_snapsh
 	plugin_message(-1, lang('save_conf_failed', array('file'=>"plugin/$dir/conf.json")));
 }
 
+final class PluginLifecycleMessage extends Error {
+	public $response_code;
+	public $response_message;
+	public $response_extra;
+
+	public function __construct($code, $message, $extra = array()) {
+		parent::__construct('Plugin lifecycle message');
+		$this->response_code = $code;
+		$this->response_message = $message;
+		$this->response_extra = is_array($extra) ? $extra : array();
+	}
+}
+
+function plugin_lifecycle_capture_message($code, $message, $extra = array()) {
+	global $plugin_lifecycle_guard, $plugin_lifecycle_message_pending;
+	if(empty($plugin_lifecycle_guard) || !is_array($plugin_lifecycle_guard)) return;
+	if($plugin_lifecycle_message_pending instanceof PluginLifecycleMessage) {
+		throw $plugin_lifecycle_message_pending;
+	}
+	$plugin_lifecycle_message_pending = new PluginLifecycleMessage($code, $message, $extra);
+	throw $plugin_lifecycle_message_pending;
+}
+
+function plugin_lifecycle_message_is_success($code) {
+	return $code === 0 || $code === '0';
+}
+
+function plugin_lifecycle_form_action_is_local($action) {
+	return message_compat_form_action_is_local($action);
+}
+
+function plugin_lifecycle_form_action_route($form_action) {
+	$query = parse_url($form_action, PHP_URL_QUERY);
+	if(is_string($query) && $query !== '') {
+		$route = explode('&', $query, 2)[0];
+	} else {
+		$route = (string)parse_url($form_action, PHP_URL_PATH);
+	}
+	$route = trim(rawurldecode($route), '/');
+	$route = preg_replace('~\\.htm$~i', '', $route);
+	return rtrim($route, '/');
+}
+
+function plugin_lifecycle_message_is_deferred($dir, $action, $message) {
+	if(!in_array($action, array('install', 'unstall', 'upgrade'), TRUE) || !is_string($message)) return FALSE;
+	if(!preg_match_all('~<form\\b[^>]*>~i', $message, $forms)) return FALSE;
+	foreach($forms[0] as $form) {
+		if(!preg_match("~\\smethod\\s*=\\s*(['\\\"]?)post\\1(?=[\\s>/])~i", $form)) continue;
+		if(!preg_match("~\\saction\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s>]*))~i", $form, $action_match)) return TRUE;
+		$form_action = isset($action_match[1]) && $action_match[1] !== '' ? $action_match[1] : (isset($action_match[2]) && $action_match[2] !== '' ? $action_match[2] : (isset($action_match[3]) ? $action_match[3] : ''));
+		$form_action = html_entity_decode(trim($form_action), ENT_QUOTES, 'UTF-8');
+		if($form_action === '') return TRUE;
+		if(!plugin_lifecycle_form_action_is_local($form_action)) continue;
+		$route = plugin_lifecycle_form_action_route($form_action);
+		if($route === 'plugin-'.$action.'-'.$dir || $route === 'plugin/'.$action.'/'.$dir) return TRUE;
+	}
+	return FALSE;
+}
+
+function plugin_lifecycle_pending_message_take() {
+	global $plugin_lifecycle_message_pending;
+	$message = $plugin_lifecycle_message_pending instanceof PluginLifecycleMessage ? $plugin_lifecycle_message_pending : NULL;
+	$plugin_lifecycle_message_pending = NULL;
+	return $message;
+}
+
+function plugin_lifecycle_restore_or_fail($dir, $snapshot = NULL, $package_snapshot = NULL, $extra_state_restore = array()) {
+	if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
+	$ok = TRUE;
+	if($snapshot !== NULL && !plugin_state_restore($dir, $snapshot)) $ok = FALSE;
+	if(!plugin_restore_extra_states($extra_state_restore)) $ok = FALSE;
+	if(!$ok) plugin_message(-1, 'Plugin lifecycle rollback failed: '.htmlspecialchars($dir));
+	return TRUE;
+}
+
+function plugin_lifecycle_handle_message($dir, $action, PluginLifecycleMessage $e, $snapshot = NULL, $package_snapshot = NULL, $extra_state_restore = array()) {
+	plugin_lifecycle_guard_clear();
+	if(!plugin_lifecycle_message_is_success($e->response_code) || plugin_lifecycle_message_is_deferred($dir, $action, $e->response_message)) {
+		plugin_lifecycle_restore_or_fail($dir, $snapshot, $package_snapshot, $extra_state_restore);
+		plugin_lock_end();
+		message($e->response_code, $e->response_message, $e->response_extra);
+	}
+	return array(
+		'code'=>$e->response_code,
+		'message'=>$e->response_message,
+		'extra'=>$e->response_extra,
+	);
+}
+
 function plugin_run_lifecycle($dir, $action, $snapshot = NULL, $package_snapshot = NULL, $extra_state_restore = array()) {
 	$file = APP_PATH."plugin/$dir/$action.php";
 	if(!is_file($file)) return TRUE;
 	plugin_lifecycle_guard_start($dir, $action, $snapshot, $package_snapshot, $extra_state_restore);
 	try {
 		$result = include _include($file);
+		$pending_message = plugin_lifecycle_pending_message_take();
+		if($pending_message !== NULL) {
+			return plugin_lifecycle_handle_message($dir, $action, $pending_message, $snapshot, $package_snapshot, $extra_state_restore);
+		}
 		plugin_lifecycle_guard_clear();
 		if($result === FALSE) {
-			if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
-			if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
-			plugin_restore_extra_states($extra_state_restore);
+			plugin_lifecycle_restore_or_fail($dir, $snapshot, $package_snapshot, $extra_state_restore);
 			plugin_message(-1, 'Plugin '.$action.' failed: '.htmlspecialchars($dir));
 		}
+	} catch(PluginLifecycleMessage $e) {
+		plugin_lifecycle_pending_message_take();
+		return plugin_lifecycle_handle_message($dir, $action, $e, $snapshot, $package_snapshot, $extra_state_restore);
 	} catch(Throwable $e) {
+		$pending_message = plugin_lifecycle_pending_message_take();
+		if($pending_message !== NULL && (!plugin_lifecycle_message_is_success($pending_message->response_code) || plugin_lifecycle_message_is_deferred($dir, $action, $pending_message->response_message))) {
+			return plugin_lifecycle_handle_message($dir, $action, $pending_message, $snapshot, $package_snapshot, $extra_state_restore);
+		}
 		plugin_lifecycle_guard_clear();
-		if($package_snapshot !== NULL) plugin_package_restore($package_snapshot);
-		if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
-		plugin_restore_extra_states($extra_state_restore);
+		plugin_lifecycle_restore_or_fail($dir, $snapshot, $package_snapshot, $extra_state_restore);
 		plugin_message(-1, 'Plugin '.$action.' failed: '.htmlspecialchars($e->getMessage()));
 	}
 	return TRUE;
@@ -493,7 +600,8 @@ function plugin_db_exec_or_throw($sql) {
 }
 
 function plugin_lifecycle_guard_start($dir, $action, $snapshot = NULL, $package_snapshot = NULL, $extra_state_restore = array()) {
-	global $plugin_lifecycle_guard;
+	global $plugin_lifecycle_guard, $plugin_lifecycle_message_pending;
+	$plugin_lifecycle_message_pending = NULL;
 	$plugin_lifecycle_guard = array(
 		'dir'=>$dir,
 		'action'=>$action,
@@ -504,8 +612,9 @@ function plugin_lifecycle_guard_start($dir, $action, $snapshot = NULL, $package_
 }
 
 function plugin_lifecycle_guard_clear() {
-	global $plugin_lifecycle_guard;
+	global $plugin_lifecycle_guard, $plugin_lifecycle_message_pending;
 	$plugin_lifecycle_guard = NULL;
+	$plugin_lifecycle_message_pending = NULL;
 }
 
 function plugin_lifecycle_guard_restore() {
@@ -519,10 +628,12 @@ function plugin_lifecycle_guard_restore() {
 }
 
 function plugin_restore_extra_states($states) {
-	if(empty($states) || !is_array($states)) return;
+	if(empty($states) || !is_array($states)) return TRUE;
+	$ok = TRUE;
 	foreach($states as $dir=>$snapshot) {
-		if($snapshot !== NULL) plugin_state_restore($dir, $snapshot);
+		if($snapshot !== NULL && !plugin_state_restore($dir, $snapshot)) $ok = FALSE;
 	}
+	return $ok;
 }
 
 function plugin_dependency_arr_to_links($arr) {
