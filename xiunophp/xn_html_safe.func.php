@@ -123,6 +123,8 @@ class XML_HTMLSax3_ClosingTagState {
 * @access protected
 */
 class XML_HTMLSax3_OpeningTagState {
+	public $attrs = array();
+
     /**
     * Handles attributes
     * @param string attribute name
@@ -1352,6 +1354,9 @@ class HTML_White {
         	 	return true;
         	}
 		foreach($attrs as $name => $value) {
+			if(is_string($value)) {
+				$value = $this->canonicalizeAttributeValue($value);
+			}
 	               if($name == 'style') {
 				// removes insignificant backslahes
 				$value = str_replace("\\", '', $value);
@@ -1361,10 +1366,6 @@ class HTML_White {
 					if ($_value == $value) break;
 					$value = $_value;
 				}
-
-				// replace all & to &amp;
-				$value = str_replace('&amp;', '&', $value);
-				$value = str_replace('&', '&amp;', $value);
 
 				preg_match_all('#\s*([\w\-]+)\s*:\s*([^;]+)\s*;?\s*#is', $value, $m);
 				$csskv = !empty($m[1]) && !empty($m[2]) ? array_combine($m[1], $m[2]) : array();
@@ -1462,10 +1463,7 @@ class HTML_White {
 				$value = $name;
 	                }
 
-			$tempval = preg_replace_callback('/&#(\d+);?/m', array($this, 'chr_callback'), $value); //"'
-			$tempval = preg_replace_callback('/&#x([0-9a-f]+);?/mi', array($this, 'chr_hexdec_callback'), $tempval);
-
-			$value = str_replace("\"", "&quot;", $value);
+			$value = htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
 			if($value == '' && $name == 'style') {
 				//$this->_xhtml .= ' ' . $name . '="' . $value . '"';
 			} else {
@@ -1474,15 +1472,18 @@ class HTML_White {
 		}
         }
 
-        private function chr_callback($matchs) {
-        	$s = $matchs[1];
-        	return chr($s);
-        }
-
-        private function chr_hexdec_callback($matchs) {
-        	$s = $matchs[1];
-        	return chr(hexdec($s));
-        }
+	private function canonicalizeAttributeValue($value) {
+		for($i = 0; $i < 5; $i++) {
+			$decoded = preg_replace_callback('/&#(?:x[0-9a-f]+|[0-9]+);?/i', function($match) {
+				$entity = rtrim($match[0], ';').';';
+				return html_entity_decode($entity, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+			}, $value);
+			$decoded = html_entity_decode($decoded, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+			if($decoded === $value) return $value;
+			$value = $decoded;
+		}
+		return '';
+	}
 
 	public function _openHandler(&$parser, $name, $attrs) {
 		$name = strtolower($name);

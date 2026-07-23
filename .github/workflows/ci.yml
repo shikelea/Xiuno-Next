@@ -52,6 +52,9 @@ jobs:
       - name: Smoke test frontend security guards
         run: php bin/check_frontend_security.php
 
+      - name: Smoke test HTML sanitizer URI safety
+        run: php bin/check_html_sanitizer_safety.php
+
       - name: Smoke test CSRF session safety
         run: php bin/check_csrf_session_safety.php
 
