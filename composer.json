@@ -11,8 +11,9 @@
     ],
     "require": {
         "php": ">=8.0",
-        "ext-pdo": "*",
         "ext-json": "*",
+        "ext-openssl": "*",
+        "ext-pdo": "*",
         "ext-pdo_mysql": "*",
         "phpmailer/phpmailer": "^6.9",
         "symfony/console": "^6.0"
