@@ -283,6 +283,11 @@ function xn_json_encode($data, $pretty = FALSE, $level = 0) {
 	}
 }
 
+function xn_json_encode_for_script($data) {
+	$json = json_encode($data, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE);
+	return is_string($json) ? $json : 'null';
+}
+
 function xn_json_decode($json) {
 	$json = trim($json, "\xEF\xBB\xBF");
 	$json = trim($json, "\xFE\xFF");

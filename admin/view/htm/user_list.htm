@@ -106,12 +106,12 @@ jkeyword.on('keydown', function(e) {
 // 删除选中的用户
 jconfirm.on('click', function(){
 	var jchecked = juserlist.find('input[name="delete"]').filter(function(){ return this.checked; });
-	if(jchecked.length < 1) return alert("<?php echo lang('please_check_delete_user');?>");
-	if(!window.confirm("<?php echo lang('user_delete_confirm');?>")) return false;
+	if(jchecked.length < 1) return alert(<?php echo xn_json_encode_for_script(lang('please_check_delete_user'));?>);
+	if(!window.confirm(<?php echo xn_json_encode_for_script(lang('user_delete_confirm'));?>)) return false;
 	jchecked.each(function() {
 		jtr = $(this).parents('tr');
 		var uid = jtr.attr('uid');
-		if(uid == 1) return alert('<?php echo lang('user_admin_cant_be_deleted');?>');
+		if(uid == 1) return alert(<?php echo xn_json_encode_for_script(lang('user_admin_cant_be_deleted'));?>);
 		$.xpost(xn.url('user-delete'), {uid:uid}, function(code, message) {
 			if(code != 0) return $.alert(message);
 			jtr.remove();

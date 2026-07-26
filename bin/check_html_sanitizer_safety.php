@@ -4,6 +4,7 @@ define('APP_PATH', dirname(__DIR__).'/');
 define('XIUNOPHP_PATH', APP_PATH.'xiunophp/');
 
 require XIUNOPHP_PATH.'misc.func.php';
+require_once XIUNOPHP_PATH.'array.func.php';
 require APP_PATH.'model/misc.func.php';
 
 function sanitizer_fail($message) {
@@ -72,5 +73,58 @@ foreach($allowed as $html => $expected) {
 		sanitizer_fail('allowed value changed unexpectedly: input='.var_export($html, TRUE).' expected='.var_export($expected, TRUE).' actual='.var_export($safe, TRUE));
 	}
 }
+
+if(!function_exists('humandate')) {
+	function humandate($time) { return ''; }
+}
+if(!function_exists('user_read_cache')) {
+	function user_read_cache($uid) { return array('username'=>'tester', 'avatar_url'=>''); }
+}
+if(!function_exists('thread_read_cache')) {
+	function thread_read_cache($tid) { return array('fid'=>1); }
+}
+if(!function_exists('forum_access_mod')) {
+	function forum_access_mod($fid, $gid, $action) { return FALSE; }
+}
+if(!function_exists('url')) {
+	function url($route) { return $route; }
+}
+
+require APP_PATH.'model/post.func.php';
+
+function post_html_safety_assert_safe($html, $context) {
+	if(stripos($html, '<script') !== FALSE) {
+		sanitizer_fail($context.' retained a script tag: '.var_export($html, TRUE));
+	}
+	if(strpos($html, '<a href="https://example.com/safe">safe-markup</a>') === FALSE) {
+		sanitizer_fail($context.' removed allowed markup: '.var_export($html, TRUE));
+	}
+}
+
+$postHtml = '<script>window.__xss = 1;</script><a href="https://example.com/safe">safe-markup</a>';
+foreach(array(1, 2) as $postGid) {
+	$post = array('message'=>$postHtml, 'doctype'=>0, 'quotepid'=>0);
+	post_message_fmt($post, $postGid);
+	post_html_safety_assert_safe($post['message_fmt'], 'doctype=0 write for gid='.$postGid);
+	$post['message'] === $postHtml || sanitizer_fail('doctype=0 write modified original message for gid='.$postGid);
+}
+
+$uid = 0;
+$gid = 2;
+$_SERVER['time'] = 1;
+$_SERVER['lang'] = array();
+$post = array(
+	'pid'=>1,
+	'tid'=>1,
+	'uid'=>1,
+	'files'=>0,
+	'doctype'=>0,
+	'create_date'=>0,
+	'message'=>$postHtml,
+	'message_fmt'=>$postHtml,
+);
+post_format($post);
+post_html_safety_assert_safe($post['message_fmt'], 'historical doctype=0 display');
+$post['message'] === $postHtml || sanitizer_fail('historical doctype=0 display modified original message');
 
 echo "[OK] HTML sanitizer URI safety checks passed.\n";

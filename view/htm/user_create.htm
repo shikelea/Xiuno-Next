@@ -90,7 +90,7 @@
 var jform = $('#form');
 var jsubmit = $('#submit');
 var jsend = $('#sendcode');
-var referer = '<?php echo http_referer();?>';
+var referer = <?php echo xn_json_encode_for_script(http_referer());?>;
 jsend.on('click', function() {
 	jform.reset();
 	jsend.button('loading');
@@ -99,11 +99,11 @@ jsend.on('click', function() {
 		if(code == 0) {
 			$('#code').focus();
 			var t = 60; // 倒计时
-			jsend.button('<?php echo lang('user_send_sucessfully');?> 60 ');
+			jsend.button(<?php echo xn_json_encode_for_script(lang('user_send_sucessfully'));?> + ' 60 ');
 			jsubmit.button('reset');
 			// 倒计时，重新发送
 			var handler = setInterval(function() {
-				jsend.button('<?php echo lang('user_send_sucessfully');?> '+(--t)+' ');
+				jsend.button(<?php echo xn_json_encode_for_script(lang('user_send_sucessfully'));?> + ' '+(--t)+' ');
 				if(t == 0) {
 					clearInterval(handler);
 					jsend.button('reset');

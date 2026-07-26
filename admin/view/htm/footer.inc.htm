@@ -37,7 +37,7 @@
 	<!--{hook admin_footer_footer_after.htm}-->
 	
 	<!--[if lt IE 9]>
-	<script>window.location = '<?php echo url('browser');?>';</script>
+	<script>window.location = <?php echo xn_json_encode_for_script(url('browser'));?>;</script>
 	<![endif]-->
 	
 	<!--{hook admin_footer_js_before.htm}-->
@@ -52,10 +52,10 @@
 	<script src="../view/js/async.min.js<?php echo $static_version;?>"></script>
 	<script src="../view/js/form.min.js<?php echo $static_version;?>"></script>
 	<script>
-	var debug = DEBUG = <?php echo DEBUG; ?>;
-	var url_rewrite_on = <?php echo $conf['url_rewrite_on'];?>;
-	var fid = <?php echo $fid;?>;
-	var csrf_token = '<?php echo csrf_token();?>';
+	var debug = DEBUG = <?php echo intval(DEBUG); ?>;
+	var url_rewrite_on = <?php echo intval($conf['url_rewrite_on']);?>;
+	var fid = <?php echo intval($fid);?>;
+	var csrf_token = <?php echo xn_json_encode_for_script(csrf_token());?>;
 	$.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN',csrf_token);}});
 	</script>
 	<script src="../view/js/bbs.min.js<?php echo $static_version;?>"></script>

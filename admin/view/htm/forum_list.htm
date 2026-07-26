@@ -61,9 +61,7 @@
 <script>
 
 
-//if(!debug) $.alert('<?php echo lang('forum_edit_tip');?>');
-
-var maxfid = <?php echo $maxfid;?>;
+var maxfid = <?php echo intval($maxfid);?>;
 
 var jform = $("#form");
 var jsubmit = $("#submit");
@@ -104,7 +102,7 @@ jarrlist.on('click', 'a.row_delete', function() {
 	var jtr = jthis.parents('tr');
 	var rowid = jtr.attr('rowid');
 	if(rowid == 1) {
-		$.alert('<?php echo lang('forum_cant_delete_system_reserved');?>');
+		$.alert(<?php echo xn_json_encode_for_script(lang('forum_cant_delete_system_reserved'));?>);
 		return;
 	}
 	if(!jform.find('input[name="delete_fid['+rowid+']"]').length) {

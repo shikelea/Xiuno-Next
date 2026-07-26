@@ -38,7 +38,7 @@
 	</footer>
 	
 	<!--[if lt IE 9]>
-	<script>window.location = '<?php echo url('browser');?>';</script>
+	<script>window.location = <?php echo xn_json_encode_for_script(url('browser'));?>;</script>
 	<![endif]-->
 	
 	<!--{hook footer_js_before.htm}-->
@@ -55,14 +55,14 @@
 	<script src="<?php echo $conf['view_url'];?>js/async.min.js<?php echo $static_version;?>"></script>
 	<script src="<?php echo $conf['view_url'];?>js/form.min.js<?php echo $static_version;?>"></script>
 	<script>
-	var debug = DEBUG = <?php echo DEBUG; ?>;
-	var url_rewrite_on = <?php echo $conf['url_rewrite_on'];?>;
-	var forumarr = <?php echo xn_json_encode($forumarr);?>;
-	var fid = <?php echo $fid;?>;
+	var debug = DEBUG = <?php echo intval(DEBUG); ?>;
+	var url_rewrite_on = <?php echo intval($conf['url_rewrite_on']);?>;
+	var forumarr = <?php echo xn_json_encode_for_script($forumarr);?>;
+	var fid = <?php echo intval($fid);?>;
 	var uid = <?php echo intval($uid);?>;
 	var gid = <?php echo intval($gid);?>;
-	var csrf_token = '<?php echo csrf_token();?>';
-	xn.options.water_image_url = '<?php echo $conf['logo_water_url'];?>';
+	var csrf_token = <?php echo xn_json_encode_for_script(csrf_token());?>;
+	xn.options.water_image_url = <?php echo xn_json_encode_for_script($conf['logo_water_url']);?>;
 	$.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN',csrf_token);}});
 	</script>
 	<script src="<?php echo $conf['view_url'];?>js/bbs.min.js<?php echo $static_version;?>"></script>

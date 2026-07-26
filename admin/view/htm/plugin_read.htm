@@ -159,7 +159,7 @@ $('#nav li.nav-item-plugin').addClass('active');
 <?php if(!empty($plugin['pluginid']) && !empty($url) && !is_dir(APP_PATH."plugin/$dir")) { ?>
 
 // 定时查询 plugin.xiuno.com ，如果支付成功，则跳转到下载。
-var dir = '<?php echo $dir;?>';
+var dir = <?php echo xn_json_encode_for_script($dir);?>;
 	
 var t = setInterval(function() {
 	$.xget(xn.url('plugin-is_bought-'+dir), function(code, message) {

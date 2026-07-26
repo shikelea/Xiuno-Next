@@ -126,7 +126,7 @@
 <?php include _include(APP_PATH.'view/htm/footer.inc.htm');?>
 
 <script>
-$('li[data-active="fid-<?php echo $fid;?>"]').addClass('active');
+$('li[data-active="fid-<?php echo intval($fid);?>"]').addClass('active');
 </script>
 
 <!--{hook forum_js.htm}-->
