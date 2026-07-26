@@ -22,8 +22,16 @@ if($session === FALSE) {
 		if(preg_match('#else\s*\{(?:(?!^\s*\}).)*xn_setcookie\s*\(\s*\'cookie_test\'\s*,\s*\$cookie_test\s*,\s*\$time\s*\+\s*86400\s*(?:,\s*\'/\'\s*)?\)(?:(?!^\s*\}).)*\breturn\s*;#ms', $sessNew)) {
 			$errors[] = 'first page views must still create a session row so generated CSRF tokens persist for the next POST.';
 		}
-		if(strpos($sessNew, "db_insert('session', \$arr);") === FALSE) {
-			$errors[] = 'sess_new() must insert a session row for new sid values.';
+		$insertFailurePos = strpos($sessNew, "if(db_insert('session', \$arr) === FALSE)");
+		$existingReadPos = strpos($sessNew, "\$existing = db_find_one('session', array('sid'=>\$sid));");
+		$reusePos = strpos($sessNew, "if(!empty(\$existing) && intval(\$existing['bigdata']) <= 1)");
+		$reuseStatePos = strpos($sessNew, '$g_session = $existing;');
+		$revokedPos = strpos($sessNew, "intval(\$existing['bigdata']) == 2");
+		$failurePos = strrpos($sessNew, '$g_session_new_failed = TRUE;');
+		$failureReturnPos = strrpos($sessNew, 'return FALSE;');
+		$createdStatePos = strrpos($sessNew, '$g_session = $arr;');
+		if($insertFailurePos === FALSE || $existingReadPos === FALSE || $reusePos === FALSE || $reuseStatePos === FALSE || $revokedPos === FALSE || $failurePos === FALSE || $failureReturnPos === FALSE || $createdStatePos === FALSE || !($insertFailurePos < $existingReadPos && $existingReadPos < $reusePos && $reusePos < $reuseStatePos && $reuseStatePos < $revokedPos && $revokedPos < $failurePos && $failurePos < $failureReturnPos && $failureReturnPos < $createdStatePos)) {
+			$errors[] = 'sess_new() may reuse only a confirmed ordinary row from an insert race and must fail closed otherwise.';
 		}
 	}
 

@@ -61,6 +61,9 @@ jobs:
       - name: Smoke test CSRF session safety
         run: php bin/check_csrf_session_safety.php
 
+      - name: Smoke test session rotation safety
+        run: php bin/check_session_rotation_safety.php
+
       - name: Smoke test model cache safety
         run: php bin/check_model_cache_safety.php
 
