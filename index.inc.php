@@ -15,8 +15,23 @@ $grouplist = group_list_cache();
 // 支持 Token 接口（token 与 session 双重登陆机制，方便 REST 接口设计，也方便 $_SESSION 使用）
 // Support Token interface (token and session dual match, to facilitate the design of the REST interface, but also to facilitate the use of $_SESSION)
 $uid = intval(_SESSION('uid'));
-empty($uid) and $uid = user_token_get() and $_SESSION['uid'] = $uid;
+if(empty($uid)) {
+	$uid = user_token_get();
+	if($uid) {
+		if(sess_regenerate_id()) {
+			$_SESSION['uid'] = $uid;
+		} else {
+			user_token_clear();
+			$uid = 0;
+		}
+	}
+}
 $user = user_read($uid);
+if($uid && empty($user)) {
+	$uid = 0;
+	$_SESSION['uid'] = 0;
+	user_token_clear();
+}
 
 $gid = empty($user) ? 0 : intval($user['gid']);
 $group = isset($grouplist[$gid]) ? $grouplist[$gid] : $grouplist[0];

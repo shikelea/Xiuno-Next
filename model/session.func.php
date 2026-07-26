@@ -9,6 +9,8 @@
 $sid = '';
 $g_session = array();	
 $g_session_invalid = FALSE; // 0: 有效， 1：无效
+$g_session_new_failed = FALSE;
+$g_session_revoked = FALSE;
 
 // 可以指定独立的 session 服务器，在系统压力巨大的时候可以考虑优化
 //$g_sess_db = $db;
@@ -27,23 +29,27 @@ function sess_close() {
 
 // 如果 cookie 中没有 bbs_sid, php 会自动生成 sid，作为参数
 function sess_read($sid) { 
-	global $g_session, $longip, $time;
+	global $g_session, $g_session_revoked, $longip, $time;
 	//echo "sess_read() sid: $sid <br>\r\n";
 	if(empty($sid)) {
 		// 查找刚才是不是已经插入一条了？  如果相隔时间特别短，并且 data 为空，则删除。
 		// 测试是否支持 cookie，如果不支持 cookie，则不生成 sid
 		$sid = session_id();
 		sess_new($sid);
-		return '';
+		return isset($g_session['data']) ? $g_session['data'] : '';
 	}
 	$arr = db_find_one('session', array('sid'=>$sid));
 	if(empty($arr)) {
 		sess_new($sid);
+		return isset($g_session['data']) ? $g_session['data'] : '';
+	}
+	if($arr['bigdata'] == 2) {
+		$g_session_revoked = TRUE;
 		return '';
 	}
 	if($arr['bigdata'] == 1) {
 		$arr2 = db_find_one('session_data', array('sid'=>$sid));
-		$arr['data'] = $arr2['data'];
+		$arr['data'] = isset($arr2['data']) ? $arr2['data'] : '';
 	}
 	$g_session = $arr;
 	// 在 php 5.6.29 版本，需要返回 session_decode()
@@ -52,7 +58,7 @@ function sess_read($sid) {
 }
 
 function sess_new($sid) {
-	global $time, $longip, $conf, $g_session, $g_session_invalid;
+	global $time, $longip, $conf, $g_session, $g_session_invalid, $g_session_new_failed, $g_session_revoked;
 	
 	$agent = _SERVER('HTTP_USER_AGENT');
 	
@@ -84,8 +90,24 @@ function sess_new($sid) {
 		'useragent'=> $agent,
 		'bigdata'=> 0,
 	);
+	if(db_insert('session', $arr) === FALSE) {
+		$existing = db_find_one('session', array('sid'=>$sid));
+		if(!empty($existing) && intval($existing['bigdata']) <= 1) {
+			if($existing['bigdata'] == 1) {
+				$arr2 = db_find_one('session_data', array('sid'=>$sid));
+				$existing['data'] = isset($arr2['data']) ? $arr2['data'] : '';
+			}
+			$g_session_new_failed = FALSE;
+			$g_session = $existing;
+			return TRUE;
+		}
+		if(!empty($existing) && intval($existing['bigdata']) == 2) $g_session_revoked = TRUE;
+		$g_session_new_failed = TRUE;
+		return FALSE;
+	}
+	$g_session_new_failed = FALSE;
 	$g_session = $arr;
-	db_insert('session', $arr);
+	return TRUE;
 }
 
 // 重新启动 session，降低并发写入数据的问题，这回抛弃前面的 _SESSION 数据
@@ -145,12 +167,14 @@ function sess_write($sid, $data) {
 	
 	// 判断数据是否超长
 	$len = strlen($data);
-	if($len > 255 && $g_session['bigdata'] == 0) {
-		db_insert('session_data', array('sid'=>$sid));
+	$bigdata_new = $len > 255 && $g_session['bigdata'] == 0;
+	if($bigdata_new) {
+		db_insert('session_data', array('sid'=>$sid, 'last_date'=>$time));
 	}
 	if($len <= 255) {
 		$update = array_diff_value($arr, $g_session);
-		db_update('session', array('sid'=>$sid), $update);
+		// Do not recreate or overwrite a revoked/deleted SID after concurrent rotation.
+		db_update('session', array('sid'=>$sid, 'last_date'=>array('>'=>0), 'bigdata'=>array('<='=>1)), $update);
 		if(!empty($g_session) && $g_session['bigdata'] == 1) {
 			db_delete('session_data', array('sid'=>$sid));
 		}
@@ -158,33 +182,51 @@ function sess_write($sid, $data) {
 		$arr['data'] = '';
 		$arr['bigdata'] = 1;
 		$update = array_diff_value($arr, $g_session);
-		$update AND db_update('session', array('sid'=>$sid), $update);
+		$update AND db_update('session', array('sid'=>$sid, 'last_date'=>array('>'=>0), 'bigdata'=>array('<='=>1)), $update);
 		$arr2 = array('data'=>$data, 'last_date'=>$time);
-		if($session_delay_update_on) unset($arr2['last_date']);
+		if($session_delay_update_on && !$bigdata_new) unset($arr2['last_date']);
 		$update2 = array_diff_value($arr2, $g_session);
 		$update2 AND db_update('session_data', array('sid'=>$sid), $update2);
 	}
 	return TRUE;
 }
 
+function sess_tombstone($sid) {
+	global $time;
+	$tombstone = array('uid'=>0, 'fid'=>0, 'data'=>'', 'bigdata'=>2, 'last_date'=>$time);
+	if(db_update('session', array('sid'=>$sid), $tombstone) === FALSE) return FALSE;
+	$arr = db_find_one('session', array('sid'=>$sid));
+	if(empty($arr)) {
+		$arr = array('sid'=>$sid, 'url'=>'', 'ip'=>0, 'useragent'=>'') + $tombstone;
+		if(db_insert('session', $arr) === FALSE) $arr = db_find_one('session', array('sid'=>$sid));
+	}
+	if(!empty($arr) && (intval($arr['bigdata']) != 2 || intval($arr['uid']) != 0 || intval($arr['fid']) != 0)) {
+		if(db_update('session', array('sid'=>$sid), $tombstone) === FALSE) return FALSE;
+		$arr = db_find_one('session', array('sid'=>$sid));
+	}
+	if(empty($arr) || intval($arr['bigdata']) != 2 || intval($arr['uid']) != 0 || intval($arr['fid']) != 0) return FALSE;
+	return TRUE;
+}
+
 function sess_destroy($sid) { 
-	//echo "sess_destroy($sid) \r\n";
-	db_delete('session', array('sid'=>$sid));
-	db_delete('session_data', array('sid'=>$sid));
-	return TRUE; 
+	// Keep every explicitly destroyed ID unavailable long enough for stale requests to finish.
+	return sess_tombstone($sid) && db_delete('session_data', array('sid'=>$sid)) !== FALSE;
 }
 
 function sess_gc($maxlifetime) {
 	global $time;
 	// echo "sess_gc($maxlifetime) \r\n";
 	$expiry = $time - $maxlifetime;
-	db_delete('session', array('last_date'=>array('<'=>$expiry)));
+	db_delete('session', array('last_date'=>array('<'=>$expiry), 'bigdata'=>array('<='=>1)));
+	db_delete('session', array('last_date'=>array('<='=>$time - 86400), 'bigdata'=>2));
 	db_delete('session_data', array('last_date'=>array('<'=>$expiry)));
 	return TRUE; 
 }
 
 function sess_start() {
-	global $conf, $sid, $g_session, $time;
+	global $conf, $sid, $g_session, $g_session_new_failed, $g_session_revoked, $time;
+	$g_session_new_failed = FALSE;
+	$g_session_revoked = FALSE;
 	ini_set('session.name', 'bbs_sid');
 	
 	ini_set('session.use_cookies', 'On');
@@ -215,7 +257,14 @@ function sess_start() {
 		xn_setcookie('cookie_test', '', $time - 86400, $admin_cookie_path);
 	}
 	
-	session_start();
+	if(!session_start() || $g_session_new_failed || $g_session_revoked) {
+		@session_abort();
+		$g_session_revoked AND xn_setcookie('bbs_sid', '', $time - 86400, '/');
+		$_SESSION = array();
+		$g_session = array();
+		$sid = '';
+		return FALSE;
+	}
 	
 	$sid = session_id();
 	
@@ -227,12 +276,30 @@ function sess_start() {
 	return $sid;
 }
 
+function sess_regenerate_id() {
+	global $sid, $g_session, $g_session_new_failed;
+
+	if(session_status() !== PHP_SESSION_ACTIVE) return FALSE;
+	$g_session_new_failed = FALSE;
+	$rotated = @session_regenerate_id(TRUE);
+	if(!$rotated || $g_session_new_failed) {
+		@session_abort();
+		$_SESSION = array();
+		$g_session = array();
+		$sid = '';
+		return FALSE;
+	}
+
+	$sid = session_id();
+	return !empty($sid);
+}
+
 function online_count() {
-	return db_count('session');
+	return db_count('session', array('bigdata'=>array('<='=>1)));
 }
 
 function online_find_cache() {
-	return db_find('session');
+	return db_find('session', array('bigdata'=>array('<='=>1)));
 }
 
 function online_list_cache() {

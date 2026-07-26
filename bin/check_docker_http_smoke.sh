@@ -16,6 +16,9 @@ DB_PASSWORD="${XIUNO_HTTP_SMOKE_DB_PASSWORD:-xiuno_password_changeme}"
 WORK_DIR="$(mktemp -d)"
 INSTALL_COOKIES="$WORK_DIR/install.cookies"
 SITE_COOKIES="$WORK_DIR/site.cookies"
+TOKEN_COOKIES="$WORK_DIR/token.cookies"
+PASSWORD_FIXED_COOKIES="$WORK_DIR/password-fixed.cookies"
+AUTOLOGIN_FIXED_COOKIES="$WORK_DIR/autologin-fixed.cookies"
 UPLOAD_PROBE="$ROOT/upload/xiuno-http-smoke.php"
 COMPOSE=(docker compose)
 COMPOSE_STARTED=0
@@ -132,6 +135,23 @@ md5_value() {
 	printf '%s' "$1" | md5sum | awk '{print $1}'
 }
 
+cookie_value() {
+	local file=$1
+	local name=$2
+	awk -v name="$name" '$6 == name { print $7; exit }' "$file"
+}
+
+cookie_host() {
+	local authority="${BASE_URL#*://}"
+	authority="${authority%%/*}"
+	if [[ "$authority" == \[*\]* ]]; then
+		authority="${authority#\[}"
+		printf '%s' "${authority%%\]*}"
+	else
+		printf '%s' "${authority%%:*}"
+	fi
+}
+
 site_token() {
 	local path=$1
 	local page="$WORK_DIR/site-page.html"
@@ -201,9 +221,44 @@ assert_json_code "$INSTALL_RESPONSE" '0'
 	|| fail "Web installer did not persist installation state."
 
 assert_status '/' '200'
-login_with_password "$ADMIN_PASSWORD"
+PASSWORD_FIXED_SID='fixedpasswordsid1234567890123456'
+[[ ${#PASSWORD_FIXED_SID} -eq 32 ]] || fail "Password fixed session ID must fit the database primary key."
+printf '%s\tFALSE\t/\tFALSE\t0\tbbs_sid\t%s\n' "$(cookie_host)" "$PASSWORD_FIXED_SID" > "$SITE_COOKIES"
+PASSWORD_TOKEN="$(site_token '/?user-login.htm')"
+PASSWORD_PRELOGIN_SID="$(cookie_value "$SITE_COOKIES" bbs_sid)"
+[[ -n "$PASSWORD_PRELOGIN_SID" ]] || fail "Login form did not establish a pre-authentication session ID."
+PASSWORD_LOGIN_RESPONSE="$(site_post '/?user-login.htm' "$PASSWORD_TOKEN" \
+	--data-urlencode "email=$ADMIN_USER" \
+	--data-urlencode "password=$(md5_value "$ADMIN_PASSWORD")")"
+assert_json_code "$PASSWORD_LOGIN_RESPONSE" '0'
+PASSWORD_ROTATED_SID="$(cookie_value "$SITE_COOKIES" bbs_sid)"
+
+[[ -n "$PASSWORD_ROTATED_SID" && "$PASSWORD_ROTATED_SID" != "$PASSWORD_PRELOGIN_SID" ]] \
+	|| fail "Password login did not rotate an attacker-controlled session ID."
+printf '%s\tFALSE\t/\tFALSE\t0\tbbs_sid\t%s\n' "$(cookie_host)" "$PASSWORD_PRELOGIN_SID" > "$PASSWORD_FIXED_COOKIES"
+curl -fsS -c "$PASSWORD_FIXED_COOKIES" -b "$PASSWORD_FIXED_COOKIES" --max-time 15 "$BASE_URL/" -o "$WORK_DIR/password-fixed-home.html"
+grep -Eq 'var uid = 0;' "$WORK_DIR/password-fixed-home.html" || fail "Previous password-login session ID restored authentication."
+PASSWORD_REPLAY_SID="$(cookie_value "$PASSWORD_FIXED_COOKIES" bbs_sid)"
+[[ "$PASSWORD_REPLAY_SID" != "$PASSWORD_PRELOGIN_SID" ]] || fail "Previous password-login session ID was accepted as a new anonymous session."
 curl -fsS -c "$SITE_COOKIES" -b "$SITE_COOKIES" --max-time 15 "$BASE_URL/" -o "$WORK_DIR/home.html"
 grep -Eq 'var uid = 1;' "$WORK_DIR/home.html" || fail "Username login did not create an authenticated session."
+
+PERSISTENT_TOKEN="$(cookie_value "$SITE_COOKIES" bbs_token)"
+[[ -n "$PERSISTENT_TOKEN" ]] || fail "Password login did not issue a persistent login token."
+AUTOLOGIN_FIXED_SID='fixedsessionid123456789012345678'
+[[ ${#AUTOLOGIN_FIXED_SID} -eq 32 ]] || fail "Persistent-token fixed session ID must fit the database primary key."
+awk '$6 != "bbs_sid"' "$SITE_COOKIES" > "$TOKEN_COOKIES"
+printf '%s\tFALSE\t/\tFALSE\t0\tbbs_sid\t%s\n' "$(cookie_host)" "$AUTOLOGIN_FIXED_SID" >> "$TOKEN_COOKIES"
+curl -fsS -c "$TOKEN_COOKIES" -b "$TOKEN_COOKIES" --max-time 15 "$BASE_URL/" -o "$WORK_DIR/token-home.html"
+grep -Eq 'var uid = 1;' "$WORK_DIR/token-home.html" || fail "Persistent token login did not restore an authenticated session."
+AUTOLOGIN_ROTATED_SID="$(cookie_value "$TOKEN_COOKIES" bbs_sid)"
+[[ -n "$AUTOLOGIN_ROTATED_SID" && "$AUTOLOGIN_ROTATED_SID" != "$AUTOLOGIN_FIXED_SID" ]] \
+	|| fail "Persistent token login did not rotate an attacker-controlled session ID."
+printf '%s\tFALSE\t/\tFALSE\t0\tbbs_sid\t%s\n' "$(cookie_host)" "$AUTOLOGIN_FIXED_SID" > "$AUTOLOGIN_FIXED_COOKIES"
+curl -fsS -c "$AUTOLOGIN_FIXED_COOKIES" -b "$AUTOLOGIN_FIXED_COOKIES" --max-time 15 "$BASE_URL/" -o "$WORK_DIR/token-fixed-home.html"
+grep -Eq 'var uid = 0;' "$WORK_DIR/token-fixed-home.html" || fail "Previous persistent-token session ID restored authentication."
+AUTOLOGIN_REPLAY_SID="$(cookie_value "$AUTOLOGIN_FIXED_COOKIES" bbs_sid)"
+[[ "$AUTOLOGIN_REPLAY_SID" != "$AUTOLOGIN_FIXED_SID" ]] || fail "Previous persistent-token session ID was accepted as a new anonymous session."
 
 logout_user
 login_with_password "$ADMIN_PASSWORD"
@@ -225,4 +280,4 @@ assert_json_code "$PASSWORD_RESPONSE" '0'
 logout_user
 login_with_password "$NEW_PASSWORD"
 
-echo "OK: Docker Nginx, installer, username login, logout/re-login, and password HTTP smoke passed"
+echo "OK: Docker Nginx, installer, username login, persistent-token session rotation, logout/re-login, and password HTTP smoke passed"

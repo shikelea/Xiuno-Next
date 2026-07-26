@@ -4,6 +4,7 @@ $root = dirname(__DIR__);
 $check_model = file_get_contents($root.'/model/check.func.php');
 $user_model = file_get_contents($root.'/model/user.func.php');
 $user_route = file_get_contents($root.'/route/user.php');
+$index_source = file_get_contents($root.'/index.inc.php');
 $my_route = file_get_contents($root.'/route/my.php');
 $workflow = file_get_contents($root.'/.github/workflows/ci.yml');
 
@@ -72,6 +73,10 @@ strpos($code_issue, "\$_SESSION[\$prefix.'_code_time'] = \$time") !== FALSE
 	|| fail('Email verification codes must store an issuance timestamp.');
 strpos($code_issue, "\$_SESSION[\$prefix.'_code_attempts'] = 0") !== FALSE
 	|| fail('Email verification code attempts must reset on new issue.');
+$reset_issue_clear = strpos($code_issue, "if(\$prefix == 'user_resetpw') unset(\$_SESSION['resetpw_verify_ok']);");
+$reset_issue_email = strpos($code_issue, "\$_SESSION[\$prefix.'_email'] = \$email;");
+($reset_issue_clear !== FALSE && $reset_issue_email !== FALSE && $reset_issue_clear < $reset_issue_email)
+	|| fail('Issuing a password-reset code must revoke an earlier password-reset verification.');
 
 $code_verify = section_between($user_route, 'function user_email_code_verify', 'function user_email_code_rate_limit');
 strpos($code_verify, '$time - $sess_time > 300') !== FALSE
@@ -101,6 +106,25 @@ strpos($user_route, "user_email_code_clear('user_create')") !== FALSE
 	|| fail('Successful user registration must clear email verification state.');
 strpos($user_route, "user_email_code_clear('user_resetpw')") !== FALSE
 	|| fail('Successful password reset must clear email verification state.');
+
+$create = section_between($user_route, "} elseif(\$action == 'create')", "} elseif(\$action == 'logout')");
+$create_rotate_pos = strpos($create, "sess_regenerate_id() OR message(-1, 'Unable to renew session. Please try again.');");
+$create_user_pos = strpos($create, '$uid = user_create($_user);');
+($create_rotate_pos !== FALSE && $create_user_pos !== FALSE && $create_rotate_pos < $create_user_pos)
+	|| fail('User registration must rotate the anonymous session before creating an authenticated user.');
+
+$resetpw_complete = section_between($user_route, "} elseif(\$action == 'resetpw_complete')", "} elseif(\$action == 'send_code')");
+$resetpw_update_pos = strpos($resetpw_complete, "user_update(\$_uid, array('password'=>\$password)) === FALSE AND message(-1, lang('password_modify_failed'));");
+$resetpw_clear_pos = strpos($resetpw_complete, "user_email_code_clear('user_resetpw');");
+($resetpw_update_pos !== FALSE && $resetpw_clear_pos !== FALSE && $resetpw_update_pos < $resetpw_clear_pos)
+	|| fail('Password reset must report a failed password update before consuming its verification state.');
+
+$identity = section_between($index_source, '$user = user_read($uid);', '$gid = empty($user)');
+$missing_user_pos = strpos($identity, 'if($uid && empty($user))');
+$clear_session_uid_pos = strpos($identity, "\$_SESSION['uid'] = 0;");
+$clear_token_pos = strpos($identity, 'user_token_clear();');
+($missing_user_pos !== FALSE && $clear_session_uid_pos !== FALSE && $clear_token_pos !== FALSE)
+	|| fail('A missing user referenced by a Session or token must be cleared before authorization uses the uid.');
 
 $synlogin_end = '// '.'hook user_end.php';
 $synlogin = section_between($user_route, "} elseif(\$action == 'synlogin')", $synlogin_end);

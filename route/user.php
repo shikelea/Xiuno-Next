@@ -100,15 +100,15 @@ if(empty($action)) {
 			message('password', lang('password_incorrect'));
 		}
 
+		// 登录成功后轮换 Session ID，防止会话固定攻击。
+		// helper 同时同步过程式代码后续会使用的全局 $sid。
+		sess_regenerate_id() OR message(-1, 'Unable to renew session. Please try again.');
+
 		// 渐进式密码升级：旧 MD5 哈希自动迁移为 bcrypt
 		user_password_needs_upgrade($_user) AND user_upgrade_password($_user['uid'], $password);
 
 		user_update($_user['uid'], array('login_ip'=>$longip, 'login_date' =>$time , 'logins+'=>1));
 		user_login_rate_clear($email);
-
-		// 🔒 安全修复：登录成功后重新生成 Session ID，防止会话固定攻击
-		// 攻击者无法预先设置 Session ID 并在用户登录后劫持会话
-		session_regenerate_id(true);
 
 		// 全局变量 $uid 会在结束后，在函数 register_shutdown_function() 中存入 session (文件: model/session.func.php)
 		// global variable $uid will save to session in register_shutdown_function() (file: model/session.func.php)
@@ -183,6 +183,8 @@ if(empty($action)) {
 			'login_date' => $time,
 			'login_ip' => $longip,
 		);
+
+		sess_regenerate_id() OR message(-1, 'Unable to renew session. Please try again.');
 		$uid = user_create($_user);
 		$uid === FALSE AND message('email', lang('user_create_failed'));
 		$user = user_read($uid);
@@ -287,7 +289,7 @@ if(empty($action)) {
 		!is_password($password, $err) AND message('password', $err);
 		
 		$password = user_hash_password($password);
-		user_update($_uid, array('password'=>$password));
+		user_update($_uid, array('password'=>$password)) === FALSE AND message(-1, lang('password_modify_failed'));
 		
 		user_email_code_clear('user_resetpw');
 		unset($_SESSION['resetpw_verify_ok']);
@@ -438,6 +440,7 @@ function user_http_referer() {
 function user_email_code_issue($prefix, $email) {
 	global $time;
 	user_email_code_rate_limit($prefix, $email);
+	if($prefix == 'user_resetpw') unset($_SESSION['resetpw_verify_ok']);
 	$code = (string)random_int(100000, 999999);
 	$_SESSION[$prefix.'_email'] = $email;
 	$_SESSION[$prefix.'_code'] = $code;
