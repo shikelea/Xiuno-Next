@@ -64,6 +64,9 @@ jobs:
       - name: Smoke test model cache safety
         run: php bin/check_model_cache_safety.php
 
+      - name: Smoke test plugin cache atomicity
+        run: php bin/check_plugin_cache_atomicity.php
+
       - name: Smoke test include cache safety
         run: php bin/check_include_cache_safety.php
 

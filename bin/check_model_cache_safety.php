@@ -17,6 +17,7 @@ if($modelInc === FALSE) {
 			$modelForCheck .= $token;
 		}
 	}
+	$modelCompact = preg_replace('/\s+/', '', $modelForCheck);
 	if(strpos($modelForCheck, '$model_min_mtime = filemtime($model_min_file);') === FALSE) {
 		$errors[] = 'model.min.php cache must record its mtime.';
 	}
@@ -28,6 +29,15 @@ if($modelInc === FALSE) {
 	}
 	if(strpos($modelForCheck, '$isfile = FALSE;') === FALSE) {
 		$errors[] = 'model.min.php cache must mark stale cache as missing before regeneration.';
+	}
+	if(strpos($modelCompact, 'plugin_cache_write_atomic($model_min_file,$s)') === FALSE) {
+		$errors[] = 'model.min.php cache must be published through the atomic plugin cache writer.';
+	}
+	if(strpos($modelCompact, "empty(\$conf['disabled_plugin'])?'model.min.php':'model.safe.min.php'") === FALSE) {
+		$errors[] = 'Safe mode must not overwrite the normal combined model cache.';
+	}
+	if(strpos($modelCompact, 'file_put_contents($model_min_file,$s)') !== FALSE) {
+		$errors[] = 'model.min.php cache must not be exposed through a direct truncating write.';
 	}
 }
 

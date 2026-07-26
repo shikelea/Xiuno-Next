@@ -26,6 +26,12 @@ if($pluginFunc === FALSE) {
 		if(strpos($include, '$src_mtime = plugin_include_src_mtime($compile_srcfile);') === FALSE) {
 			$errors[] = '_include() cache must record effective source and hook file mtime.';
 		}
+		if(strpos($include, "\$cache_suffix = empty(\$conf['disabled_plugin']) ? '' : '.safe_mode';") === FALSE) {
+			$errors[] = '_include() must isolate safe-mode caches from normal plugin caches.';
+		}
+		if(strpos($include, 'static $compiler_mtime;') === FALSE || strpos($include, '$compiler_mtime === NULL AND $compiler_mtime = filemtime(__FILE__);') === FALSE || strpos($include, '$src_mtime = max($src_mtime, $compiler_mtime);') === FALSE) {
+			$errors[] = '_include() caches must rebuild when the plugin compiler changes.';
+		}
 		if(strpos($include, '$tmp_mtime = $tmp_isfile ? filemtime($tmpfile) : 0;') === FALSE) {
 			$errors[] = '_include() cache must record compiled tmp file mtime.';
 		}

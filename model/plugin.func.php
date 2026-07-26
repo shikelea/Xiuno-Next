@@ -10,16 +10,65 @@ $official_plugins = array();
 
 define('PLUGIN_OFFICIAL_URL', DEBUG == 4 ? 'http://plugin.x.com/' : 'http://plugin.xiuno.com/');
 
+function plugin_cache_write_atomic($file, $s) {
+	$tmpfile = $file.'.'.getmypid().'.'.str_replace('.', '', uniqid('', TRUE)).'.tmp';
+	$length = strlen($s);
+	$written = file_put_contents_try($tmpfile, $s);
+	if($written !== $length) {
+		xn_unlink($tmpfile);
+		return FALSE;
+	}
+
+	$lock = fopen($file.'.lock', 'c');
+	if(!$lock || !flock($lock, LOCK_EX)) {
+		$lock AND fclose($lock);
+		xn_unlink($tmpfile);
+		return FALSE;
+	}
+
+	try {
+		$current = is_file($file) ? file_get_contents_try($file) : FALSE;
+		if($current === $s) {
+			xn_unlink($tmpfile);
+			return $written;
+		}
+		if(@rename($tmpfile, $file)) {
+			clearstatcache(TRUE, $file);
+			return $written;
+		}
+
+		// Older Windows filesystems may not replace an existing target.
+		if(DIRECTORY_SEPARATOR === '\\') {
+			is_file($file) AND xn_unlink($file);
+			if(@rename($tmpfile, $file)) {
+				clearstatcache(TRUE, $file);
+				return $written;
+			}
+		}
+
+		$valid_target = is_file($file) && file_get_contents_try($file) === $s;
+		xn_unlink($tmpfile);
+		return $valid_target ? $written : FALSE;
+	} finally {
+		flock($lock, LOCK_UN);
+		fclose($lock);
+	}
+}
+
 // todo: 对路径进行处理 include _include(APP_PATH.'view/htm/header.inc.htm');
 $g_include_slot_kv = array();
 function _include($srcfile) {
 	global $conf;
+	static $compiler_mtime;
+	$compiler_mtime === NULL AND $compiler_mtime = filemtime(__FILE__);
 	// 合并插件，存入 tmp_path
 	$len = strlen(APP_PATH);
-	$tmpfile = $conf['tmp_path'].substr(str_replace('/', '_', $srcfile), $len);
+	$cache_suffix = empty($conf['disabled_plugin']) ? '' : '.safe_mode';
+	$tmpfile = $conf['tmp_path'].substr(str_replace('/', '_', $srcfile), $len).$cache_suffix;
 	$compile_srcfile = empty($conf['disabled_plugin']) ? plugin_find_overwrite($srcfile) : $srcfile;
 	$tmp_isfile = is_file($tmpfile);
 	$src_mtime = plugin_include_src_mtime($compile_srcfile);
+	$src_mtime = max($src_mtime, $compiler_mtime);
 	$tmp_mtime = $tmp_isfile ? filemtime($tmpfile) : 0;
 	if(!$tmp_isfile || ($src_mtime && $src_mtime > $tmp_mtime) || DEBUG > 1) {
 		// 开始编译
@@ -31,10 +80,10 @@ function _include($srcfile) {
 			$s = preg_replace_callback('#<template\sinclude="(.*?)">(.*?)</template>#is', '_include_callback_1', $s);
 			if(strpos($s, '<template') === FALSE) break;
 		}
-		file_put_contents_try($tmpfile, $s);
+		plugin_cache_write_atomic($tmpfile, $s) === FALSE AND trigger_error('Failed to write plugin cache: '.$tmpfile, E_USER_ERROR);
 		
 		$s = plugin_compile_srcfile($tmpfile);
-		file_put_contents_try($tmpfile, $s);
+		plugin_cache_write_atomic($tmpfile, $s) === FALSE AND trigger_error('Failed to write plugin cache: '.$tmpfile, E_USER_ERROR);
 		
 	}
 	return $tmpfile;
