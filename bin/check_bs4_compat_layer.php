@@ -67,13 +67,15 @@ if(empty($errors)) {
 		'.la-user'=>'Line Awesome user icon fallback',
 		'.la-chart-bar'=>'Line Awesome chart icon fallback',
 		'.la-calendar-check'=>'Line Awesome calendar-check icon fallback',
+		'.icon-magic'=>'Font Awesome 4 magic icon fallback',
+		'.icon-check'=>'Font Awesome 4 check icon fallback',
 		'.btn-group-toggle'=>'button toggle group',
 	);
 	foreach($css_selectors as $selector=>$label) {
 		require_contains($css, $selector, "bs4-compat.css must keep $label ($selector).");
 	}
 
-	foreach(array('.form-group', '.btn-block', '.custom-file', '.custom-control-label', '.badge-danger', '.input-group-prepend', '.btn-group-toggle', '.las', '.la-calendar', '.la-user', '.la-chart-bar', '.la-calendar-check') as $selector) {
+	foreach(array('.form-group', '.btn-block', '.custom-file', '.custom-control-label', '.badge-danger', '.input-group-prepend', '.btn-group-toggle', '.las', '.la-calendar', '.la-user', '.la-chart-bar', '.la-calendar-check', '.icon-magic', '.icon-check') as $selector) {
 		require_contains($css_min, $selector, "bs4-compat.min.css must include $selector.");
 	}
 

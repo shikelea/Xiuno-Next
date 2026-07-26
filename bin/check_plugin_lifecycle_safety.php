@@ -53,6 +53,11 @@ strpos($lifecycle, 'plugin_lifecycle_guard_clear();') !== FALSE
 	|| fail('Plugin lifecycle execution must clear the shutdown rollback guard after normal return or catch.');
 strpos($lifecycle, 'catch(Throwable $e)') !== FALSE
 	|| fail('Plugin lifecycle files must be wrapped in a Throwable catch.');
+strpos($lifecycle, 'plugin_compat_include_lifecycle($file)') !== FALSE
+	|| fail('Plugin lifecycle execution must preserve the legacy global include scope.');
+$compat_include = section_between($plugin_model, 'function plugin_compat_include_lifecycle(', 'function plugin_compat_form_action_is_local');
+strpos($compat_include, 'extract($GLOBALS, EXTR_REFS | EXTR_SKIP);') !== FALSE
+	|| fail('Plugin lifecycle include scope must expose legacy global variables by reference.');
 strpos($lifecycle, 'plugin_lifecycle_restore_or_fail($dir, $snapshot, $package_snapshot, $extra_state_restore);') !== FALSE
 	|| fail('Plugin lifecycle failures must restore state and package snapshots through the checked rollback helper.');
 $restore_helper = section_between($plugin_route, 'function plugin_lifecycle_restore_or_fail(', 'function plugin_lifecycle_handle_message');
@@ -110,6 +115,12 @@ strpos($auto_unstall, "\$lifecycle_message = plugin_run_lifecycle(\$_dir, 'unsta
 	|| fail('Same-type auto-uninstall must retain controlled lifecycle messages.');
 strpos($auto_unstall, 'if(is_array($lifecycle_message))') !== FALSE
 	|| fail('Same-type auto-uninstall must stop and restore replacement state on controlled lifecycle messages.');
+
+$setting_branch = section_between($plugin_route, "} elseif(\$action == 'setting')", '// 检查目录是否可写');
+strpos($setting_branch, "\$gid != 1 AND message(-1, lang('insufficient_privilege'));") !== FALSE
+	|| fail('Plugin settings must allow the super administrator and reject other groups.');
+strpos($setting_branch, "allowadminpanel") === FALSE
+	|| fail('Plugin settings must not depend on the nonexistent allowadminpanel group field.');
 
 foreach(array('install'=>'unstall', 'unstall'=>'enable', 'upgrade'=>'setting') as $action=>$next) {
 	$branch = section_between($plugin_route, "} elseif(\$action == '$action')", "} elseif(\$action == '$next')");

@@ -64,6 +64,18 @@ function write_return_plugin($app, $dir, $installed, $enable, $lifecycle, $resul
 	file_put_contents($app.'plugin/'.$dir.'/'.$lifecycle.'.php', "<?php\nreturn ".var_export($result, TRUE).";\n");
 }
 
+function write_global_context_plugin($app, $dir) {
+	write_plain_plugin($app, $dir, 0, 0);
+	$source = <<<'PHP'
+<?php
+if($method !== 'POST' || $conf['sitename'] !== 'Lifecycle Smoke') {
+	message(-1, 'Legacy lifecycle globals missing');
+}
+return TRUE;
+PHP;
+	file_put_contents($app.'plugin/'.$dir.'/install.php', $source);
+}
+
 function write_catching_message_plugin($app, $dir, $installed, $enable, $code, $message, $catch, $lifecycle = 'install') {
 	write_plain_plugin($app, $dir, $installed, $enable);
 	$marker = $app.'plugin/'.$dir.'/continued';
@@ -285,6 +297,13 @@ if(!empty($return_out)) {
 	fail('install.php normal return must not emit a controlled lifecycle response.');
 }
 
+write_global_context_plugin($app, 'global_context_install');
+$global_context_out = run_child($root, $app, 'global_context_install', 'install');
+$conf = package_conf($app, 'global_context_install');
+if(empty($conf['installed']) || empty($conf['enable']) || !empty($global_context_out)) {
+	fail('install.php must retain legacy access to global request and configuration variables.');
+}
+
 write_return_plugin($app, 'false_install', 0, 0, 'install', FALSE);
 $false_install_response = child_response(run_child($root, $app, 'false_install', 'install'), 'false install return');
 $conf = package_conf($app, 'false_install');
@@ -331,6 +350,24 @@ if((string)$deferred_response['code'] !== '0' || strpos($deferred_response['mess
 }
 if(is_file($app.'tmp/lock_plugin_task.lock')) {
 	fail('plugin_task lock must be released after deferred install message.');
+}
+
+$literal_token_form = '<form method="post" action="./?plugin-install-message_literal_token_install.htm"><input type="hidden" name="_token" value="<?php echo csrf_token(); ?>"><p>中文安装向导</p></form>';
+write_message_plugin($app, 'message_literal_token_install', 0, 0, 0, $literal_token_form);
+$literal_token_response = child_response(run_child($root, $app, 'message_literal_token_install', 'install'), 'literal-token deferred install message');
+$conf = package_conf($app, 'message_literal_token_install');
+if(!empty($conf['installed']) || !empty($conf['enable'])) {
+	fail('install wizard with a literal PHP token must restore the original uninstalled state.');
+}
+assert_csrf_form($literal_token_response['message'], 'literal-token deferred install message');
+if(strpos($literal_token_response['message'], '<?php') !== FALSE || !preg_match('~name="_token" value="[a-f0-9]{64}"~', $literal_token_response['message'])) {
+	fail('literal PHP token must be replaced with the current session CSRF token.');
+}
+if(preg_match('~name="_token" value="[a-f0-9]{64}">">~', $literal_token_response['message'])) {
+	fail('literal PHP token replacement must consume the complete input tag without leaving a quote suffix.');
+}
+if(strpos($literal_token_response['message'], '中文安装向导') === FALSE) {
+	fail('CSRF token replacement must preserve UTF-8 form content.');
 }
 
 write_message_plugin($app, 'message_deferred_path_install', 0, 0, 0, '<form action="./?/plugin/install/message_deferred_path_install" method="post"></form>');

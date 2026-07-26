@@ -128,6 +128,44 @@ function _include_callback_1($m) {
 }
 
 // 在安装、卸载插件的时候，需要先初始化
+function plugin_compat_include_lifecycle($file) {
+	extract($GLOBALS, EXTR_REFS | EXTR_SKIP);
+	return include _include($file);
+}
+
+function plugin_compat_form_action_is_local($action) {
+	if(preg_match('~^//~', $action)) return FALSE;
+	if(!preg_match('~^[a-z][a-z0-9+.-]*:~i', $action)) return TRUE;
+	$scheme = strtolower((string)parse_url($action, PHP_URL_SCHEME));
+	$action_host = strtolower((string)parse_url($action, PHP_URL_HOST));
+	$action_port = parse_url($action, PHP_URL_PORT);
+	if(!in_array($scheme, array('http', 'https'), TRUE) || $action_host === '') return FALSE;
+	$action_port = $action_port === NULL ? ($scheme === 'https' ? 443 : 80) : intval($action_port);
+
+	$current_scheme = function_exists('xn_cookie_secure') && xn_cookie_secure() ? 'https' : 'http';
+	$current_authority = parse_url($current_scheme.'://'.(isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : ''));
+	$current_host = isset($current_authority['host']) ? strtolower($current_authority['host']) : '';
+	$current_port = isset($current_authority['port']) ? intval($current_authority['port']) : ($current_scheme === 'https' ? 443 : 80);
+	return $current_host !== '' && $scheme === $current_scheme && $action_host === $current_host && $action_port === $current_port;
+}
+
+function plugin_compat_inject_csrf_forms($message) {
+	if(!is_string($message) || stripos($message, '<form') === FALSE) return $message;
+	if(!function_exists('csrf_token')) return $message;
+	if(!preg_match('~<form\b[^>]*\smethod\s*=\s*([\'"]?)post\1(?=[\s>/])~i', $message)) return $message;
+	$token = htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8');
+	return preg_replace_callback('~(<form\b(?=[^>]*\smethod\s*=\s*([\'"]?)post\2(?=[\s>/]))[^>]*>)(.*?</form>)~is', function($m) use ($token) {
+		$form = $m[0];
+		if(preg_match('~\saction\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]*))~i', $m[1], $am)) {
+			$action = isset($am[1]) && $am[1] !== '' ? $am[1] : (isset($am[2]) && $am[2] !== '' ? $am[2] : (isset($am[3]) ? $am[3] : ''));
+			$action = html_entity_decode(trim($action), ENT_QUOTES, 'UTF-8');
+			if(!plugin_compat_form_action_is_local($action)) return $form;
+		}
+		$body = preg_replace('~<input\b(?=[^>]*\sname\s*=\s*([\'"]?)_token\1(?=[\s>/]))(?:[^>\'"]+|"[^"]*"|\'[^\']*\')*>~i', '', $m[3]);
+		return $m[1].'<input type="hidden" name="_token" value="'.$token.'">'.$body;
+	}, $message);
+}
+
 function plugin_init() {
 	global $plugin_srcfiles, $plugin_paths, $plugins, $official_plugins;
 	/*$plugin_srcfiles = array_merge(
@@ -472,7 +510,9 @@ function plugin_php_syntax_errors($dir) {
 		if(strpos($path, "/plugin/$dir/hook/") !== FALSE) continue;
 		$out = array();
 		$code = 0;
-		$php = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
+		$php = PHP_SAPI === 'cli'
+			? PHP_BINARY
+			: PHP_BINDIR.DIRECTORY_SEPARATOR.(DIRECTORY_SEPARATOR === '\\' ? 'php.exe' : 'php');
 		exec(escapeshellarg($php).' -l '.escapeshellarg($file).' 2>&1', $out, $code);
 		if($code !== 0) {
 			$errors[] = array(
