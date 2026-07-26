@@ -39,7 +39,7 @@ if(DEBUG) {
 	}
 } else {
 	
-	$model_min_file = $conf['tmp_path'].'model.min.php';
+	$model_min_file = $conf['tmp_path'].(empty($conf['disabled_plugin']) ? 'model.min.php' : 'model.safe.min.php');
 	$isfile = is_file($model_min_file);
 	if($isfile) {
 		$model_min_mtime = filemtime($model_min_file);
@@ -70,7 +70,8 @@ if(DEBUG) {
 			$s .= "<?php\r\n".$t."\r\n?>";
 
 		}
-		$r = file_put_contents($model_min_file, $s);
+		$r = plugin_cache_write_atomic($model_min_file, $s);
+		$r === FALSE AND trigger_error('Failed to write model cache: '.$model_min_file, E_USER_ERROR);
 		unset($s);
 	}
 	include $model_min_file;
