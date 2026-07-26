@@ -315,6 +315,7 @@ function post_file_list_html($filelist, $include_delete = FALSE) {
 function post_format(&$post) {
 	global $conf, $uid, $sid, $gid, $longip;
 	if(empty($post)) return;
+	isset($post['doctype']) && $post['doctype'] == 0 && isset($post['message_fmt']) && $post['message_fmt'] = xn_html_safe($post['message_fmt']);
 	$post['create_date_fmt'] = humandate($post['create_date']);
 	
 	$user = user_read_cache($post['uid']);
@@ -359,7 +360,7 @@ function post_message_fmt(&$arr, $gid) {
 	$arr['message_fmt'] = htmlspecialchars($arr['message']);
 	
 	// 入库的时候进行转换，编辑的时候，自行调取 message, 或者 message_fmt
-	$arr['doctype'] == 0 && $arr['message_fmt'] = ($gid == 1 ? $arr['message'] : xn_html_safe($arr['message']));
+	$arr['doctype'] == 0 && $arr['message_fmt'] = xn_html_safe($arr['message']);
 	$arr['doctype'] == 1 && $arr['message_fmt'] = xn_txt_to_html($arr['message']);
 	
 	// hook post_message_fmt_end.php

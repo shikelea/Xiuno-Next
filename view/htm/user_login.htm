@@ -58,7 +58,7 @@ var jform = $('#form');
 var jsubmit = $('#submit');
 var jemail = $('#email');
 var jpassword = $('#password');
-var referer = '<?php echo $referer;?>';
+var referer = <?php echo xn_json_encode_for_script($referer);?>;
 jform.on('submit', function() {
 	jform.reset();
 	jsubmit.button('loading');

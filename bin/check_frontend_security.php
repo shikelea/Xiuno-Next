@@ -3,6 +3,154 @@
 $root = dirname(__DIR__) . '/';
 $errors = array();
 
+require_once $root . 'xiunophp/misc.func.php';
+
+function script_expression_is_safe($expression) {
+	$tokens = token_get_all('<?php '.$expression.';');
+	$allowedFunctions = array('xn_json_encode_for_script', 'intval', 'lang', 'csrf_token', 'url', 'http_referer');
+	$name = '';
+	$opened = FALSE;
+	$closed = FALSE;
+	$depth = 0;
+	$lastToken = NULL;
+	$lastString = '';
+	foreach($tokens as $token) {
+		if(is_array($token)) {
+			if(in_array($token[0], array(T_OPEN_TAG, T_WHITESPACE, T_COMMENT, T_DOC_COMMENT), TRUE)) continue;
+			if(in_array($token[0], array(T_ECHO, T_PRINT, T_INCLUDE, T_INCLUDE_ONCE, T_REQUIRE, T_REQUIRE_ONCE, T_EVAL, T_EXIT, T_FUNCTION, T_FN, T_NEW, T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED, T_NAME_RELATIVE), TRUE)) return FALSE;
+			if($name === '') {
+				if($token[0] != T_STRING || !in_array($token[1], array('xn_json_encode_for_script', 'intval'), TRUE)) return FALSE;
+				$name = $token[1];
+				$lastToken = $token[0];
+				$lastString = $token[1];
+				continue;
+			}
+			if($closed) return FALSE;
+			$lastToken = $token[0];
+			$lastString = $token[0] == T_STRING ? $token[1] : '';
+			continue;
+		}
+		if($name === '') return FALSE;
+		if($token == '(' && ($lastToken == T_VARIABLE || $lastToken == ')' || ($lastToken == T_STRING && !in_array($lastString, $allowedFunctions, TRUE)))) return FALSE;
+		if(!$opened) {
+			if($token != '(') return FALSE;
+			$opened = TRUE;
+			$depth = 1;
+			$lastToken = $token;
+			$lastString = '';
+			continue;
+		}
+		if($closed) {
+			if($token != ';') return FALSE;
+			continue;
+		}
+		if($token == '(') {
+			$depth++;
+		} elseif($token == ')' && --$depth == 0) {
+			$closed = TRUE;
+		}
+		$lastToken = $token;
+		$lastString = '';
+	}
+	return $name !== '' && $opened && $closed;
+}
+
+function php_script_tokens_are_safe($script) {
+	$allowedFunctions = array('xn_json_encode_for_script', 'intval', 'lang', 'csrf_token', 'url', 'http_referer', 'is_dir');
+	$lastToken = NULL;
+	$lastString = '';
+	foreach(token_get_all($script) as $token) {
+		if(is_array($token)) {
+			if(in_array($token[0], array(T_INLINE_HTML, T_OPEN_TAG, T_OPEN_TAG_WITH_ECHO, T_CLOSE_TAG, T_WHITESPACE, T_COMMENT, T_DOC_COMMENT), TRUE)) continue;
+			if(in_array($token[0], array(T_PRINT, T_INCLUDE, T_INCLUDE_ONCE, T_REQUIRE, T_REQUIRE_ONCE, T_EVAL, T_EXIT, T_FUNCTION, T_FN, T_NEW, T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED, T_NAME_RELATIVE), TRUE)) return FALSE;
+			$lastToken = $token[0];
+			$lastString = $token[0] == T_STRING ? $token[1] : '';
+			continue;
+		}
+		if($token == '(' && ($lastToken == T_VARIABLE || $lastToken == ')' || ($lastToken == T_STRING && !in_array($lastString, $allowedFunctions, TRUE)))) return FALSE;
+		$lastToken = $token;
+		$lastString = '';
+	}
+	return TRUE;
+}
+
+function inline_script_outputs_are_safe($script) {
+	if(!php_script_tokens_are_safe($script)) return FALSE;
+	$tokens = token_get_all($script);
+	$output = FALSE;
+	$expression = '';
+	$depth = 0;
+	foreach($tokens as $token) {
+		if(is_array($token)) {
+			if($token[0] == T_ECHO || $token[0] == T_OPEN_TAG_WITH_ECHO) {
+				if($output) return FALSE;
+				$output = TRUE;
+				$expression = '';
+				$depth = 0;
+				continue;
+			}
+			if($token[0] == T_PRINT || $token[0] == T_EXIT) return FALSE;
+			if($token[0] == T_CLOSE_TAG) {
+				if($output && !script_expression_is_safe(trim($expression))) return FALSE;
+				$output = FALSE;
+				$expression = '';
+				continue;
+			}
+			$output AND $expression .= $token[1];
+			continue;
+		}
+		if(!$output) continue;
+		if($token == '(' || $token == '[' || $token == '{') {
+			$depth++;
+		} elseif(($token == ')' || $token == ']' || $token == '}') && $depth > 0) {
+			$depth--;
+		}
+		if($token == ';' && $depth == 0) {
+			if(!script_expression_is_safe(trim($expression))) return FALSE;
+			$output = FALSE;
+			$expression = '';
+			continue;
+		}
+		$expression .= $token;
+	}
+	return !$output;
+}
+
+function inline_script_blocks($template) {
+	$blocks = array();
+	$inside = FALSE;
+	$attributes = '';
+	$body = '';
+	foreach(token_get_all($template) as $token) {
+		$text = is_array($token) ? $token[1] : $token;
+		if(is_array($token) && $token[0] != T_INLINE_HTML) {
+			$inside AND $body .= $text;
+			continue;
+		}
+		while($text !== '') {
+			if($inside) {
+				if(!preg_match('#</script\s*>#i', $text, $match, PREG_OFFSET_CAPTURE)) {
+					$body .= $text;
+					break;
+				}
+				$body .= substr($text, 0, $match[0][1]);
+				$blocks[] = array($attributes, $body);
+				$text = substr($text, $match[0][1] + strlen($match[0][0]));
+				$inside = FALSE;
+				$attributes = '';
+				$body = '';
+				continue;
+			}
+			if(!preg_match('#<script\b([^>]*)>#i', $text, $match, PREG_OFFSET_CAPTURE)) break;
+			$attributes = $match[1][0];
+			$text = substr($text, $match[0][1] + strlen($match[0][0]));
+			$inside = TRUE;
+		}
+	}
+	if($inside) $blocks[] = array($attributes, $body);
+	return $blocks;
+}
+
 $postTemplate = file_get_contents($root . 'view/htm/post.htm');
 if ($postTemplate === FALSE) {
 	$errors[] = 'failed to read view/htm/post.htm';
@@ -261,6 +409,121 @@ if ($pluginModel === FALSE) {
 	if (strpos($pluginModel, 'is_file($overwrite_file) && !is_link($overwrite_file)') === FALSE) {
 		$errors[] = 'plugin/theme overwrite resolution must not follow symlink overwrite files';
 	}
+}
+
+$scriptJsonPayload = array('payload' => "</script><script>alert('x' + \"y\")</script>&\r\n");
+$scriptJson = xn_json_encode_for_script($scriptJsonPayload);
+if (!is_string($scriptJson) || json_decode($scriptJson, TRUE) !== $scriptJsonPayload) {
+	$errors[] = 'script JSON encoder must emit valid JSON without changing valid payloads';
+} elseif (strpos($scriptJson, '<') !== FALSE || strpos($scriptJson, '>') !== FALSE || strpos($scriptJson, '&') !== FALSE || strpos($scriptJson, "'") !== FALSE) {
+	$errors[] = 'script JSON encoder must not leave HTML/script delimiters or apostrophes literal';
+} elseif (strpos($scriptJson, '\\u003C') === FALSE || strpos($scriptJson, '\\u0026') === FALSE || strpos($scriptJson, '\\u0027') === FALSE || strpos($scriptJson, '\\u0022') === FALSE) {
+	$errors[] = 'script JSON encoder must hex-escape HTML delimiters and both quote types';
+}
+
+$invalidScriptJson = xn_json_encode_for_script(array('payload' => "\xC3\x28"));
+$invalidScriptJsonDecoded = is_string($invalidScriptJson) ? json_decode($invalidScriptJson, TRUE) : NULL;
+if (!is_array($invalidScriptJsonDecoded) || !isset($invalidScriptJsonDecoded['payload']) || $invalidScriptJsonDecoded['payload'] !== "\xEF\xBF\xBD(") {
+	$errors[] = 'script JSON encoder must substitute invalid UTF-8 instead of emitting an empty JavaScript expression';
+}
+
+if (xn_json_encode_for_script(NAN) !== 'null' || xn_json_encode_for_script(INF) !== 'null') {
+	$errors[] = 'script JSON encoder must turn non-finite numbers into a safe JavaScript null literal';
+}
+
+$scriptJsonBundleCheck = <<<'PHP'
+define('DEBUG', 0);
+$payload = array('payload' => "</script><script>alert('x' + \"y\")</script>&\r\n");
+require $argv[1];
+$json = xn_json_encode_for_script($payload);
+if (!is_string($json) || json_decode($json, TRUE) !== $payload) exit(1);
+if (strpos($json, '<') !== FALSE || strpos($json, '>') !== FALSE || strpos($json, '&') !== FALSE || strpos($json, "'") !== FALSE) exit(1);
+if (strpos($json, '\\u003C') === FALSE || strpos($json, '\\u0026') === FALSE || strpos($json, '\\u0027') === FALSE || strpos($json, '\\u0022') === FALSE) exit(1);
+$invalidJson = xn_json_encode_for_script(array('payload' => "\xC3\x28"));
+$invalidDecoded = is_string($invalidJson) ? json_decode($invalidJson, TRUE) : NULL;
+if (!is_array($invalidDecoded) || !isset($invalidDecoded['payload']) || $invalidDecoded['payload'] !== "\xEF\xBF\xBD(") exit(1);
+if (xn_json_encode_for_script(NAN) !== 'null' || xn_json_encode_for_script(INF) !== 'null') exit(1);
+PHP;
+$scriptJsonBundleOutput = array();
+$scriptJsonBundleStatus = 1;
+$scriptJsonBundleCommand = escapeshellarg(PHP_BINARY).' -r '.escapeshellarg($scriptJsonBundleCheck).' '.escapeshellarg($root.'xiunophp/xiunophp.min.php');
+exec($scriptJsonBundleCommand, $scriptJsonBundleOutput, $scriptJsonBundleStatus);
+if ($scriptJsonBundleStatus !== 0) {
+	$errors[] = 'generated XiunoPHP bundle must preserve script JSON encoding safety';
+}
+
+$scriptTemplates = array(
+	'view/htm/footer.inc.htm' => array(
+		'var forumarr = <?php echo xn_json_encode_for_script($forumarr);?>;',
+		'var csrf_token = <?php echo xn_json_encode_for_script(csrf_token());?>;',
+		'xn.options.water_image_url = <?php echo xn_json_encode_for_script($conf[\'logo_water_url\']);?>;',
+	),
+	'admin/view/htm/footer.inc.htm' => array(
+		'var csrf_token = <?php echo xn_json_encode_for_script(csrf_token());?>;',
+	),
+	'view/htm/post.htm' => array(
+		'$location = url(\'forum-__FID__\');',
+		'var redirect_url = <?php echo xn_json_encode_for_script($location);?>;',
+		"redirect_url = redirect_url.replace('__FID__', jfid.checked());",
+		'jsubmit.button(message).delay(1000).location(redirect_url);',
+		'xn_json_encode_for_script(lang(\'uploaded_attach\'))',
+		'xn_json_encode_for_script(lang(\'delete\'))',
+	),
+	'admin/view/htm/setting_smtp.htm' => array(
+		'var smtplist = <?php echo xn_json_encode_for_script($smtplist);?>;',
+	),
+	'admin/view/htm/thread_list.htm' => array(
+		'var forumlist = <?php echo xn_json_encode_for_script($forumlist_simple);?>;',
+	),
+	'admin/view/htm/update.htm' => array(
+		'xn_json_encode_for_script($rollback_backup[\'name\'])',
+	),
+);
+
+foreach ($scriptTemplates as $path => $needles) {
+	$template = file_get_contents($root . $path);
+	if ($template === FALSE) {
+		$errors[] = 'failed to read ' . $path;
+		continue;
+	}
+	foreach ($needles as $needle) {
+		if (strpos($template, $needle) === FALSE) {
+			$errors[] = $path . ' must use script-safe JSON encoding for dynamic JavaScript values';
+			break;
+		}
+	}
+}
+
+foreach (array('view/htm', 'admin/view/htm') as $directory) {
+	$iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . $directory, FilesystemIterator::SKIP_DOTS));
+	foreach ($iterator as $file) {
+		if (!$file->isFile() || strtolower($file->getExtension()) != 'htm') continue;
+		$templateFile = $file->getPathname();
+		$template = file_get_contents($templateFile);
+		$path = str_replace(str_replace('\\', '/', $root), '', str_replace('\\', '/', $templateFile));
+		if ($template === FALSE) {
+			$errors[] = 'failed to read ' . $path;
+			continue;
+		}
+		foreach (inline_script_blocks($template) as $script) {
+			$attributes = strtolower($script[0]);
+			if (preg_match('#(?:^|\s)src\s*=#i', $attributes) || preg_match('#\btype\s*=\s*(["\'])text/plain\1#i', $attributes)) continue;
+			if (strpos($script[1], 'xn_json_encode(') !== FALSE) {
+				$errors[] = $path . ' must not use the general JSON encoder in an inline script context';
+				break;
+			}
+			if (!inline_script_outputs_are_safe($script[1])) {
+				$errors[] = $path . ' must JSON-encode strings or explicitly cast numbers in executable inline scripts';
+				break;
+			}
+		}
+	}
+}
+
+$scriptBoundaryBlocks = inline_script_blocks("<script><?php \$marker = '</script>'; echo \$unsafe; ?></script>");
+$unterminatedScriptBlocks = inline_script_blocks('<script><?= $unsafe ?>');
+if (!script_expression_is_safe('xn_json_encode_for_script($safe . $value)') || !script_expression_is_safe('intval($id)') || script_expression_is_safe('xn_json_encode_for_script($safe) . $unsafe') || script_expression_is_safe('intval($id), $unsafe') || script_expression_is_safe('xn_json_encode_for_script(print($unsafe))') || script_expression_is_safe('xn_json_encode_for_script(printf($unsafe))') || script_expression_is_safe('xn_json_encode_for_script(\printf($unsafe))') || script_expression_is_safe('xn_json_encode_for_script($callback($unsafe))') || script_expression_is_safe('xn_json_encode_for_script(($callback)($unsafe))') || script_expression_is_safe('xn_json_encode_for_script(exit($unsafe))') || script_expression_is_safe('intval(include($path))') || script_expression_is_safe('$unsafe') || !inline_script_outputs_are_safe('<?php ECHO xn_json_encode_for_script($safe); ?>') || !inline_script_outputs_are_safe('<?php echo/* comment */xn_json_encode_for_script($safe); ?>') || !inline_script_outputs_are_safe('<?php if ($ok) echo xn_json_encode_for_script($safe); ?>') || !inline_script_outputs_are_safe('<?= xn_json_encode_for_script($safe) ?>') || inline_script_outputs_are_safe('<?php ECHO $unsafe; ?>') || inline_script_outputs_are_safe('<?= $unsafe ?>') || inline_script_outputs_are_safe('<?php printf($unsafe); ?>') || inline_script_outputs_are_safe('<?php \printf($unsafe); ?>') || inline_script_outputs_are_safe('<?php include $path; ?>') || count($scriptBoundaryBlocks) != 1 || inline_script_outputs_are_safe($scriptBoundaryBlocks[0][1]) || count($unterminatedScriptBlocks) != 1 || inline_script_outputs_are_safe($unterminatedScriptBlocks[0][1])) {
+	$errors[] = 'inline script expression guard must reject output appended after a safe encoder or numeric cast';
 }
 
 if (!empty($errors)) {

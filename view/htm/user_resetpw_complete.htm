@@ -43,14 +43,14 @@ jform.on('submit', function() {
 	
 	if(!jpassword.val()) {
 		jpassword.focus();
-		$.alert('<?php echo lang('please_input_password');?>');
+		$.alert(<?php echo xn_json_encode_for_script(lang('please_input_password'));?>);
 		jsubmit.button('reset');
 		return false;
 	}
 	
 	if(jpassword.val() != jpassword2.val()) {
 		jpassword2.focus();
-		$.alert('<?php echo lang('repeat_password_incorrect');?>');
+		$.alert(<?php echo xn_json_encode_for_script(lang('repeat_password_incorrect'));?>);
 		jsubmit.button('reset');
 		return false;
 	}

@@ -57,9 +57,7 @@
 
 <script>
 
-//if(!debug) $.alert('<?php echo lang('group_edit_tips');?>', 4);
-
-var maxgid = <?php echo $maxgid;?>;
+var maxgid = <?php echo intval($maxgid);?>;
 
 var jform = $("#form");
 var jsubmit = $("#submit");

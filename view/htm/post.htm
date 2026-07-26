@@ -11,7 +11,7 @@
 		$form_doctype = 1;
 		$isfirst = 1;
 		$quotepid = 0;
-		$location = url("forum-'+jfid.checked()+'");
+		$location = url('forum-__FID__');
 		$filelist = array();
 	} elseif($route == 'post' && $action == 'update') {
 		$form_title = lang('post_update');
@@ -118,7 +118,9 @@ jform.on('submit', function() {
 	$.xpost(jform.attr('action'), postdata, function(code, message) {
 		if(code == 0) {
 			$.alert(message);
-			jsubmit.button(message).delay(1000).location('<?php echo $location;?>');
+			var redirect_url = <?php echo xn_json_encode_for_script($location);?>;
+			redirect_url = redirect_url.replace('__FID__', jfid.checked());
+			jsubmit.button(message).delay(1000).location(redirect_url);
 		} else if(xn.is_number(code)) {
 			alert(message);
 			jsubmit.button('reset');
@@ -139,7 +141,7 @@ $('#addattach').on('change', function(e) {
 	// 并发下会 服务端 session 写入会有问题，由客户端控制改为串行
 	if (!jattachparent.find('.attachlist').length) {
 		var juploaded = $('<fieldset>').addClass('fieldset');
-		$('<legend>').text(<?php echo xn_json_encode(lang('uploaded_attach'));?>).appendTo(juploaded);
+		$('<legend>').text(<?php echo xn_json_encode_for_script(lang('uploaded_attach'));?>).appendTo(juploaded);
 		$('<ul>').addClass('attachlist').appendTo(juploaded);
 		jattachparent.append(juploaded);
 	}
@@ -169,7 +171,7 @@ $('#addattach').on('change', function(e) {
 			jfile.append(document.createTextNode(' ' + orgfilename));
 			var jdelete = $('<a>').attr('href', '#').addClass('delete ms-2');
 			$('<i>').addClass('icon-remove').attr('aria-hidden', 'true').appendTo(jdelete);
-			jdelete.append(document.createTextNode(' ' + <?php echo xn_json_encode(lang('delete'));?>));
+			jdelete.append(document.createTextNode(' ' + <?php echo xn_json_encode_for_script(lang('delete'));?>));
 			jli.append(jfile, ' ', jdelete);
 			$('.attachlist').append(jli);
 			callback();
@@ -197,10 +199,10 @@ jattachparent.on('click', 'a.delete', function() {
 	return false;
 })
 
-jform.find('[name="fid"]').checked(<?php echo $fid;?>);
+jform.find('[name="fid"]').checked(<?php echo intval($fid);?>);
 
 $('li[data-active="bbs"]').addClass('active');
-$('li[data-active="fid-<?php echo $fid;?>"]').addClass('active');
+$('li[data-active="fid-<?php echo intval($fid);?>"]').addClass('active');
 
 </script>
 

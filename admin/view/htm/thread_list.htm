@@ -106,12 +106,12 @@ var joperation = $('#operation');
 var jfid = $('#fid');
 var threads = 0; // 符合的条?
 var page = 1;
-var pagesize = <?php echo $pagesize;?>;
-var totalpage = <?php echo $totalpage;?>;
+var pagesize = <?php echo intval($pagesize);?>;
+var totalpage = <?php echo intval($totalpage);?>;
 var totalpage_back = totalpage;
 var pagearr = [];
 for(var i=1; i <= totalpage; i++) pagearr.push(i);
-var forumlist = <?php echo xn_json_encode($forumlist_simple);?>;
+var forumlist = <?php echo xn_json_encode_for_script($forumlist_simple);?>;
 
 jfid.on('change', function() {
 	var fid = $(this).val();
@@ -179,7 +179,7 @@ jopsubmit.on('click', function() {
 				jthreads.html(operation_threads);
 				jprogress.width( (postdata.page / totalpage) * 100 + '%' );
 				if(postdata.page == totalpage) {
-					jsubmit.button('<?php echo lang('operator_complete');?>');
+					jsubmit.button(<?php echo xn_json_encode_for_script(lang('operator_complete'));?>);
 					jopsubmit.button('disabled');
 					joperation.show();
 				}

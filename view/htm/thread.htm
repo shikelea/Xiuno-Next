@@ -298,13 +298,13 @@ var jmessage = $('#message');
 jmessage.on('focus', function() {if(jmessage.t) { clearTimeout(jmessage.t); jmessage.t = null; } jmessage.css('height', '8rem'); });
 jmessage.on('blur', function() {jmessage.t = setTimeout(function() { jmessage.css('height', '2.5rem');}, 1000); });
 
-$('li[data-active="fid-<?php echo $fid;?>"]').addClass('active');
+$('li[data-active="fid-<?php echo intval($fid);?>"]').addClass('active');
 
 </script>
 
 <?php if($thread['closed'] && ($gid == 0 || $gid > 5)) { ?>
 <script>
-jmessage.val('<?php echo lang('thread_has_already_closed');?>').attr('readonly', 'readonly');
+jmessage.val(<?php echo xn_json_encode_for_script(lang('thread_has_already_closed'));?>).attr('readonly', 'readonly');
 </script>
 <?php } ?>
 <!--{hook thread_js.htm}-->
