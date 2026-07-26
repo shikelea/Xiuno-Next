@@ -55,6 +55,9 @@ jobs:
       - name: Smoke test HTML sanitizer URI safety
         run: php bin/check_html_sanitizer_safety.php
 
+      - name: Smoke test authenticated encryption
+        run: php bin/check_encryption_safety.php
+
       - name: Smoke test CSRF session safety
         run: php bin/check_csrf_session_safety.php
 

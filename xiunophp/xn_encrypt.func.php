@@ -36,15 +36,45 @@ function xn_safe_key() {
 
 function xn_encrypt($txt, $key = '') {
 	empty($key) AND $key = xn_key();
-	$encrypt = function_exists('xiuno_encrypt') ? xiuno_encrypt($txt, $key) : xxtea_encrypt($txt, $key);
-	return xn_urlencode(base64_encode($encrypt));
+	if(!is_string($key) || $key === '') return FALSE;
+	$txt = (string)$txt;
+	if(!function_exists('openssl_encrypt') || !function_exists('openssl_cipher_iv_length') || !function_exists('random_bytes')) return FALSE;
+	$cipher = 'aes-256-gcm';
+	$ivlen = openssl_cipher_iv_length($cipher);
+	if($ivlen <= 0) return FALSE;
+	try {
+		$iv = random_bytes($ivlen);
+	} catch(Throwable $e) {
+		return FALSE;
+	}
+	$tag = '';
+	$encrypt = openssl_encrypt($txt, $cipher, hash('sha256', $key, TRUE), OPENSSL_RAW_DATA, $iv, $tag, 'xn:v2', 16);
+	if($encrypt === FALSE || strlen($tag) !== 16) return FALSE;
+	return 'v2.'.xn_urlencode(base64_encode($iv.$tag.$encrypt));
 }
 
 function xn_decrypt($txt, $key = '') {
 	empty($key) AND $key = xn_key();
-	$encrypt = base64_decode(xn_urldecode($txt));
+	if(!is_string($key) || $key === '' || !is_string($txt) || $txt === '') return FALSE;
+	if(strncmp($txt, 'v2.', 3) === 0) return xn_decrypt_v2(substr($txt, 3), $key);
+	if(strpos($txt, '.') !== FALSE) return FALSE;
+	$encrypt = base64_decode(xn_urldecode($txt), TRUE);
+	if($encrypt === FALSE) return FALSE;
 	$ret = function_exists('xiuno_decrypt') ? xiuno_decrypt($encrypt, $key) : xxtea_decrypt($encrypt, $key);
 	return $ret;
+}
+
+function xn_decrypt_v2($txt, $key) {
+	if(!function_exists('openssl_decrypt') || !function_exists('openssl_cipher_iv_length')) return FALSE;
+	$cipher = 'aes-256-gcm';
+	$ivlen = openssl_cipher_iv_length($cipher);
+	$payload = base64_decode(xn_urldecode($txt), TRUE);
+	if($ivlen <= 0 || $payload === FALSE || strlen($payload) < $ivlen + 16) return FALSE;
+	$iv = substr($payload, 0, $ivlen);
+	$tag = substr($payload, $ivlen, 16);
+	$encrypt = substr($payload, $ivlen + 16);
+	$ret = openssl_decrypt($encrypt, $cipher, hash('sha256', $key, TRUE), OPENSSL_RAW_DATA, $iv, $tag, 'xn:v2');
+	return $ret === FALSE ? FALSE : $ret;
 }
 
 if(!function_exists('xxtea_encrypt')) {
