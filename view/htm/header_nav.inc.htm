@@ -30,7 +30,7 @@
 		<a class="navbar-brand d-lg-none" href="<?php echo url('user-login');?>"
 			aria-label="<?php echo lang('login');?>"> <i class="icon-user icon"></i></a>
 		<?php } else { ?>
-		<a class="navbar-brand d-lg-none" href="<?php echo url(" thread-create-$fid");?>" aria-label="
+		<a class="navbar-brand d-lg-none" href="<?php echo url("thread-create-$fid");?>" aria-label="
 			<?php echo lang('thread_create');?>"><i class="icon-edit icon"></i>
 		</a>
 		<?php } ?>
@@ -49,7 +49,7 @@
 				<?php foreach($forumlist_show as $_forum) { ?>
 				<!--{hook header_nav_forumlist_loop_start.htm}-->
 				<li class="nav-item" fid="<?php echo $_forum['fid'];?>" data-active="fid-<?php echo $_forum['fid'];?>">
-					<a class="nav-link" href="<?php echo url(" forum-$_forum[fid]");?>"><i
+					<a class="nav-link" href="<?php echo url("forum-$_forum[fid]");?>"><i
 							class="icon-circle-o d-md-none"></i>
 						<?php echo $_forum['name'];?>
 					</a>
