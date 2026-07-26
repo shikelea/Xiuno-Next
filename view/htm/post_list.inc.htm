@@ -8,7 +8,7 @@
 <?php if($postlist) { foreach($postlist as $_post) { ?>
 <li class="d-flex <?php echo $_post['classname'];?>" data-pid="<?php echo $_post['pid'];?>"
 	data-uid="<?php echo $_post['uid'];?>">
-	<a href="<?php echo url(" user-$_post[uid]");?>" class="me-3" tabindex="-1">
+	<a href="<?php echo url("user-$_post[uid]");?>" class="me-3" tabindex="-1">
 		<img class="avatar-3" src="<?php echo $_post['user_avatar_url'];?>" loading="lazy">
 	</a>
 	<!--{hook post_list_inc_avatar_after.htm}-->
@@ -17,7 +17,7 @@
 			<div>
 				<!--{hook post_list_inc_username_before.htm}-->
 				<span class="username">
-					<a href="<?php echo url(" user-$_post[uid]");?>" class="text-muted fw-bold">
+					<a href="<?php echo url("user-$_post[uid]");?>" class="text-muted fw-bold">
 						<?php echo $_post['username'];?>
 					</a>
 				</span>
@@ -42,7 +42,7 @@
 
 				<!--{hook post_list_inc_update_before.htm}-->
 				<?php if($allowupdate || $_post['allowupdate']) { ?>
-				<a href="<?php echo url(" post-update-$_post[pid]");?>" class="text-grey post_update me-3"><i
+				<a href="<?php echo url("post-update-$_post[pid]");?>" class="text-grey post_update me-3"><i
 						class="icon-edit" title="<?php echo lang('edit');?>"></i> <span class="d-none">
 						<?php echo lang('edit');?>
 					</span></a>
@@ -51,7 +51,7 @@
 
 				<!--{hook post_list_inc_delete_before.htm}-->
 				<?php if($allowdelete || $_post['allowdelete']) { ?>
-				<a data-href="<?php echo url(" post-delete-$_post[pid]");?>" data-confirm-text="
+				<a data-href="<?php echo url("post-delete-$_post[pid]");?>" data-confirm-text="
 					<?php echo lang('confirm_delete');?>" href="javascript:void(0);" class="text-grey post_delete
 					_confirm me-3"><i class="icon-remove" title="<?php echo lang('delete');?>"></i> <span
 						class="d-none">
@@ -77,7 +77,7 @@
 
 			<!--{hook post_list_inc_subject_before.htm}-->
 			<?php if(!empty($_post['subject'])) { ?>
-			<h6><a href="<?php echo url(" thread-$_post[tid]");?>" target="_blank">
+			<h6><a href="<?php echo url("thread-$_post[tid]");?>" target="_blank">
 					<?php echo $_post['subject'];?>
 				</a></h6>
 			<?php } ?>

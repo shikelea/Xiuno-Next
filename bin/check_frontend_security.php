@@ -505,6 +505,9 @@ foreach (array('view/htm', 'admin/view/htm') as $directory) {
 			$errors[] = 'failed to read ' . $path;
 			continue;
 		}
+		if (preg_match('#\burl\(\s*(["\'])\s#', $template)) {
+			$errors[] = $path . ' must not build url() targets with leading whitespace (breaks route matching, e.g. ?%20forum-1.htm)';
+		}
 		foreach (inline_script_blocks($template) as $script) {
 			$attributes = strtolower($script[0]);
 			if (preg_match('#(?:^|\s)src\s*=#i', $attributes) || preg_match('#\btype\s*=\s*(["\'])text/plain\1#i', $attributes)) continue;
@@ -518,6 +521,10 @@ foreach (array('view/htm', 'admin/view/htm') as $directory) {
 			}
 		}
 	}
+}
+
+if (!preg_match('#\burl\(\s*(["\'])\s#', '<a href="<?php echo url(" forum-1");?>">') || preg_match('#\burl\(\s*(["\'])\s#', '<a href="<?php echo url("forum-1");?>">')) {
+	$errors[] = 'url() leading-whitespace guard must flag url(" forum-1") and accept url("forum-1")';
 }
 
 $scriptBoundaryBlocks = inline_script_blocks("<script><?php \$marker = '</script>'; echo \$unsafe; ?></script>");
