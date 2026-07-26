@@ -565,6 +565,8 @@ img.avatar-1, img.avatar-2, img.avatar-3, img.avatar-4, img.avatar-5 {
 
 /* icon-calendar-check-o (Font Awesome 4 旧名) — 部分签到插件使用 */
 .icon-calendar-check-o:before { content: "\f274"; }
+.icon-magic:before { content: "\f0d0"; }
+.icon-check:before { content: "\f00c"; }
 
 /* Line Awesome 常见图标别名 — 仅兜底已知旧主题/签到插件用到的图标 */
 .las.la-calendar:before,

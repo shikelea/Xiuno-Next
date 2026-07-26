@@ -293,7 +293,7 @@ if($action == 'local') {
 
 	// 🔒 安全修复：插件设置页面必须验证管理员权限，防止普通用户访问后台
 	// 检查用户是否拥有后台管理权限
-	empty($group['allowadminpanel']) AND message(-1, lang('insufficient_privilege'));
+	$gid != 1 AND message(-1, lang('insufficient_privilege'));
 
 	$name = $plugins[$dir]['name'];
 
@@ -498,7 +498,7 @@ function plugin_lifecycle_message_is_success($code) {
 }
 
 function plugin_lifecycle_form_action_is_local($action) {
-	return message_compat_form_action_is_local($action);
+	return plugin_compat_form_action_is_local($action);
 }
 
 function plugin_lifecycle_form_action_route($form_action) {
@@ -564,7 +564,7 @@ function plugin_run_lifecycle($dir, $action, $snapshot = NULL, $package_snapshot
 	if(!is_file($file)) return TRUE;
 	plugin_lifecycle_guard_start($dir, $action, $snapshot, $package_snapshot, $extra_state_restore);
 	try {
-		$result = include _include($file);
+		$result = plugin_compat_include_lifecycle($file);
 		$pending_message = plugin_lifecycle_pending_message_take();
 		if($pending_message !== NULL) {
 			return plugin_lifecycle_handle_message($dir, $action, $pending_message, $snapshot, $package_snapshot, $extra_state_restore);

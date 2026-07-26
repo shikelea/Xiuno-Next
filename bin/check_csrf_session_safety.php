@@ -3,6 +3,7 @@
 $root = dirname(__DIR__) . '/';
 $session = file_get_contents($root . 'model/session.func.php');
 $misc = file_get_contents($root . 'model/misc.func.php');
+$plugin = file_get_contents($root . 'model/plugin.func.php');
 $errors = array();
 
 if($session === FALSE) {
@@ -45,18 +46,18 @@ if($session === FALSE) {
 	}
 }
 
-if($misc === FALSE) {
-	$errors[] = 'failed to read model/misc.func.php';
+if($misc === FALSE || $plugin === FALSE) {
+	$errors[] = 'failed to read model/misc.func.php or model/plugin.func.php';
 } else {
 	$injector = '';
 	$actionHelper = '';
-	if(!preg_match('#function\s+message_compat_form_action_is_local\s*\(\s*\$action\s*\)(.*?)(?=^function\s+\w|\z)#ms', $misc, $m)) {
-		$errors[] = 'CSRF fragment injector must keep a same-origin form action helper.';
+	if(!preg_match('#function\s+plugin_compat_form_action_is_local\s*\(\s*\$action\s*\)(.*?)(?=^function\s+\w|\z)#ms', $plugin, $m)) {
+		$errors[] = 'plugin compatibility layer must keep a same-origin form action helper.';
 	} else {
 		$actionHelper = $m[1];
 	}
-	if(!preg_match('#function\s+message_compat_inject_csrf_forms\s*\(\s*\$message\s*\)(.*?)(?=^function\s+\w|\z)#ms', $misc, $m)) {
-		$errors[] = 'message() must keep a compatibility injector for CSRF-protected POST forms inside HTML fragments.';
+	if(!preg_match('#function\s+plugin_compat_inject_csrf_forms\s*\(\s*\$message\s*\)(.*?)(?=^function\s+\w|\z)#ms', $plugin, $m)) {
+		$errors[] = 'plugin compatibility layer must keep a CSRF injector for legacy POST forms.';
 	} else {
 		$injector = $m[1];
 	}
@@ -64,7 +65,7 @@ if($misc === FALSE) {
 		$errors[] = 'message() must exist.';
 	} else {
 		$messageBody = $m[1];
-		$injectPos = strpos($messageBody, '$message = message_compat_inject_csrf_forms($message);');
+		$injectPos = strpos($messageBody, '$message = plugin_compat_inject_csrf_forms($message);');
 		$arrMessagePos = strpos($messageBody, '$arr[\'message\'] = $message;');
 		if($injectPos === FALSE) {
 			$errors[] = 'message() must run the CSRF form compatibility injector before output.';
@@ -90,13 +91,13 @@ PHP;
 	if($injector !== '' && strpos($injector, '<input type="hidden" name="_token" value="') === FALSE) {
 		$errors[] = 'CSRF fragment injector must add hidden _token fields to legacy POST forms.';
 	}
-	if($injector !== '' && (strpos($injector, '<input\b[^>]*\sname\s*=\s*([\\\'"]?)_token') === FALSE || strpos($injector, '_token\1(?=[\s>/])') === FALSE)) {
-		$errors[] = 'CSRF fragment injector must avoid duplicating existing _token fields without treating prefixed/suffixed names as _token.';
+	if($injector !== '' && (strpos($injector, '$body = preg_replace(') === FALSE || strpos($injector, '_token\1(?=[\s>/])') === FALSE || strpos($injector, "name=\"_token\" value=\"") === FALSE)) {
+		$errors[] = 'CSRF fragment injector must replace existing exact-name _token fields with one current session token.';
 	}
 	if($injector !== '' && strpos($injector, 'html_entity_decode(trim($action), ENT_QUOTES, \'UTF-8\')') === FALSE) {
 		$errors[] = 'CSRF fragment injector must decode form actions before external-action checks.';
 	}
-	if($injector !== '' && strpos($injector, 'message_compat_form_action_is_local($action)') === FALSE) {
+	if($injector !== '' && strpos($injector, 'plugin_compat_form_action_is_local($action)') === FALSE) {
 		$errors[] = 'CSRF fragment injector must validate decoded actions through the same-origin helper.';
 	}
 	if($actionHelper !== '' && strpos($actionHelper, 'preg_match(\'~^//~\', $action)') === FALSE) {

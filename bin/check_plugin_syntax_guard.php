@@ -46,6 +46,12 @@ file_put_contents($app.'plugin/legacy/hook/legacy.php', "<?php exit;\nreturn eac
 
 include $root.'/model/plugin.func.php';
 
+$plugin_model = file_get_contents($root.'/model/plugin.func.php');
+strpos($plugin_model, "PHP_SAPI === 'cli'") !== FALSE
+	|| fail('Plugin syntax guard must distinguish CLI from Web/FPM runtimes.');
+strpos($plugin_model, "PHP_BINDIR.DIRECTORY_SEPARATOR") !== FALSE
+	|| fail('Web/FPM syntax checks must invoke the matching PHP CLI binary from PHP_BINDIR.');
+
 $good = plugin_php_syntax_errors('good');
 empty($good) || fail('Hook fragments should be skipped and valid standalone plugin files should pass.');
 
