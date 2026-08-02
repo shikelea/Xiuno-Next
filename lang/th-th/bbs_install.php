@@ -26,6 +26,9 @@ return array(
 	'os' => 'OS',
 	'unix_like' => 'UNIX Like',
 	'php_version' => 'เวอร์ชัน PHP',
+	'php_openssl' => 'ส่วนขยาย PHP OpenSSL',
+	'enabled' => 'เปิดใช้งาน',
+	'disabled' => 'ปิดใช้งาน',
 	
 	'step_2_title' => '2. ตั้งค่าฐานข้อมูล',
 	'db_type' => 'ประเภทฐานข้อมูล',

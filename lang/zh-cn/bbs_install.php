@@ -26,6 +26,9 @@ return array(
 	'os' => '操作系统',
 	'unix_like' => '类 UNIX',
 	'php_version' => 'PHP 版本',
+	'php_openssl' => 'PHP OpenSSL 扩展',
+	'enabled' => '已启用',
+	'disabled' => '未启用',
 	
 	'step_2_title' => '二、数据库设置',
 	'db_type' => '数据库类型',

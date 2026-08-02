@@ -28,6 +28,32 @@
 
     // 合并所有 BS4 属性为单次 querySelectorAll，减少 DOM 查询次数
     var attrSelector = Object.keys(attrMap).map(function(a) { return '[' + a + ']'; }).join(',');
+    var legacyIconSelector = '[class^="icon-"],[class*=" icon-"]';
+    var modernIconClasses = ['fa', 'fas', 'far', 'fab', 'fal', 'fad', 'la', 'las', 'lar', 'lab', 'lal', 'lad'];
+
+    function convertLegacyIcon(element) {
+        if (!element || !element.classList) return;
+        for (var i = 0; i < modernIconClasses.length; i++) {
+            if (element.classList.contains(modernIconClasses[i])) return;
+        }
+
+        var classes = (element.getAttribute('class') || '').split(/\s+/);
+        var converted = false;
+        for (var ci = 0; ci < classes.length; ci++) {
+            if (!/^icon-[a-z0-9][a-z0-9-]*$/i.test(classes[ci])) continue;
+            element.classList.add('fa-' + classes[ci].slice(5));
+            converted = true;
+        }
+        if (converted) element.classList.add('fa');
+    }
+
+    function convertLegacyIcons(root) {
+        if (root.nodeType === 1 && root.matches && root.matches(legacyIconSelector)) {
+            convertLegacyIcon(root);
+        }
+        var icons = root.querySelectorAll(legacyIconSelector);
+        for (var i = 0; i < icons.length; i++) convertLegacyIcon(icons[i]);
+    }
 
     function convertAttributes(root) {
         root = root || document;
@@ -60,6 +86,8 @@
                 popovers[pi].setAttribute('data-bs-content', popovers[pi].getAttribute('data-content'));
             }
         }
+
+        convertLegacyIcons(root);
     }
 
     // 页面加载时执行一次
