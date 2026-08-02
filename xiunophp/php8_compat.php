@@ -8,6 +8,28 @@
 if (!defined('DEBUG')) return;
 
 /**
+ * Preserve PHP 7 count() behavior for legacy plugin Hook fragments.
+ * PHP 7 returned 0 for null and 1 for other non-countable values.
+ */
+if (!function_exists('xn_count_compat')) {
+    function xn_count_compat($value, $mode = COUNT_NORMAL) {
+        if (is_array($value) || $value instanceof Countable) {
+            return count($value, $mode);
+        }
+        return $value === NULL ? 0 : 1;
+    }
+}
+
+if (!function_exists('xn_php8_compat_is_ajax')) {
+    function xn_php8_compat_is_ajax() {
+        if (!empty($_SERVER['ajax'])) return TRUE;
+        $requested_with = isset($_SERVER['HTTP_X_REQUESTED_WITH']) ? strtolower(trim($_SERVER['HTTP_X_REQUESTED_WITH'])) : '';
+        if ($requested_with === 'xmlhttprequest') return TRUE;
+        return !empty($_REQUEST['ajax']);
+    }
+}
+
+/**
  * 注册全局异常处理器，捕获 PHP 8+ 的 TypeError 等异常。
  * 旧插件常见问题：
  *  - header() 传入非 string 参数 → TypeError
@@ -24,21 +46,36 @@ $_php8_compat_prev_handler = set_exception_handler(function ($e) {
         $file = $e->getFile();
         $line = $e->getLine();
 
-        // 记录日志，不中断执行
+        // Exception handlers cannot resume the failed statement. Record the
+        // terminal failure and return an explicit response instead of a 200
+        // response with an empty body.
         $logMsg = "[PHP8-Compat] TypeError caught: $msg in $file:$line";
-        xn_log($logMsg, 'php8_compat');
+        if (function_exists('xn_log')) {
+            xn_log($logMsg, 'php8_compat_error');
+        } else {
+            error_log($logMsg);
+        }
+
+        http_response_code(500);
+        if (xn_php8_compat_is_ajax()) {
+            if (!headers_sent()) header('Content-Type: application/json; charset=utf-8');
+            $response_message = 'A plugin compatibility error interrupted the request. Check the server error log before retrying.';
+            DEBUG AND $response_message .= " $msg in $file:$line";
+            $response = array('code'=>-1, 'message'=>$response_message);
+            echo function_exists('xn_json_encode') ? xn_json_encode($response) : json_encode($response);
+            exit(1);
+        }
 
         if (DEBUG) {
-            // DEBUG 模式下输出警告而非致命错误
             echo "<fieldset class=\"fieldset small notice\">"
-               . "<b>[PHP8-Compat] TypeError (degraded to warning)</b>"
+               . "<b>[PHP8-Compat] TypeError terminated the request</b>"
                . "<div>" . htmlspecialchars($msg) . "</div>"
                . "<div>File: " . htmlspecialchars($file) . ", Line: $line</div>"
                . "</fieldset>";
+        } else {
+            echo 'Internal Server Error';
         }
-
-        // 输出警告信息后脚本终止，但不会产生空白 500 页面
-        return;
+        exit(1);
     }
 
     // 非 TypeError 交给上级处理器或默认行为

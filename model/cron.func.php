@@ -19,7 +19,8 @@ function cron_run($force = 0) {
 			
 			sess_gc($conf['online_hold_time']);
 			
-			$runtime['onlines'] = max(1, online_count());
+			$runtime['onlines'] = max(0, online_count());
+			$runtime['online_member_compat_version'] = 2;
 			
 			runtime_set('cron_1_last_date', $time);
 			

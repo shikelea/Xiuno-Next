@@ -563,6 +563,17 @@ img.avatar-1, img.avatar-2, img.avatar-3, img.avatar-4, img.avatar-5 {
 
 /* ===== 旧版 icon 前缀兼容 ===== */
 
+/* 主题覆盖核心 header 时仍为 Xiuno/Font Awesome 4 的 icon-* 提供字体基类 */
+[class^="icon-"],
+[class*=" icon-"] {
+    display: inline-block;
+    font: normal normal normal 14px/1 FontAwesome;
+    font-size: inherit;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
 /* icon-calendar-check-o (Font Awesome 4 旧名) — 部分签到插件使用 */
 .icon-calendar-check-o:before { content: "\f274"; }
 .icon-magic:before { content: "\f0d0"; }

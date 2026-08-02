@@ -267,6 +267,10 @@ function sess_start() {
 	}
 	
 	$sid = session_id();
+	// Generate the CSRF token while the custom session is still writable.
+	// Themes that replace the core header receive the visible meta tag later
+	// through the output compatibility injector.
+	function_exists('csrf_token') AND csrf_token();
 	
 	//$_SESSION['uid'] = $g_session['uid'];
 	//$_SESSION['fid'] = $g_session['fid'];
@@ -295,27 +299,78 @@ function sess_regenerate_id() {
 }
 
 function online_count() {
-	return db_count('session', array('bigdata'=>array('<='=>1)));
+	global $_SERVER;
+	$condition = online_member_condition();
+	$db = isset($_SERVER['db']) ? $_SERVER['db'] : NULL;
+
+	// Count users, rather than session rows. A single browser can keep several
+	// sessions alive, while the online widget represents people.
+	if($db && method_exists($db, 'sql_find_one') && function_exists('db_sql_find_one') && function_exists('db_cond_to_sqladd') && isset($db->tablepre)) {
+		$table = $db->tablepre.'session';
+		if(preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+			$row = db_sql_find_one('SELECT COUNT(DISTINCT `uid`) AS num FROM `'.$table.'` '.db_cond_to_sqladd($condition), $db);
+			if(is_array($row) && isset($row['num'])) return intval($row['num']);
+		}
+	}
+
+	return count(online_member_unique_rows());
 }
 
 function online_find_cache() {
-	return db_find('session', array('bigdata'=>array('<='=>1)));
+	return online_member_unique_rows();
+}
+
+// Online member widgets must use the same active, authenticated-session
+// population as the runtime counter. Guest sessions and revoked tombstones
+// are implementation state, not visible members.
+function online_member_condition() {
+	return array('uid'=>array('>'=>0), 'bigdata'=>array('<='=>1));
+}
+
+function online_member_unique_rows($pagesize = 500) {
+	$rows = db_find('session', online_member_condition(), array('last_date'=>-1), 1, $pagesize);
+	if(!is_array($rows)) return array();
+
+	$unique = array();
+	foreach($rows as $row) {
+		$uid = isset($row['uid']) ? intval($row['uid']) : 0;
+		$bigdata = isset($row['bigdata']) ? intval($row['bigdata']) : 0;
+		if($uid <= 0 || $bigdata > 1 || isset($unique[$uid])) continue;
+		$unique[$uid] = $row;
+	}
+
+	return array_values($unique);
 }
 
 function online_list_cache() {
 	$onlinelist = cache_get('online_list');
 	if($onlinelist === NULL) {
-		$onlinelist = db_find('session', array('uid'=>array('>'=>0)), array('last_date'=>-1), 1, 500);
+		$onlinelist = online_member_unique_rows();
 		foreach($onlinelist as &$online) {
 			$user = user_read_cache($online['uid']);
 			$online['username'] = $user['username'];
 			$online['gid'] = $user['gid'];
-			$online['ip_fmt'] = long2ip($online['ip']);
+			$online['ip_fmt'] = long2ip((int)$online['ip']);
 			$online['last_date_fmt'] = date('Y-n-j H:i', $online['last_date']);
 		}
 		cache_set('online_list', $onlinelist, 300);
+	} elseif(is_array($onlinelist)) {
+		// De-duplicate legacy cache entries written before the compatibility
+		// layer used a person-based online population.
+		$onlinelist = online_member_unique_rows_from_cache($onlinelist);
 	}
 	return $onlinelist;
+}
+
+function online_member_unique_rows_from_cache($rows) {
+	$unique = array();
+	foreach($rows as $row) {
+		$uid = isset($row['uid']) ? intval($row['uid']) : 0;
+		$bigdata = isset($row['bigdata']) ? intval($row['bigdata']) : 0;
+		if($uid <= 0 || $bigdata > 1 || isset($unique[$uid])) continue;
+		$unique[$uid] = $row;
+	}
+	return array_values($unique);
 }
 
 ?>

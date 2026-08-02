@@ -26,6 +26,9 @@ return array(
 	'os' => '操作系統',
 	'unix_like' => '類 UNIX',
 	'php_version' => 'PHP 版本',
+	'php_openssl' => 'PHP OpenSSL 擴充',
+	'enabled' => '已啟用',
+	'disabled' => '未啟用',
 	
 	'step_2_title' => '二、數據庫設置',
 	'db_type' => '數據庫類型',

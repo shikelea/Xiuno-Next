@@ -637,6 +637,60 @@ function plugin_compile_srcfile($srcfile) {
 	return $s;
 }
 
+function plugin_compat_rewrite_php8_hook_count($source) {
+	if(!is_string($source) || stripos($source, 'count') === FALSE) return $source;
+
+	$tokens = token_get_all('<?php '.$source);
+	if(!empty($tokens) && is_array($tokens[0]) && $tokens[0][0] == T_OPEN_TAG) array_shift($tokens);
+	$blocked_previous = array(T_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION, T_NEW);
+	defined('T_NULLSAFE_OBJECT_OPERATOR') AND $blocked_previous[] = constant('T_NULLSAFE_OBJECT_OPERATOR');
+	$trivia = array(T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_OPEN_TAG, T_CLOSE_TAG);
+	$previous = NULL;
+	$expect_function_name = FALSE;
+	$output = '';
+	$token_count = count($tokens);
+
+	foreach($tokens as $index=>$token) {
+		if(is_array($token)) {
+			$id = $token[0];
+			$text = $token[1];
+			$is_trivia = in_array($id, $trivia, TRUE);
+			$is_function_name = $expect_function_name && $id == T_STRING;
+
+			if($id == T_STRING && !$is_function_name && strcasecmp($text, 'count') === 0) {
+				$next_index = $index + 1;
+				while($next_index < $token_count) {
+					$next = $tokens[$next_index];
+					if(!is_array($next) || !in_array($next[0], $trivia, TRUE)) break;
+					$next_index++;
+				}
+				$next = $next_index < $token_count ? $tokens[$next_index] : NULL;
+				if($next === '(' && !in_array($previous, $blocked_previous, TRUE)) {
+					$text = 'xn_count_compat';
+				}
+			}
+
+			$output .= $text;
+			if(!$is_trivia) {
+				if($id == T_FUNCTION) {
+					$expect_function_name = TRUE;
+				} elseif($is_function_name) {
+					$expect_function_name = FALSE;
+				}
+				$previous = $id;
+			}
+		} else {
+			$output .= $token;
+			if(trim($token) !== '') {
+				if($expect_function_name && $token == '(') $expect_function_name = FALSE;
+				$previous = $token;
+			}
+		}
+	}
+
+	return $output;
+}
+
 
 // 只返回一个权重最高的文件名
 function plugin_find_overwrite($srcfile) {
@@ -716,6 +770,7 @@ function plugin_compile_srcfile_callback($m) {
 				$t = preg_replace('#\s*exit;\s*#', "\r\n", $t);
 				*/
 			}
+			$fileext == 'php' AND $t = plugin_compat_rewrite_php8_hook_count($t);
 			$s .= $t;
 		}
 	}

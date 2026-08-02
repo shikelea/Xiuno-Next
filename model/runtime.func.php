@@ -15,12 +15,21 @@ function runtime_init() {
 		$runtime['todayusers'] = 0;
 		$runtime['todayposts'] = 0;
 		$runtime['todaythreads'] = 0;
-		$runtime['onlines'] = max(1, online_count());
+		$runtime['onlines'] = max(0, online_count());
+		$runtime['online_member_compat_version'] = 2;
 		$runtime['cron_1_last_date'] = 0;
 		$runtime['cron_2_last_date'] = 0;
 		
 		cache_set('runtime', $runtime);
 		
+	}
+	// Refresh a runtime cache written before online members were counted by
+	// unique UID. This makes the correction immediate instead of waiting for
+	// the five-minute cron interval.
+	if(isset($runtime['users']) && (!isset($runtime['online_member_compat_version']) || intval($runtime['online_member_compat_version']) < 2)) {
+		$runtime['onlines'] = max(0, online_count());
+		$runtime['online_member_compat_version'] = 2;
+		cache_set('runtime', $runtime);
 	}
 	// hook model_runtime_init_end.php
 	return $runtime;

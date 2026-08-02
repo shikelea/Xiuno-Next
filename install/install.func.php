@@ -15,6 +15,13 @@ function get_env(&$env, &$write) {
 	$env['php_version']['need'] = '8.0';
 	$env['php_version']['status'] = version_compare(PHP_VERSION , '8.0.0') >= 0;
 
+	// 认证 token 加密 (AES-256-GCM) 依赖 OpenSSL 扩展
+	$env['php_openssl']['name'] = lang('php_openssl');
+	$env['php_openssl']['must'] = TRUE;
+	$env['php_openssl']['current'] = extension_loaded('openssl') ? lang('enabled') : lang('disabled');
+	$env['php_openssl']['need'] = lang('enabled');
+	$env['php_openssl']['status'] = extension_loaded('openssl');
+
 	// 目录可写（使用绝对路径，避免 CWD 不一致导致检测失败）
 	$writedir = array(
 		'../conf/'   => APP_PATH . 'conf/',

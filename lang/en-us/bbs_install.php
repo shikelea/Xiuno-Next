@@ -26,6 +26,9 @@ return array(
 	'os' => 'OS',
 	'unix_like' => 'UNIX Like',
 	'php_version' => 'PHP Version',
+	'php_openssl' => 'PHP OpenSSL Extension',
+	'enabled' => 'Enabled',
+	'disabled' => 'Disabled',
 	
 	'step_2_title' => '2. Database settings',
 	'db_type' => 'Database type',

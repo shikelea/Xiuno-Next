@@ -12,11 +12,15 @@ $css = file_get_contents($root . 'view/css/bs4-compat.css');
 $css_min = file_get_contents($root . 'view/css/bs4-compat.min.css');
 $js = file_get_contents($root . 'view/js/bs4-compat.js');
 $js_min = file_get_contents($root . 'view/js/bs4-compat.min.js');
+$font_awesome = file_get_contents($root . 'view/css/font-awesome.min.css');
+$index = file_get_contents($root . 'index.php');
 
 if($css === FALSE) $errors[] = 'failed to read view/css/bs4-compat.css';
 if($css_min === FALSE) $errors[] = 'failed to read view/css/bs4-compat.min.css';
 if($js === FALSE) $errors[] = 'failed to read view/js/bs4-compat.js';
 if($js_min === FALSE) $errors[] = 'failed to read view/js/bs4-compat.min.js';
+if($font_awesome === FALSE) $errors[] = 'failed to read view/css/font-awesome.min.css';
+if($index === FALSE) $errors[] = 'failed to read index.php';
 
 if(empty($errors)) {
 	$css_selectors = array(
@@ -79,6 +83,15 @@ if(empty($errors)) {
 		require_contains($css_min, $selector, "bs4-compat.min.css must include $selector.");
 	}
 
+	if(!preg_match('/\[class\^="icon-"\]\s*,\s*\[class\*=" icon-"\]\s*\{([^}]+)\}/', $css, $legacy_icon_rule)) {
+		$errors[] = 'bs4-compat.css must define the generic legacy icon base rule.';
+	} else {
+		require_contains($legacy_icon_rule[1], 'FontAwesome', 'legacy icon base rule must select the FontAwesome font');
+		require_contains($legacy_icon_rule[1], 'font-size: inherit', 'legacy icon base rule must preserve inherited icon sizing');
+	}
+	require_contains($font_awesome, "font-family:'FontAwesome'", 'Font Awesome asset must embed the FontAwesome font face');
+	require_contains($font_awesome, '.fa-check:before{content:"\\f00c"}', 'Font Awesome asset must contain the check glyph mapping');
+
 	foreach(array(
 		"'data-toggle':    'data-bs-toggle'",
 		"'data-dismiss':   'data-bs-dismiss'",
@@ -129,6 +142,13 @@ if(empty($errors)) {
 		"ajaxMethod === 'POST' && isSameOrigin"=>'same-origin jQuery CSRF boundary',
 		'window._csrf_ajax_setup_jquery !== jQuery'=>'CSRF rebind after legacy jQuery replacement',
 		"method === 'POST' && isSameOrigin(input)"=>'same-origin fetch CSRF boundary',
+		'function convertLegacyIcons(root)'=>'legacy icon DOM bridge',
+		"var modernIconClasses = ['fa', 'fas', 'far', 'fab', 'fal', 'fad', 'la', 'las', 'lar', 'lab', 'lal', 'lad'];"=>'modern icon compatibility boundary',
+		'if (element.classList.contains(modernIconClasses[i])) return;'=>'modern icon classes must not be rewritten',
+		"element.classList.add('fa-' + classes[ci].slice(5));"=>'legacy icon name bridge',
+		"if (converted) element.classList.add('fa');"=>'legacy Font Awesome base class bridge',
+		'convertLegacyIcons(root);'=>'legacy icon bridge invocation',
+		'convertAttributes(n);'=>'dynamic legacy icon observer coverage',
 	) as $needle=>$label) {
 		require_contains($js, $needle, "bs4-compat.js must keep $label.");
 	}
@@ -145,8 +165,49 @@ if(empty($errors)) {
 		'function isSafePluginHref',
 		"setAttribute('data-method', 'post')",
 		'_csrf_ajax_setup_jquery',
+		'function convertLegacyIcons(root)',
+		"classList.add('fa-' + classes[ci].slice(5))",
+		"classList.add('fa')",
 	) as $needle) {
 		require_contains($js_min, $needle, "bs4-compat.min.js must include $needle.");
+	}
+
+	$injector_start = strpos($index, 'function xn_compat_inject_output($html)');
+	$injector_end = $injector_start === FALSE ? FALSE : strpos($index, "ob_start('xn_compat_inject_output');", $injector_start);
+	if($injector_start === FALSE || $injector_end === FALSE) {
+		$errors[] = 'index.php must expose the compatibility output injector for behavioral checks.';
+	} else {
+		$injector_source = substr($index, $injector_start, $injector_end - $injector_start);
+		eval($injector_source);
+		if(!function_exists('csrf_token')) {
+			function csrf_token() { return 'compat-check-token'; }
+		}
+
+		$_SERVER['conf'] = array('view_url'=>'view/', 'static_version'=>'?compat-check');
+		$_SERVER['SCRIPT_NAME'] = '/index.php';
+		$theme_html = '<!doctype html><html><head><link rel="stylesheet" href="plugin/theme/line-awesome.min.css"></head><body><i class="icon-check"></i></body></html>';
+		$theme_output = xn_compat_inject_output($theme_html);
+		require_contains($theme_output, 'href="view/css/font-awesome.min.css?compat-check"', 'theme output must inject Font Awesome when a replacement header omits it');
+		require_contains($theme_output, 'href="view/css/bs4-compat.css?compat-check"', 'theme output must inject the compatibility stylesheet');
+		require_contains($theme_output, 'src="view/js/bs4-compat.js?compat-check"', 'theme output must inject the compatibility script');
+		if(strpos($theme_output, 'font-awesome.min.css') > strpos($theme_output, 'bs4-compat.css')) {
+			$errors[] = 'Font Awesome must load before the compatibility stylesheet that defines legacy icon aliases.';
+		}
+
+		$existing_font_html = '<html><head><link rel="stylesheet" href="view/css/font-awesome.min.css?existing"></head><body></body></html>';
+		$existing_font_output = xn_compat_inject_output($existing_font_html);
+		if(substr_count($existing_font_output, 'font-awesome.min.css') !== 1) {
+			$errors[] = 'compatibility output injector must not duplicate an existing Font Awesome asset.';
+		}
+
+		$_SERVER['SCRIPT_NAME'] = '/admin/index.php';
+		$admin_output = xn_compat_inject_output('<html><head></head><body></body></html>');
+		require_contains($admin_output, 'href="../view/css/font-awesome.min.css?compat-check"', 'admin output must inject Font Awesome from the correct relative path');
+
+		$json = '{"code":0,"message":"ok"}';
+		if(xn_compat_inject_output($json) !== $json) {
+			$errors[] = 'compatibility output injector must leave non-HTML responses unchanged.';
+		}
 	}
 }
 

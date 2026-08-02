@@ -26,6 +26,9 @@ return array(
 	'os' => 'OS',
 	'unix_like' => 'UNIX',
 	'php_version' => 'Версия PHP',
+	'php_openssl' => 'Расширение PHP OpenSSL',
+	'enabled' => 'Включено',
+	'disabled' => 'Отключено',
 	
 	'step_2_title' => '2. База данных',
 	'db_type' => 'Тип',

@@ -77,7 +77,7 @@ $_SERVER['conf'] = $conf;
 
 // 通用兼容层注入器：通过输出缓冲自动注入兼容资源和 CSRF token
 // 无论主题是否覆盖了 header/footer 模板，兼容层和 CSRF 保护始终生效
-ob_start(function($html) {
+function xn_compat_inject_output($html) {
 	// Only process HTML pages (skip JSON/API responses).
 	if (stripos($html, '</head>') === false) return $html;
 
@@ -107,7 +107,16 @@ ob_start(function($html) {
 		$head_inject .= '<meta name="csrf-token" content="' . htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') . '">' . "\n";
 	}
 
-	// 2) bs4-compat.css
+	// 2) Font Awesome 4 — legacy icon-* plugins still rely on its glyphs.
+	$has_font_awesome = stripos($html, 'font-awesome.min.css') !== false;
+	if ($is_admin_request && $has_font_awesome && stripos($html, '../view/css/font-awesome') === false && stripos($html, '/view/css/font-awesome') === false) {
+		$has_font_awesome = false;
+	}
+	if (!$has_font_awesome) {
+		$head_inject .= '<link rel="stylesheet" href="' . $view_url . 'css/font-awesome.min.css' . $sv . '">' . "\n";
+	}
+
+	// 3) bs4-compat.css
 	$has_bs4_css = stripos($html, 'bs4-compat.css') !== false;
 	if ($is_admin_request && $has_bs4_css && stripos($html, '../view/css/bs4-compat') === false && stripos($html, '/view/css/bs4-compat') === false) {
 		$has_bs4_css = false;
@@ -120,7 +129,7 @@ ob_start(function($html) {
 		$html = preg_replace('~</head>~i', $head_inject . '</head>', $html, 1);
 	}
 
-	// 3) bs4-compat.js — 包含完整 CSRF 初始化 + 兼容层，无需额外内嵌脚本
+	// 4) bs4-compat.js — 包含完整 CSRF 初始化 + 兼容层，无需额外内嵌脚本
 	$has_bs4_js = stripos($html, 'bs4-compat.js') !== false;
 	if ($is_admin_request && $has_bs4_js && stripos($html, '../view/js/bs4-compat') === false && stripos($html, '/view/js/bs4-compat') === false) {
 		$has_bs4_js = false;
@@ -140,7 +149,8 @@ ob_start(function($html) {
 	}
 
 	return $html;
-});
+}
+ob_start('xn_compat_inject_output');
 if (DEBUG > 1) {
 	include XIUNOPHP_PATH . 'xiunophp.php';
 }
