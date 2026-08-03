@@ -166,6 +166,19 @@ function plugin_compat_inject_csrf_forms($message) {
 	}, $message);
 }
 
+// Older floor-reply hooks read the legacy `message` field and terminate the
+// request before newer hooks can handle `post_reply_content`. Keep the two
+// request contracts compatible when both plugins are enabled.
+function plugin_compat_skip_legacy_rfloor_hook($plugin_dir, $action = '') {
+	if($plugin_dir !== 'sl_repeat_follow' || $action !== 'rfloor') return FALSE;
+	if(!isset($_REQUEST) || !is_array($_REQUEST)) return FALSE;
+	$new_contract_fields = array('action', 'return_html', 'post_reply_content', 'to_reply_id');
+	foreach($new_contract_fields as $field) {
+		if(array_key_exists($field, $_REQUEST)) return TRUE;
+	}
+	return FALSE;
+}
+
 function plugin_init() {
 	global $plugin_srcfiles, $plugin_paths, $plugins, $official_plugins;
 	/*$plugin_srcfiles = array_merge(
@@ -771,6 +784,15 @@ function plugin_compile_srcfile_callback($m) {
 				*/
 			}
 			$fileext == 'php' AND $t = plugin_compat_rewrite_php8_hook_count($t);
+			if($fileext == 'php' && $hookname === 'post_start.php'
+				&& strpos(str_replace('\\', '/', $path), '/plugin/sl_repeat_follow/hook/') !== FALSE
+				&& strpos($t, "if(\$action == 'rfloor') {") !== FALSE) {
+				$t = str_replace(
+					"if(\$action == 'rfloor') {",
+					"if(\$action == 'rfloor' && !plugin_compat_skip_legacy_rfloor_hook('sl_repeat_follow', \$action)) {",
+					$t
+				);
+			}
 			$s .= $t;
 		}
 	}
