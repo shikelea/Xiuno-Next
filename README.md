@@ -4,6 +4,10 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Bootstrap](https://img.shields.io/badge/bootstrap-5.0-purple)
 
+> **当前状态：可用性仍不佳，不推荐直接用于生产环境。** 项目正在持续开发与兼容性验证，请先在测试环境部署，做好备份并自行评估风险。
+>
+> **欢迎参与贡献：** 欢迎提交 Issue、复现步骤、测试结果、文档改进和 Pull Request，一起完善 Xiuno Next。
+
 > **"不破不立，在保持轻量的基础上拥抱未来。"**
 
 ## 🚀 项目介绍
