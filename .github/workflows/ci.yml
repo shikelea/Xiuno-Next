@@ -88,6 +88,9 @@ jobs:
       - name: Smoke test online member compatibility
         run: php bin/check_online_members_compat.php
 
+      - name: Smoke test plugin icon fallback
+        run: php bin/check_plugin_icon_fallback.php
+
       - name: Smoke test admin config safety
         run: php bin/check_admin_config_safety.php
 

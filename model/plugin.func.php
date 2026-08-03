@@ -818,6 +818,14 @@ function plugin_official_read($dir) {
 
 // -------------------> 本地插件列表缓存到本地。
 // 安装，卸载，禁用，更新
+function plugin_compat_icon_url($dir, $pluginid = 0) {
+	$pluginid = intval($pluginid);
+	if($pluginid > 0) return PLUGIN_OFFICIAL_URL.'upload/plugin/'.$pluginid.'/icon.png';
+
+	$icon_file = APP_PATH.'plugin/'.$dir.'/icon.png';
+	return is_file($icon_file) && is_readable($icon_file) ? '../plugin/'.$dir.'/icon.png' : '../view/img/logo.png';
+}
+
 function plugin_read_by_dir($dir, $local_first = TRUE) {
 	global $plugins;
 
@@ -884,7 +892,7 @@ function plugin_read_by_dir($dir, $local_first = TRUE) {
 		$plugin = $official + $local;
 	}
 	// 额外的判断
-	$plugin['icon_url'] = $plugin['pluginid'] ? PLUGIN_OFFICIAL_URL."upload/plugin/$plugin[pluginid]/icon.png" : "../plugin/$dir/icon.png";
+	$plugin['icon_url'] = plugin_compat_icon_url($dir, $plugin['pluginid']);
 	$plugin['setting_url'] = $plugin['installed'] && is_file("../plugin/$dir/setting.php") ? "plugin-setting-$dir.htm" : "";
 	$plugin['downloaded'] = isset($plugins[$dir]);
 	$plugin['stars_fmt'] = $plugin['pluginid'] ? str_repeat('<span class="icon star"></span>', $plugin['stars']) : '';
