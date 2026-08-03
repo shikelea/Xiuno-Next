@@ -31,8 +31,8 @@
 
 1. **克隆项目**
    ```bash
-   git clone https://github.com/your-username/xiuno-next.git
-   cd xiuno-next
+   git clone https://github.com/shikelea/Xiuno-Next.git
+   cd Xiuno-Next
    ```
 
 2. **启动服务**
