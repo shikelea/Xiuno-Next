@@ -175,6 +175,10 @@ include $root.'/model/plugin.func.php';
 
 plugin_init();
 
+$message_source = file_get_contents($root.'/model/misc.func.php');
+strpos($message_source, 'global $ajax, $header, $conf, $db;') !== FALSE
+	|| fail('message() must expose the shared database object to legacy Hook fragments.');
+
 xn_count_compat(NULL) === 0 || fail('PHP 7 count compatibility must return zero for null.');
 xn_count_compat(FALSE) === 1 || fail('PHP 7 count compatibility must return one for non-null scalar values.');
 xn_count_compat(array(1, 2)) === 2 || fail('PHP 7 count compatibility must preserve array counts.');
