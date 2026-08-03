@@ -179,6 +179,29 @@ $message_source = file_get_contents($root.'/model/misc.func.php');
 strpos($message_source, 'global $ajax, $header, $conf, $db;') !== FALSE
 	|| fail('message() must expose the shared database object to legacy Hook fragments.');
 
+$plugin_source = file_get_contents($root.'/model/plugin.func.php');
+strpos($plugin_source, 'function plugin_compat_skip_legacy_rfloor_hook(') !== FALSE
+	|| fail('Plugin compatibility layer must expose the legacy floor-reply dispatch guard.');
+strpos($plugin_source, "plugin_compat_skip_legacy_rfloor_hook('sl_repeat_follow'") !== FALSE
+	|| fail('Hook compiler must inject the legacy floor-reply dispatch guard.');
+
+$_POST = array('post_reply_content'=>'new-reply');
+$_REQUEST = $_POST;
+plugin_compat_skip_legacy_rfloor_hook('sl_repeat_follow', 'rfloor') === TRUE
+	|| fail('Legacy floor-reply hook must yield to the new post_reply_content contract.');
+$_POST = array('message'=>'legacy-reply');
+$_REQUEST = $_POST;
+plugin_compat_skip_legacy_rfloor_hook('sl_repeat_follow', 'rfloor') === FALSE
+	|| fail('Legacy floor-reply requests using message must keep their existing path.');
+$_POST = array('action'=>'delfloor', 'where'=>1);
+$_REQUEST = $_POST;
+plugin_compat_skip_legacy_rfloor_hook('sl_repeat_follow', 'rfloor') === TRUE
+	|| fail('Legacy floor-reply hook must yield to new list and delete actions.');
+$_POST = array('post_reply_content'=>'new-reply');
+$_REQUEST = $_POST;
+plugin_compat_skip_legacy_rfloor_hook('sl_repeat_follow', 'create') === FALSE
+	|| fail('Floor-reply dispatch guard must not affect other route actions.');
+
 xn_count_compat(NULL) === 0 || fail('PHP 7 count compatibility must return zero for null.');
 xn_count_compat(FALSE) === 1 || fail('PHP 7 count compatibility must return one for non-null scalar values.');
 xn_count_compat(array(1, 2)) === 2 || fail('PHP 7 count compatibility must preserve array counts.');
