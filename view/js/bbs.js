@@ -240,6 +240,16 @@ jmobile_collapsing_bavbar.on('touchmove', function(e) {
 
 
 
+// 主题回复数只允许更新明确的帖子计数节点，避免第三方组件复用 .posts 时被全局误减。
+// data 属性是当前核心契约；.card-postlist 范围是给尚未补属性的旧主题保留的兼容回退。
+function xn_thread_post_count_update(delta) {
+	var jposts = $('[data-xn-thread-post-count]').first();
+	if(!jposts.length) jposts = $('.card-postlist .posts').first();
+	if(!jposts.length) return;
+	var next = Math.max(0, xn.intval(jposts.text()) + xn.intval(delta));
+	jposts.text(next);
+}
+
 // 删除帖子 / Delete post
 $('body').on('click', '.post_delete', function() {
 	var jthis = $(this);
@@ -250,13 +260,13 @@ $('body').on('click', '.post_delete', function() {
 			var isfirst = jthis.attr('isfirst');
 			if(code == 0) {
 				if(isfirst == '1') {
-					$.location('<?php echo url("forum-$fid");?>');
+					var forumId = typeof fid === 'undefined' ? 0 : xn.intval(fid);
+					$.location(forumId > 0 ? xn.url('forum-' + forumId) : './');
 				} else {
 					// 删掉楼层
 					jthis.parents('.post').remove();
 					// 回复数 -1
-					var jposts = $('.posts');
-					jposts.html(xn.intval(jposts.html()) - 1);
+					xn_thread_post_count_update(-1);
 				}
 			} else {
 				$.alert(message);

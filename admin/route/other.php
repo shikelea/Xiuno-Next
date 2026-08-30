@@ -27,7 +27,9 @@ if($action == 'cache') {
 		$clear_cache AND cache_truncate();
 		$clear_cache AND $runtime = NULL; // 清空
 		
-		$clear_tmp AND rmdir_recusive($conf['tmp_path'], 1);
+		if($clear_tmp && !runtime_cache_clear_regenerable()) {
+			message(-1, 'Some runtime caches are currently in use or could not be cleared. Please retry after active tasks finish.');
+		}
 	
 		// hook admin_other_cache_post_end.php
 		

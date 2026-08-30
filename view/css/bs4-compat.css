@@ -66,8 +66,8 @@
 }
 .custom-control-input:checked ~ .custom-control-label::before {
     color: #fff;
-    border-color: #0d6efd;
-    background-color: #0d6efd;
+    border-color: var(--bs-primary, #0d6efd);
+    background-color: var(--bs-primary, #0d6efd);
 }
 .custom-control-label {
     position: relative;
@@ -98,58 +98,50 @@
     content: "";
     background: 50%/50% 50% no-repeat;
 }
+.custom-radio .custom-control-label::before {
+    border-radius: 50%;
+}
+.custom-radio .custom-control-input:checked ~ .custom-control-label::after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+}
+.custom-control-input:focus ~ .custom-control-label::before {
+    box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb, 13, 110, 253), .25);
+}
+.custom-control-input:focus:not(:checked) ~ .custom-control-label::before {
+    border-color: var(--bs-primary-border-subtle, #86b7fe);
+}
+.custom-control-input:disabled ~ .custom-control-label,
+.custom-control-input[disabled] ~ .custom-control-label {
+    color: var(--bs-secondary-color, #6c757d);
+    cursor: default;
+}
+.custom-control-input:disabled ~ .custom-control-label::before,
+.custom-control-input[disabled] ~ .custom-control-label::before {
+    background-color: var(--bs-secondary-bg, #e9ecef);
+}
+.custom-switch {
+    padding-left: 2.25rem;
+}
 .custom-switch .custom-control-label::before {
+    left: -2.25rem;
     border-radius: .5rem;
     width: 1.75rem;
 }
+.custom-switch .custom-control-label::after {
+    top: calc(.25rem + 2px);
+    left: calc(-2.25rem + 2px);
+    width: calc(1rem - 4px);
+    height: calc(1rem - 4px);
+    background-color: #adb5bd;
+    border-radius: .5rem;
+    transition: transform .15s ease-in-out, background-color .15s ease-in-out;
+}
+.custom-switch .custom-control-input:checked ~ .custom-control-label::after {
+    background-color: #fff;
+    transform: translateX(.75rem);
+}
 .custom-checkbox .custom-control-input:checked ~ .custom-control-label::after {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
-}
-
-/* custom-file → form-control */
-.custom-file {
-    position: relative;
-    display: inline-block;
-    width: 100%;
-    height: calc(1.5em + .75rem + 2px);
-    margin-bottom: 0;
-}
-.custom-file-input {
-    position: relative;
-    z-index: 2;
-    width: 100%;
-    height: calc(1.5em + .75rem + 2px);
-    margin: 0;
-    opacity: 0;
-}
-.custom-file-label {
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
-    z-index: 1;
-    height: calc(1.5em + .75rem + 2px);
-    padding: .375rem .75rem;
-    overflow: hidden;
-    font-weight: 400;
-    line-height: 1.5;
-    color: #495057;
-    background-color: #fff;
-    border: 1px solid #ced4da;
-    border-radius: .25rem;
-}
-
-/* form-row → row with gutter */
-.form-row {
-    display: flex;
-    flex-wrap: wrap;
-    margin-right: -5px;
-    margin-left: -5px;
-}
-.form-row > .col,
-.form-row > [class*="col-"] {
-    padding-right: 5px;
-    padding-left: 5px;
 }
 
 /* ===== Badge ===== */
@@ -230,6 +222,17 @@
     white-space: nowrap;
     border: 0;
 }
+.sr-only-focusable:focus,
+.sr-only-focusable:active {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+}
 
 /* ===== 按钮 ===== */
 
@@ -302,28 +305,32 @@
 
 /* ===== Card ===== */
 
-/* card-deck / card-columns (BS5 已移除) */
-.card-deck {
-    display: flex;
-    flex-flow: row wrap;
-    margin-right: -15px;
-    margin-left: -15px;
-}
 .card-deck .card {
-    flex: 1 0 0%;
-    margin-right: 15px;
-    margin-bottom: 0;
-    margin-left: 15px;
+    margin-bottom: 15px;
 }
-.card-columns {
-    column-count: 3;
-    column-gap: 1.25rem;
-    orphans: 1;
-    widows: 1;
-}
-.card-columns .card {
-    display: inline-block;
-    width: 100%;
+@media (min-width: 576px) {
+    .card-deck {
+        display: flex;
+        flex-flow: row wrap;
+        margin-right: -15px;
+        margin-left: -15px;
+    }
+    .card-deck .card {
+        flex: 1 0 0%;
+        margin-right: 15px;
+        margin-bottom: 0;
+        margin-left: 15px;
+    }
+    .card-columns {
+        column-count: 3;
+        column-gap: 1.25rem;
+        orphans: 1;
+        widows: 1;
+    }
+    .card-columns .card {
+        display: inline-block;
+        width: 100%;
+    }
 }
 
 /* ===== 响应式工具类 ===== */
@@ -398,16 +405,7 @@ img.avatar-1, img.avatar-2, img.avatar-3, img.avatar-4, img.avatar-5 {
     vertical-align: middle;
 }
 
-/* ===== 缺失资源降级 ===== */
-
-/*
- * 当旧插件通过 inline style 引用了不存在的背景图时，
- * JS 兼容层会自动添加 .bs4c-bg-fallback 类，此处定义降级样式。
- * 同时提供 .bs4c-img-fallback 给失败的 <img> 元素。
- */
-.bs4c-bg-fallback {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-}
+/* 保留破图的原始占位与 alt 文本，仅添加中性诊断样式，不隐藏或替换资源。 */
 .bs4c-img-fallback {
     display: inline-block;
     background: #e9ecef;
@@ -499,6 +497,9 @@ img.avatar-1, img.avatar-2, img.avatar-3, img.avatar-4, img.avatar-5 {
     border-left: inherit;
     border-radius: 0 .25rem .25rem 0;
 }
+.custom-file-label[data-browse]::after {
+    content: attr(data-browse);
+}
 
 /* ===== form-row (BS4→BS5) ===== */
 
@@ -578,6 +579,8 @@ img.avatar-1, img.avatar-2, img.avatar-3, img.avatar-4, img.avatar-5 {
 .icon-calendar-check-o:before { content: "\f274"; }
 .icon-magic:before { content: "\f0d0"; }
 .icon-check:before { content: "\f00c"; }
+/* icon-ok — 核心 message.htm 成功提示图标（FA4 无 fa-ok，必须显式映射到对勾字形） */
+.icon-ok:before { content: "\f00c"; }
 
 /* Line Awesome 常见图标别名 — 仅兜底已知旧主题/签到插件用到的图标 */
 .las.la-calendar:before,
@@ -636,93 +639,6 @@ img.avatar-1, img.avatar-2, img.avatar-3, img.avatar-4, img.avatar-5 {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }
-
-/* ===== mt/mb/mx/my/m/p 全系列间距兼容（BS5 保留这些类名，补充以防主题覆盖）===== */
-
-/* margin-top */
-.mt-0 { margin-top: 0 !important; }
-.mt-1 { margin-top: 0.25rem !important; }
-.mt-2 { margin-top: 0.5rem !important; }
-.mt-3 { margin-top: 1rem !important; }
-.mt-4 { margin-top: 1.5rem !important; }
-.mt-5 { margin-top: 3rem !important; }
-.mt-auto { margin-top: auto !important; }
-
-/* margin-bottom */
-.mb-0 { margin-bottom: 0 !important; }
-.mb-1 { margin-bottom: 0.25rem !important; }
-.mb-2 { margin-bottom: 0.5rem !important; }
-.mb-3 { margin-bottom: 1rem !important; }
-.mb-4 { margin-bottom: 1.5rem !important; }
-.mb-5 { margin-bottom: 3rem !important; }
-.mb-auto { margin-bottom: auto !important; }
-
-/* margin x-axis (left+right) */
-.mx-0 { margin-left: 0 !important; margin-right: 0 !important; }
-.mx-1 { margin-left: 0.25rem !important; margin-right: 0.25rem !important; }
-.mx-2 { margin-left: 0.5rem !important; margin-right: 0.5rem !important; }
-.mx-3 { margin-left: 1rem !important; margin-right: 1rem !important; }
-.mx-4 { margin-left: 1.5rem !important; margin-right: 1.5rem !important; }
-.mx-5 { margin-left: 3rem !important; margin-right: 3rem !important; }
-.mx-auto { margin-left: auto !important; margin-right: auto !important; }
-
-/* margin y-axis (top+bottom) */
-.my-0 { margin-top: 0 !important; margin-bottom: 0 !important; }
-.my-1 { margin-top: 0.25rem !important; margin-bottom: 0.25rem !important; }
-.my-2 { margin-top: 0.5rem !important; margin-bottom: 0.5rem !important; }
-.my-3 { margin-top: 1rem !important; margin-bottom: 1rem !important; }
-.my-4 { margin-top: 1.5rem !important; margin-bottom: 1.5rem !important; }
-.my-5 { margin-top: 3rem !important; margin-bottom: 3rem !important; }
-.my-auto { margin-top: auto !important; margin-bottom: auto !important; }
-
-/* margin all */
-.m-0 { margin: 0 !important; }
-.m-1 { margin: 0.25rem !important; }
-.m-2 { margin: 0.5rem !important; }
-.m-3 { margin: 1rem !important; }
-.m-4 { margin: 1.5rem !important; }
-.m-5 { margin: 3rem !important; }
-.m-auto { margin: auto !important; }
-
-/* padding-top */
-.pt-0 { padding-top: 0 !important; }
-.pt-1 { padding-top: 0.25rem !important; }
-.pt-2 { padding-top: 0.5rem !important; }
-.pt-3 { padding-top: 1rem !important; }
-.pt-4 { padding-top: 1.5rem !important; }
-.pt-5 { padding-top: 3rem !important; }
-
-/* padding-bottom */
-.pb-0 { padding-bottom: 0 !important; }
-.pb-1 { padding-bottom: 0.25rem !important; }
-.pb-2 { padding-bottom: 0.5rem !important; }
-.pb-3 { padding-bottom: 1rem !important; }
-.pb-4 { padding-bottom: 1.5rem !important; }
-.pb-5 { padding-bottom: 3rem !important; }
-
-/* padding x-axis */
-.px-0 { padding-left: 0 !important; padding-right: 0 !important; }
-.px-1 { padding-left: 0.25rem !important; padding-right: 0.25rem !important; }
-.px-2 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
-.px-3 { padding-left: 1rem !important; padding-right: 1rem !important; }
-.px-4 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
-.px-5 { padding-left: 3rem !important; padding-right: 3rem !important; }
-
-/* padding y-axis */
-.py-0 { padding-top: 0 !important; padding-bottom: 0 !important; }
-.py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
-.py-2 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
-.py-3 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
-.py-4 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
-.py-5 { padding-top: 3rem !important; padding-bottom: 3rem !important; }
-
-/* padding all */
-.p-0 { padding: 0 !important; }
-.p-1 { padding: 0.25rem !important; }
-.p-2 { padding: 0.5rem !important; }
-.p-3 { padding: 1rem !important; }
-.p-4 { padding: 1.5rem !important; }
-.p-5 { padding: 3rem !important; }
 
 /* ===== btn-group-toggle (BS4) → BS5 手动实现 ===== */
 /* BS5 移除了 data-toggle="buttons" 的自动 active 切换，用 CSS 模拟基础视觉效果 */

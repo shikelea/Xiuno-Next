@@ -24,17 +24,18 @@ class MakePluginCommand extends Command
         $name = (string) $input->getArgument('name');
         
         // 验证插件名称
-        if (!preg_match('/^\w{1,32}$/', $name)) {
-            $io->error('插件名称只能包含字母、数字和下划线。');
-            return Command::FAILURE;
-        }
-
-        // 确保 plugin 目录存在
         $projectRoot = realpath(dirname(__DIR__, 3));
         if ($projectRoot === false) {
             $io->error('Unable to locate project root.');
             return Command::FAILURE;
         }
+        require_once $projectRoot . '/xiunophp/plugin_identifier.func.php';
+        if (!xn_plugin_dir_is_valid($name)) {
+            $io->error('插件名称必须为 1 至 64 位 ASCII 字母、数字、下划线或连字符，且不能以连字符开头。');
+            return Command::FAILURE;
+        }
+
+        // 确保 plugin 目录存在
         $pluginRoot = $projectRoot . '/plugin';
 
         if (!is_dir($pluginRoot)) {

@@ -8,6 +8,9 @@
 					<i class="icon-<?php echo $code == 0 ? 'ok' : 'warning-sign'; ?>" aria-hidden="true"></i> 
 					<?php echo $message;?>
 				</h4>
+				<?php if(intval($code) !== 0 && function_exists('xn_request_id_support_html') && xn_request_id_support_html() !== '') { ?>
+				<p class="text-muted text-center small mt-3 mb-0"><?php echo xn_request_id_support_html();?></p>
+				<?php } ?>
 			</div>
 		</div>
 	</div>

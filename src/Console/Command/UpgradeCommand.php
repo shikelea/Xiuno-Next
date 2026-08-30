@@ -54,13 +54,38 @@ class UpgradeCommand extends Command
 
         $this->bootstrap($appPath);
 
+        $capability = migration_capability();
+        if (empty($capability['ok'])) {
+            $io->error($capability['error']);
+            return Command::FAILURE;
+        }
+
+        $confFingerprint = hash_file('sha256', $confFile);
+        if (!is_string($confFingerprint) || $confFingerprint === '') {
+            $io->error('无法读取 conf/conf.php 以建立升级预检快照。');
+            return Command::FAILURE;
+        }
+
         $conf = $GLOBALS['conf'];
         $currentVersion = $conf['version'] ?? 'unknown';
         $io->text("当前版本: $currentVersion");
         $io->text("目标版本: " . self::TARGET_VERSION);
         $io->newLine();
 
-        $steps = $this->detectUpgradeSteps();
+        if ($currentVersion !== 'unknown' && version_compare($currentVersion, self::TARGET_VERSION, '>')) {
+            $io->error('当前站点版本高于本升级工具目标版本，已拒绝降级。');
+            return Command::FAILURE;
+        }
+
+        $isVersionUpgrade = $currentVersion === 'unknown'
+            || version_compare($currentVersion, self::TARGET_VERSION, '<');
+
+        try {
+            $steps = $this->detectUpgradeSteps();
+        } catch (\Throwable $e) {
+            $io->error('升级预检失败: ' . $e->getMessage());
+            return Command::FAILURE;
+        }
 
         if (empty($steps)) {
             $io->success('当前版本已是最新，无需升级。');
@@ -76,37 +101,90 @@ class UpgradeCommand extends Command
             return Command::SUCCESS;
         }
 
-        $io->section('执行升级');
-        $errors = [];
-
-        $this->stepConfigUpgrade($io, $errors);
-        if (!empty($errors)) {
-            return $this->reportErrors($io, $errors);
-        }
-        $this->stepSchemaUpgrade($io, $errors);
-        if (!empty($errors)) {
-            return $this->reportErrors($io, $errors);
-        }
-        $this->stepRunMigrations($io, $errors);
-        if (!empty($errors)) {
-            return $this->reportErrors($io, $errors);
-        }
-        $this->stepCleanup($io);
-
-        if (kv_set('xn_upgraded_from', $currentVersion) === false || kv_set('xn_upgraded_date', date('Y-m-d H:i:s')) === false) {
-            $io->error('Upgrade metadata could not be recorded.');
+        $lock = migration_advisory_lock_start();
+        if (empty($lock['ok'])) {
+            $io->error($lock['error']);
             return Command::FAILURE;
         }
 
-        // 将新版本号写入 conf.php，防止重复触发升级
+        $status = Command::FAILURE;
+        $completed = false;
+        $becameCurrent = false;
+        $executionError = '';
+        $released = false;
         try {
-            if (file_replace_var(APP_PATH . 'conf/conf.php', ['version' => self::TARGET_VERSION]) === false) {
-                throw new \RuntimeException('conf.php version write failed');
+            $lockedFingerprint = hash_file('sha256', $confFile);
+            if (!is_string($lockedFingerprint) || !hash_equals($confFingerprint, $lockedFingerprint)) {
+                throw new \RuntimeException('conf/conf.php 在预检确认期间发生变化；未执行升级，请重新运行命令。');
+            }
+
+            // The lock may have been held by another process while the operator confirmed. Re-read
+            // every database-dependent input inside the shared schema boundary before any write.
+            $lockedSteps = $this->detectUpgradeSteps();
+            if (empty($lockedSteps)) {
+                $becameCurrent = true;
+                $status = Command::SUCCESS;
+            } else {
+                $io->section('执行升级');
+                $errors = [];
+
+                $this->stepConfigUpgrade($io, $errors);
+                if (!empty($errors)) throw new \RuntimeException(implode(' | ', $errors));
+
+                $this->stepSchemaUpgrade($io, $errors);
+                if (!empty($errors)) throw new \RuntimeException(implode(' | ', $errors));
+
+                $this->stepRunMigrations($io, $errors);
+                if (!empty($errors)) throw new \RuntimeException(implode(' | ', $errors));
+
+                $this->stepCleanup($io);
+
+                if ($isVersionUpgrade) {
+                    $upgradedFrom = kv__get('xn_upgraded_from', true);
+                    if ($upgradedFrom === false) {
+                        throw new \RuntimeException('Upgrade metadata primary read failed.');
+                    }
+                    if (($upgradedFrom === null && kv_set('xn_upgraded_from', $currentVersion) === false)
+                        || kv_set('xn_upgraded_date', date('Y-m-d H:i:s')) === false) {
+                        throw new \RuntimeException('Upgrade metadata could not be recorded.');
+                    }
+                }
+
+                // Version is the final commit marker. MySQL DDL and file writes are not a single
+                // transaction; any earlier failure remains a forward-retry condition.
+                if (file_replace_var(APP_PATH . 'conf/conf.php', [
+                    'version' => self::TARGET_VERSION,
+                    'static_version' => self::CONFIG_DEFAULTS['static_version'],
+                ]) === false) {
+                    throw new \RuntimeException(
+                        'conf.php version write failed; schema or metadata may already have changed. '
+                        . 'Repair the file write error and retry the upgrade.'
+                    );
+                }
+
+                $completed = true;
+                $status = Command::SUCCESS;
             }
         } catch (\Throwable $e) {
-            $io->text('  [提示] 请手动将 conf.php 中的 version 改为 \'' . self::TARGET_VERSION . '\'');
+            $executionError = $e->getMessage();
+            $status = Command::FAILURE;
+        } finally {
+            $released = migration_advisory_lock_end();
+        }
+
+        if (!$released) {
+            $io->error('数据库升级锁未能确认释放；当前进程退出后连接关闭会释放 MySQL advisory lock。');
             return Command::FAILURE;
         }
+        if ($executionError !== '') {
+            $io->error('升级失败: ' . $executionError);
+            return Command::FAILURE;
+        }
+        if ($becameCurrent) {
+            $io->success('数据库与配置已由其他协调进程更新，无需重复升级。');
+            return Command::SUCCESS;
+        }
+        if (!$completed) return $status;
 
         $io->newLine();
         $io->success('升级成功！当前版本: ' . self::TARGET_VERSION);
@@ -211,36 +289,22 @@ class UpgradeCommand extends Command
         $steps = [];
         $version = $this->detectOldVersion();
 
-        // 版本比较
-        if ($version !== 'unknown' && version_compare($version, self::TARGET_VERSION, '>=')) {
-            return []; // 已是最新
-        }
+        $needsVersionUpgrade = $version === 'unknown'
+            || version_compare($version, self::TARGET_VERSION, '<');
+        if ($version !== 'unknown' && version_compare($version, self::TARGET_VERSION, '>')) return [];
 
-        // 1. 检查密码字段类型
-        $tablepre = $this->getTablepre();
-        try {
-            $rows = db_sql_find("SHOW COLUMNS FROM `{$tablepre}user` LIKE 'password'");
-            if ($rows && is_array($rows) && !empty($rows)) {
-                $type = strtolower($rows[0]['Type'] ?? '');
-                if (strpos($type, 'char(32)') !== false || strpos($type, 'char(64)') !== false) {
-                    $steps[] = "密码安全升级: password 字段从 $type 扩展为 varchar(255)，支持 bcrypt 哈希";
-                }
-            }
-        } catch (\Throwable $e) {
-            // 非致命，继续
+        // 1. 检查密码字段类型。Schema 状态未知时必须终止；继续写配置或版本会把
+        // 部分升级伪装成完成。
+        $passwordColumn = $this->readUserPasswordColumn();
+        $type = strtolower((string) ($passwordColumn['Type'] ?? ''));
+        if ($type !== 'varchar(255)') {
+            $steps[] = "密码安全升级: password 字段从 $type 扩展为 varchar(255)，支持 bcrypt 哈希";
         }
 
         // 2. 检查缺失的配置项
-        $confFile = APP_PATH . 'conf/conf.php';
-        $confContent = file_get_contents($confFile);
-        $missingKeys = [];
-        foreach (self::CONFIG_DEFAULTS as $key => $default) {
-            if (strpos($confContent, "'$key'") === false) {
-                $missingKeys[] = $key;
-            }
-        }
-        if (!empty($missingKeys)) {
-            $steps[] = '配置升级: 添加 ' . count($missingKeys) . ' 个缺失配置项 (' . implode(', ', $missingKeys) . ')';
+        $configUpdates = $this->configUpdates($GLOBALS['conf'] ?? []);
+        if (!empty($configUpdates)) {
+            $steps[] = '配置升级: 修正 ' . count($configUpdates) . ' 个配置项 (' . implode(', ', array_keys($configUpdates)) . ')';
         }
 
         // 3. 检查待执行的数据库迁移
@@ -255,10 +319,27 @@ class UpgradeCommand extends Command
             $steps[] = "版本跨度: 从 $version 升级到 " . self::TARGET_VERSION . '（含安全加固、BS5 升级、API 支持）';
         }
 
-        // 5. 缓存清理（总是需要）
-        $steps[] = '缓存清理: 清理编译缓存和插件 Hook 缓存';
+        // 5. 只有版本或其他输入真的漂移时才清缓存；完全对齐的目标版本必须保持 no-op。
+        if ($needsVersionUpgrade || !empty($steps)) {
+            $steps[] = '缓存清理: 清理编译缓存和插件 Hook 缓存';
+        }
 
         return $steps;
+    }
+
+    private function configUpdates(array $conf): array
+    {
+        $updates = [];
+        foreach (self::CONFIG_DEFAULTS as $key => $default) {
+            if (!array_key_exists($key, $conf)) {
+                $updates[$key] = $default;
+            }
+        }
+        if (array_key_exists('static_version', $conf)
+            && (string) $conf['static_version'] !== self::CONFIG_DEFAULTS['static_version']) {
+            $updates['static_version'] = self::CONFIG_DEFAULTS['static_version'];
+        }
+        return $updates;
     }
 
     /**
@@ -280,7 +361,7 @@ class UpgradeCommand extends Command
         $pending = [];
         foreach ($files as $file) {
             $name = basename($file, '.php');
-            if (!in_array($name, $executed)) {
+            if (!in_array($name, $executed, true)) {
                 $pending[] = $file;
             }
         }
@@ -292,14 +373,7 @@ class UpgradeCommand extends Command
         $io->text('检查配置文件...');
 
         $confFile = APP_PATH . 'conf/conf.php';
-        $confContent = file_get_contents($confFile);
-
-        $additions = [];
-        foreach (self::CONFIG_DEFAULTS as $key => $default) {
-            if (strpos($confContent, "'$key'") === false) {
-                $additions[$key] = $default;
-            }
-        }
+        $additions = $this->configUpdates($GLOBALS['conf'] ?? []);
 
         if (!empty($additions)) {
             try {
@@ -326,15 +400,14 @@ class UpgradeCommand extends Command
         $tablepre = $this->getTablepre();
 
         try {
-            $row = db_sql_find("SHOW COLUMNS FROM `{$tablepre}user` LIKE 'password'");
-            if ($row && is_array($row) && !empty($row)) {
-                $type = strtolower($row[0]['Type'] ?? '');
-                if (strpos($type, 'varchar') === false) {
-                    $io->text('  password 字段需要扩展 (当前: ' . $type . ')');
-                }
+            $row = $this->readUserPasswordColumn();
+            $type = strtolower((string) ($row['Type'] ?? ''));
+            if ($type !== 'varchar(255)') {
+                $io->text('  password 字段需要扩展 (当前: ' . $type . ')');
             }
         } catch (\Throwable $e) {
-            // Schema check is informational
+            $errors[] = '数据库结构检查失败: ' . $e->getMessage();
+            return;
         }
 
         $io->text('  数据库结构检查完成（迁移将在下一步执行）');
@@ -363,12 +436,7 @@ class UpgradeCommand extends Command
                     return;
                 }
                 $migration->up($tablepre);
-                if (!in_array($name, $executed, true)) {
-                    $executed[] = $name;
-                }
-                if (kv_set('xn_migrations', $executed) === false) {
-                    throw new \RuntimeException('migration record write failed');
-                }
+                migration_record_append_locked($name, $executed);
                 $io->text("  完成: $name");
                 $runCount++;
             } catch (\Throwable $e) {
@@ -385,26 +453,11 @@ class UpgradeCommand extends Command
      */
     private function stepCleanup(SymfonyStyle $io): void
     {
-        $io->text('清理缓存和临时文件...');
-
-        $tmpPath = $GLOBALS['conf']['tmp_path'];
-        $cacheFiles = ['model.min.php', 'plugin_hook.php', 'safe_mode.php'];
-        $cleaned = 0;
-        foreach ($cacheFiles as $cacheFile) {
-            $path = $tmpPath . $cacheFile;
-            if (is_file($path)) {
-                @unlink($path);
-                $cleaned++;
-            }
-        }
-        // safe_mode 标记文件（无扩展名）
-        $safeModeFile = $tmpPath . 'safe_mode';
-        if (is_file($safeModeFile)) {
-            @unlink($safeModeFile);
-            $cleaned++;
-        }
-
-        $io->text("  清理了 $cleaned 个缓存/临时文件");
+		$io->text('清理可再生运行时缓存...');
+		if (!function_exists('runtime_cache_clear_regenerable') || !runtime_cache_clear_regenerable()) {
+			throw new \RuntimeException('运行时缓存正在被使用或无法安全清理，请在活动请求结束后重试。');
+		}
+		$io->text('  已清理可再生缓存；任务锁、恢复备份和安全模式标记保持不变');
     }
 
     private function bootstrap(string $appPath): void
@@ -423,20 +476,30 @@ class UpgradeCommand extends Command
 
         include_once XIUNOPHP_PATH . 'xiunophp.php';
         include_once APP_PATH . 'model/kv.func.php';
+		include_once APP_PATH . 'model/migration.func.php';
+		include_once APP_PATH . 'model/plugin.func.php';
     }
 
     private function getTablepre(): string
     {
-        $tablepre = $_SERVER['db']->tablepre ?? 'bbs_';
-        if (!preg_match('/^[A-Za-z0-9_]{0,32}$/', $tablepre)) {
-            throw new \RuntimeException('Invalid table prefix in database configuration.');
-        }
-        return $tablepre;
+        return migration_table_prefix();
     }
 
     private function getExecutedMigrations(): array
     {
-        $val = kv_get('xn_migrations');
-        return is_array($val) ? $val : [];
+        return migration_record_read_primary();
+    }
+
+    private function readUserPasswordColumn(): array
+    {
+        $table = $this->getTablepre() . 'user';
+        $row = db_sql_find_one_master("SHOW COLUMNS FROM `{$table}` LIKE 'password'");
+        if ($row === false) {
+            throw new \RuntimeException('Primary schema read failed for the user password column.');
+        }
+        if (!is_array($row) || empty($row)) {
+            throw new \RuntimeException('The user password column is missing or unreadable.');
+        }
+        return $row;
     }
 }

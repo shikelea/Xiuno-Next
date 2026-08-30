@@ -5,7 +5,11 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-BASE_URL="${XIUNO_HTTP_SMOKE_URL:-http://127.0.0.1:8080}"
+RUN_ID="${XIUNO_HTTP_SMOKE_RUN_ID:-${BASHPID}_${RANDOM}_${RANDOM}}"
+export COMPOSE_PROJECT_NAME="${XIUNO_COMPOSE_PROJECT_NAME:-xiuno_smoke_${RUN_ID}}"
+HTTP_PORT="${XIUNO_HTTP_SMOKE_PORT:-8080}"
+export XIUNO_HTTP_PORT="$HTTP_PORT"
+BASE_URL="${XIUNO_HTTP_SMOKE_URL:-http://127.0.0.1:${HTTP_PORT}}"
 ADMIN_USER="${XIUNO_HTTP_SMOKE_ADMIN_USER:-admin}"
 ADMIN_EMAIL="${XIUNO_HTTP_SMOKE_ADMIN_EMAIL:-admin@example.com}"
 ADMIN_PASSWORD="${XIUNO_HTTP_SMOKE_ADMIN_PASSWORD:-XiunoSmoke-451!}"
@@ -13,21 +17,57 @@ NEW_PASSWORD="${XIUNO_HTTP_SMOKE_NEW_PASSWORD:-XiunoSmoke-452!}"
 DB_NAME="${XIUNO_HTTP_SMOKE_DB_NAME:-xiunobbs}"
 DB_USER="${XIUNO_HTTP_SMOKE_DB_USER:-xiuno}"
 DB_PASSWORD="${XIUNO_HTTP_SMOKE_DB_PASSWORD:-xiuno_password_changeme}"
-WORK_DIR="$(mktemp -d)"
+if [[ -n "${XIUNO_TEST_HOME:-}" ]]; then
+	mkdir -p "$XIUNO_TEST_HOME"
+	WORK_DIR="$(mktemp -d "$XIUNO_TEST_HOME/docker-http.XXXXXX")"
+else
+	WORK_DIR="$(mktemp -d)"
+fi
 INSTALL_COOKIES="$WORK_DIR/install.cookies"
 SITE_COOKIES="$WORK_DIR/site.cookies"
 TOKEN_COOKIES="$WORK_DIR/token.cookies"
 PASSWORD_FIXED_COOKIES="$WORK_DIR/password-fixed.cookies"
 AUTOLOGIN_FIXED_COOKIES="$WORK_DIR/autologin-fixed.cookies"
+OLD_AUTH_COOKIES="$WORK_DIR/old-auth.cookies"
 UPLOAD_PROBE="$ROOT/upload/xiuno-http-smoke.php"
 COMPOSE=(docker compose)
 COMPOSE_STARTED=0
 REMOVE_INSTALL_STATE=0
 PROBE_CREATED=0
+LOCK_DIR="$ROOT/tmp/.xiuno-docker-http-smoke.lock"
+LOCK_CREATED=0
+PLUGIN_MANIFEST_BEFORE=""
 
 fail() {
 	echo "FAIL: $*" >&2
 	return 1
+}
+
+[[ "$RUN_ID" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$ ]] \
+	|| fail 'XIUNO_HTTP_SMOKE_RUN_ID must contain 1-64 ASCII letters, digits, underscores, or non-leading hyphens.'
+
+install_stage_files_exist() {
+	compgen -G "$ROOT/conf/conf.php.install-*.tmp" >/dev/null
+}
+
+assert_no_unpublished_install_state() {
+	[[ ! -e "$ROOT/conf/conf.php" \
+		&& ! -e "$ROOT/conf/conf.backup.php" \
+		&& ! -e "$ROOT/conf/.installed.lock" ]] \
+		&& ! install_stage_files_exist \
+		|| fail "Installer left a config, backup, lock, or staging file after rejection."
+}
+
+plugin_manifest() {
+	if [[ ! -d "$ROOT/plugin" ]]; then
+		echo 'ABSENT'
+		return
+	fi
+	find "$ROOT/plugin" -type f -print0 \
+		| LC_ALL=C sort -z \
+		| xargs -0 -r sha256sum -- \
+		| sha256sum \
+		| awk '{print $1}'
 }
 
 cleanup() {
@@ -47,31 +87,56 @@ cleanup() {
 	if (( REMOVE_INSTALL_STATE == 1 )); then
 		rm -f "$ROOT/conf/conf.php" \
 			"$ROOT/conf/conf.backup.php" \
-			"$ROOT/conf/.installed.lock"
+			"$ROOT/conf/.installed.lock" \
+			"$ROOT"/conf/conf.php.install-*.tmp
+	fi
+	if [[ -n "$PLUGIN_MANIFEST_BEFORE" ]]; then
+		local plugin_manifest_after
+		plugin_manifest_after="$(plugin_manifest)"
+		if [[ "$plugin_manifest_after" != "$PLUGIN_MANIFEST_BEFORE" ]]; then
+			echo "FAIL: plugin tree changed during Docker HTTP smoke." >&2
+			status=1
+		fi
+	fi
+	if (( LOCK_CREATED == 1 )); then
+		rmdir "$LOCK_DIR" >/dev/null 2>&1 || status=1
 	fi
 	rm -rf "$WORK_DIR"
 	exit "$status"
 }
 trap cleanup EXIT INT TERM
 
-if [[ -e "$ROOT/conf/conf.php" || -e "$ROOT/conf/.installed.lock" ]]; then
+if [[ -e "$ROOT/conf/conf.php" \
+	|| -e "$ROOT/conf/conf.backup.php" \
+	|| -e "$ROOT/conf/.installed.lock" ]] \
+	|| install_stage_files_exist; then
 	fail "Docker HTTP smoke requires a clean, uninstalled checkout."
 fi
 [[ ! -e "$UPLOAD_PROBE" ]] || fail "$UPLOAD_PROBE already exists."
 
-for command in docker curl jq md5sum; do
+for command in docker curl jq md5sum sha256sum; do
 	command -v "$command" >/dev/null 2>&1 || fail "$command is required."
 done
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is required."
 
-mkdir -p "$ROOT/conf" "$ROOT/log" "$ROOT/tmp" "$ROOT/upload" "$ROOT/plugin"
-chmod 0777 "$ROOT/conf" "$ROOT/log" "$ROOT/tmp" "$ROOT/upload" "$ROOT/plugin"
+mkdir -p "$ROOT/conf" "$ROOT/log" "$ROOT/tmp" "$ROOT/upload"
+chmod 0777 "$ROOT/conf" "$ROOT/log" "$ROOT/tmp" "$ROOT/upload"
+mkdir "$LOCK_DIR" || fail "Another Docker HTTP smoke is already using this checkout."
+LOCK_CREATED=1
+PLUGIN_MANIFEST_BEFORE="$(plugin_manifest)"
 echo '<?php echo "UPLOAD_PHP_EXECUTED";' > "$UPLOAD_PROBE"
 PROBE_CREATED=1
 
 "${COMPOSE[@]}" config -q
 COMPOSE_STARTED=1
 "${COMPOSE[@]}" up -d --build
+if "${COMPOSE[@]}" exec -T app sh -c 'touch /var/www/html/plugin/.xiuno-write-probe' >/dev/null 2>&1; then
+	"${COMPOSE[@]}" exec -T app rm -f /var/www/html/plugin/.xiuno-write-probe >/dev/null 2>&1 || true
+	fail 'The container can write the plugin tree; the read-only mount contract is broken.'
+fi
+"${COMPOSE[@]}" exec -T app sh -c \
+	'touch /var/www/html/vendor/.xiuno-write-probe && rm -f /var/www/html/vendor/.xiuno-write-probe' \
+	|| fail 'The isolated Composer dependency volume is not writable.'
 
 mysql_ready() {
 	"${COMPOSE[@]}" exec -T -e MYSQL_PWD=root_password_changeme db \
@@ -79,6 +144,12 @@ mysql_ready() {
 		&& "${COMPOSE[@]}" exec -T -e "MYSQL_PWD=$DB_PASSWORD" db \
 			mysql -h 127.0.0.1 -u"$DB_USER" "$DB_NAME" -Nse 'SELECT 1' 2>/dev/null \
 			| grep -qx '1'
+}
+
+mysql_query() {
+	local sql=$1
+	"${COMPOSE[@]}" exec -T -e "MYSQL_PWD=$DB_PASSWORD" db \
+		mysql -h 127.0.0.1 -u"$DB_USER" "$DB_NAME" -Nse "$sql"
 }
 
 for _ in $(seq 1 60); do
@@ -127,6 +198,16 @@ extract_install_token() {
 	sed -n 's/.*name="_token" value="\([^"]*\)".*/\1/p' "$1" | head -n 1
 }
 
+fetch_install_token() {
+	local page="$WORK_DIR/install.html"
+	curl -fsS -c "$INSTALL_COOKIES" -b "$INSTALL_COOKIES" --max-time 15 \
+		"$BASE_URL/install/index.php?action=db" -o "$page"
+	local token
+	token="$(extract_install_token "$page")"
+	[[ "$token" =~ ^[a-f0-9]{64}$ ]] || fail "Installer CSRF token is missing."
+	printf '%s' "$token"
+}
+
 extract_site_token() {
 	sed -n 's/.*name="csrf-token" content="\([^"]*\)".*/\1/p' "$1" | head -n 1
 }
@@ -173,6 +254,23 @@ site_post() {
 		--max-time 20 "$BASE_URL$path"
 }
 
+submit_install() {
+	local token=$1
+	curl -fsS -c "$INSTALL_COOKIES" -b "$INSTALL_COOKIES" \
+		-H 'X-Requested-With: XMLHttpRequest' \
+		--data-urlencode "_token=$token" \
+		--data-urlencode 'type=pdo_mysql' \
+		--data-urlencode 'engine=innodb' \
+		--data-urlencode 'host=db' \
+		--data-urlencode "name=$DB_NAME" \
+		--data-urlencode "user=$DB_USER" \
+		--data-urlencode "password=$DB_PASSWORD" \
+		--data-urlencode "adminemail=$ADMIN_EMAIL" \
+		--data-urlencode "adminuser=$ADMIN_USER" \
+		--data-urlencode "adminpass=$ADMIN_PASSWORD" \
+		--max-time 60 "$BASE_URL/install/index.php?action=db"
+}
+
 login_with_password() {
 	local password_hash
 	password_hash="$(md5_value "$1")"
@@ -186,8 +284,11 @@ login_with_password() {
 }
 
 logout_user() {
-	curl -fsS -c "$SITE_COOKIES" -b "$SITE_COOKIES" --max-time 15 \
-		"$BASE_URL/?user-logout.htm" >/dev/null
+	local token
+	token="$(site_token '/?user-logout.htm')"
+	local response
+	response="$(site_post '/?user-logout.htm' "$token")"
+	assert_json_code "$response" '0'
 }
 
 assert_status '/install/' '302'
@@ -196,29 +297,46 @@ assert_status '/model/check.func.php' '404'
 assert_status '/view/htm/header.inc.htm' '404'
 assert_status '/admin/route/update.php' '404'
 assert_status '/upload/xiuno-http-smoke.php' '404'
+assert_status '/plugin/xiuno-http-smoke/install.php' '404'
+assert_status '/plugin/xiuno-http-smoke/unstall.php' '404'
+assert_status '/plugin/xiuno-http-smoke/upgrade.php' '404'
+assert_status '/plugin/xiuno-http-smoke/setting.php' '404'
+assert_status '/plugin/xiuno-http-smoke/hook/probe.php' '404'
+assert_status '/plugin/xiuno-http-smoke/overwrite/probe.php' '404'
 
-curl -fsS -c "$INSTALL_COOKIES" -b "$INSTALL_COOKIES" --max-time 15 \
-	"$BASE_URL/install/index.php?action=db" -o "$WORK_DIR/install.html"
-INSTALL_TOKEN="$(extract_install_token "$WORK_DIR/install.html")"
-[[ "$INSTALL_TOKEN" =~ ^[a-f0-9]{64}$ ]] || fail "Installer CSRF token is missing."
+INITIAL_TABLE_COUNT="$(mysql_query 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()')"
+[[ "$INITIAL_TABLE_COUNT" == '0' ]] || fail "Docker HTTP smoke requires an empty application database."
+mysql_query "CREATE TABLE bbs_table_day (sentinel_id INT NOT NULL PRIMARY KEY, marker VARCHAR(64) NOT NULL); INSERT INTO bbs_table_day (sentinel_id, marker) VALUES (451, 'xiuno-install-sentinel')"
 
+INSTALL_TOKEN="$(fetch_install_token)"
 REMOVE_INSTALL_STATE=1
-INSTALL_RESPONSE="$(curl -fsS -c "$INSTALL_COOKIES" -b "$INSTALL_COOKIES" \
-	-H 'X-Requested-With: XMLHttpRequest' \
-	--data-urlencode "_token=$INSTALL_TOKEN" \
-	--data-urlencode 'type=pdo_mysql' \
-	--data-urlencode 'engine=innodb' \
-	--data-urlencode 'host=db' \
-	--data-urlencode "name=$DB_NAME" \
-	--data-urlencode "user=$DB_USER" \
-	--data-urlencode "password=$DB_PASSWORD" \
-	--data-urlencode "adminemail=$ADMIN_EMAIL" \
-	--data-urlencode "adminuser=$ADMIN_USER" \
-	--data-urlencode "adminpass=$ADMIN_PASSWORD" \
-	--max-time 60 "$BASE_URL/install/index.php?action=db")"
+SENTINEL_RESPONSE="$(submit_install "$INSTALL_TOKEN")"
+assert_json_not_code "$SENTINEL_RESPONSE" '0'
+assert_no_unpublished_install_state
+SENTINEL_TABLES="$(mysql_query "SELECT GROUP_CONCAT(TABLE_NAME ORDER BY TABLE_NAME) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()")"
+[[ "$SENTINEL_TABLES" == 'bbs_table_day' ]] \
+	|| fail "Rejected installation created or removed database tables: $SENTINEL_TABLES"
+SENTINEL_COLUMNS="$(mysql_query "SELECT GROUP_CONCAT(CONCAT(COLUMN_NAME, ':', DATA_TYPE, ':', COLUMN_KEY) ORDER BY ORDINAL_POSITION SEPARATOR ',') FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bbs_table_day'")"
+[[ "$SENTINEL_COLUMNS" == 'sentinel_id:int:PRI,marker:varchar:' ]] \
+	|| fail "Rejected installation changed the sentinel table structure: $SENTINEL_COLUMNS"
+SENTINEL_MARKER="$(mysql_query 'SELECT marker FROM `bbs_table_day` WHERE sentinel_id = 451')"
+[[ "$SENTINEL_MARKER" == 'xiuno-install-sentinel' ]] \
+	|| fail "Rejected installation changed the sentinel table data."
+
+mysql_query 'DROP TABLE `bbs_table_day`'
+[[ "$(mysql_query 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()')" == '0' ]] \
+	|| fail "Sentinel cleanup did not restore an empty application database."
+
+INSTALL_TOKEN="$(fetch_install_token)"
+INSTALL_RESPONSE="$(submit_install "$INSTALL_TOKEN")"
 assert_json_code "$INSTALL_RESPONSE" '0'
 [[ -f "$ROOT/conf/conf.php" && -f "$ROOT/conf/.installed.lock" ]] \
 	|| fail "Web installer did not persist installation state."
+INSTALL_AUTH_KEY="$(sed -nE "s/^[[:space:]]*'auth_key'[[:space:]]*=>[[:space:]]*'([a-f0-9]{64})',[[:space:]]*$/\\1/p" "$ROOT/conf/conf.php" | head -n 1)"
+[[ "$INSTALL_AUTH_KEY" =~ ^[a-f0-9]{64}$ ]] \
+	|| fail "Web installer did not persist a 64-character hexadecimal auth key."
+[[ ! -e "$ROOT/conf/conf.backup.php" ]] && ! install_stage_files_exist \
+	|| fail "Successful installation left a config backup or staging file."
 
 assert_status '/' '200'
 PASSWORD_FIXED_SID='fixedpasswordsid1234567890123456'
@@ -271,13 +389,34 @@ EMPTY_PASSWORD_RESPONSE="$(site_post '/?my-password.htm' "$PASSWORD_TOKEN" \
 assert_json_not_code "$EMPTY_PASSWORD_RESPONSE" '0'
 
 PASSWORD_TOKEN="$(site_token '/?my-password.htm')"
+cp "$SITE_COOKIES" "$OLD_AUTH_COOKIES"
+PRECHANGE_SID="$(cookie_value "$SITE_COOKIES" bbs_sid)"
 PASSWORD_RESPONSE="$(site_post '/?my-password.htm' "$PASSWORD_TOKEN" \
 	--data-urlencode "password_old=$(md5_value "$ADMIN_PASSWORD")" \
 	--data-urlencode "password_new=$(md5_value "$NEW_PASSWORD")" \
 	--data-urlencode "password_new_repeat=$(md5_value "$NEW_PASSWORD")")"
 assert_json_code "$PASSWORD_RESPONSE" '0'
+POSTCHANGE_SID="$(cookie_value "$SITE_COOKIES" bbs_sid)"
+[[ -n "$POSTCHANGE_SID" && "$POSTCHANGE_SID" != "$PRECHANGE_SID" ]] \
+	|| fail "Self-service password change did not rotate the current session."
+curl -fsS -c "$SITE_COOKIES" -b "$SITE_COOKIES" --max-time 15 "$BASE_URL/" -o "$WORK_DIR/password-current-home.html"
+grep -Eq 'var uid = 1;' "$WORK_DIR/password-current-home.html" \
+	|| fail "Self-service password change did not preserve the rotated current session."
+curl -fsS -c "$OLD_AUTH_COOKIES" -b "$OLD_AUTH_COOKIES" --max-time 15 "$BASE_URL/" -o "$WORK_DIR/password-old-home.html"
+grep -Eq 'var uid = 0;' "$WORK_DIR/password-old-home.html" \
+	|| fail "Password change did not revoke the older Session and persistent token generation."
 
 logout_user
 login_with_password "$NEW_PASSWORD"
 
-echo "OK: Docker Nginx, installer, username login, persistent-token session rotation, logout/re-login, and password HTTP smoke passed"
+"${COMPOSE[@]}" stop db >/dev/null
+DB_DOWN_STATUS="$(curl -sS -o "$WORK_DIR/db-down.html" -w '%{http_code}' --max-time 15 "$BASE_URL/")"
+[[ "$DB_DOWN_STATUS" == '503' ]] || fail 'Database outage did not return HTTP 503.'
+grep -Fq '数据库服务暂时不可用' "$WORK_DIR/db-down.html" \
+	|| fail 'Database outage browser response did not contain an actionable diagnostic.'
+DB_DOWN_AJAX_STATUS="$(curl -sS -H 'X-Requested-With: XMLHttpRequest' -o "$WORK_DIR/db-down.json" -w '%{http_code}' --max-time 15 "$BASE_URL/?user-login.htm")"
+[[ "$DB_DOWN_AJAX_STATUS" == '503' ]] || fail 'Database outage AJAX request did not return HTTP 503.'
+jq -e '.code == "-1" and (.message | contains("数据库服务暂时不可用"))' "$WORK_DIR/db-down.json" >/dev/null \
+	|| fail 'Database outage AJAX response was not structured JSON.'
+
+echo "OK: Docker Nginx, installer preflight, login rotation, credential-epoch revocation, logout/re-login, password, and database-outage HTTP smoke passed"

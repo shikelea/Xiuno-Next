@@ -84,6 +84,7 @@ return array(
 	'thread_create_date'=>'Thread Date',
 	'post_create_date'=>'Reply Date',
 	'uploaded_attach'=>'Uploaded attach',
+	'attach_upload_in_progress'=>'Attachments are still uploading. Please wait before submitting.',
 	
 	// user
 	'group_0'=>'User Group',
@@ -110,6 +111,7 @@ return array(
 	'user_send_sucessfully'=>'Send Sucessfully',
 	'user_create'=>'Create User',
 	'user_create_sucessfully'=>'Create user sucessfully',
+	'user_create_login_failed'=>'Your account was created, but sign-in could not be established. Please sign in from the login page.',
 	'user_login'=>'User Login',
 	'user_profile'=>'User Profile',
 	'user_resetpw'=>'Reset Password',
@@ -179,6 +181,8 @@ return array(
 	'filesize_too_large' => 'File size is too large, can not be more than {maxsize}, current size：{size}',
 	'directory_create_failed' => 'Create directory  failed',
 	'write_to_file_failed' => 'Write directory  failed',
+	'attach_filename_invalid' => 'The attachment filename is invalid. Remove path separators and control characters, then try again.',
+	'attach_filename_too_long' => 'The attachment filename cannot exceed {max} characters.',
 	'user_group_insufficient_privilege' => 'Your group permissions are not enough',
 	
 	
@@ -233,6 +237,9 @@ return array(
 	'view_thread_message' => 'View Content',
 	'last_reply' => 'Last Reply',
 	'attach_not_exists' => 'Attach does not exits',
+	'attach_upload_forbidden' => 'Your user group may not upload attachments',
+	'attach_filetype_not_allowed' => 'This file type is not allowed for upload',
+	'attach_draft_limit_reached' => 'Too many post editors are open in this session. Finish or close one and try again',
 	'insufficient_privilege_to_download' => 'Your group privilege is insufficient to download this attach',
 	'insufficient_privilege' => 'Insufficient_privilege',
 	'advanced_reply' => 'Advanced Reply',

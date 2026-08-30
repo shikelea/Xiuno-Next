@@ -107,6 +107,7 @@ function message($code, $message, $extra = array()) {
 	$arr['code'] = $code.'';
 	$arr['message'] = $message;
 	$header['title'] = $conf['sitename'];
+	if($ajax && !headers_sent()) header('Content-Type: application/json; charset=utf-8');
 	
 	// hook model_message_start.php
 	
@@ -399,7 +400,8 @@ function api_auth_uid($required = FALSE) {
 		}
 
 		if(!empty($_uid)) {
-			$_user = user_read($_uid);
+			// Authorization fields such as gid must be as fresh as the token epoch check above.
+			$_user = user_read_primary_proven($_uid);
 			if(!empty($_user)) {
 				$uid = intval($_uid);
 				$user = $_user;

@@ -1,14 +1,19 @@
-【如何安装 Xiuno BBS 4.0 ？】
+【Xiuno Next 安装说明】
 
-1. 确认您的主机支持 PHP，并且已经开通并且配置好了 MySQL。
-3. 设置如下目录和文件为可写(Linux: 目录权限为 0777，Windows 设置用户 everyone 可读写）
-	./upload
-	./plugin
-	./tmp
-	./log
-	./conf
-4. 上传所有文件到你的网站根目录
-5. 访问 http://www.domain.com/install/, 根据提示安装。
-6. 删除 install 目录
+当前项目仍在开发和兼容性验证阶段，不推荐直接用于生产环境。完整且持续更新的
+Docker、传统部署和本地开发流程请阅读仓库根目录 README.md 的“快速开始”。
 
-【完】
+最低要求：
+
+1. PHP 8.0+，启用 JSON、OpenSSL、PDO、PDO_MySQL、Mbstring、GD 和 Zip 扩展。
+2. MySQL 5.7+ / 8.0+，并准备一个专用空数据库。
+3. 从源码部署时先执行 composer install --no-dev --optimize-autoloader；发行包只有在
+   明确包含 vendor/ 时才可省略此步骤。
+4. 仅 conf、log、tmp、upload 需要由 Web 进程写入。plugin 默认应保持只读；需要在
+   后台管理第三方包时，请使用有备份的隔离测试环境，不要授予整个站点 Everyone/0777。
+5. 完成安装后，在 Web 服务器层封禁 conf/、log/、tmp/、data/、bin/、install/（install/
+   可直接删除），并备份数据库、conf 与上传数据。生产环境建议把 tmp_path、log_path
+   配到文档根之外；不要只依赖目录内 PHP 文件的 exit 语句作为访问控制。
+
+旧版 Xiuno BBS 站点不得直接运行安装器或覆盖文件。请先完整备份，再按 README.md
+的升级流程和 `php bin/xiuno upgrade` 诊断执行。

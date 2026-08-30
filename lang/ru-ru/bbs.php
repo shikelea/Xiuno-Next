@@ -86,6 +86,7 @@ return array(
 	'thread_create_date'=>'По темам',
 	'post_create_date'=>'По ответам',
 	'uploaded_attach'=>'По вложениям',
+	'attach_upload_in_progress'=>'Вложения ещё загружаются. Дождитесь завершения загрузки перед отправкой.',
 	
 	// user
 	'group_0'=>'Группы пользователей',
@@ -112,6 +113,7 @@ return array(
 	'user_send_sucessfully'=>'Успешно отправлено',
 	'user_create'=>'Регистрация',
 	'user_create_sucessfully'=>'Регистрация успешно завершена',
+	'user_create_login_failed'=>'Учётная запись создана, но выполнить вход не удалось. Пожалуйста, войдите через страницу авторизации.',
 	'user_login'=>'Авторизация',
 	'user_profile'=>'Профиль',
 	'user_resetpw'=>'Сброс пароля',
@@ -146,6 +148,7 @@ return array(
     'reset_pw'=>'Сброс пароля',
 	'verify_code_try_too_frequently'=>'Пожалуйста, попробуйте позже, за один час можно сделать {times} попыток',
 	'verify_code_incorrect'=>'Введите проверочный код',
+	'resetpw_not_on'=>'Восстановление пароля сейчас отключено',
 	'check_ok_to_next_step'=>'Указано верно,следующий шаг',
 	'reset_pw_not_on'=>'Функция восстановления пароля в настоящее время отключена',
 	'reset_pw_email_template'=>'Секретный под для сброса пароля: {rand} - {sitename}',
@@ -183,6 +186,8 @@ return array(
 	'filesize_too_large' => 'Размер файла не может превышать: {maxsize}, размер вашего файла: {size}',
 	'directory_create_failed' => 'Ошибка при создании директории',
 	'write_to_file_failed' => 'Ошибка при чтении директории',
+	'attach_filename_invalid' => 'Недопустимое имя вложения. Удалите разделители пути и управляющие символы и повторите попытку.',
+	'attach_filename_too_long' => 'Имя вложения не может быть длиннее {max} символов.',
 	'user_group_insufficient_privilege' => 'Ваших прав для данной операции не хватает',
 	
 	
@@ -237,6 +242,9 @@ return array(
 	'view_thread_message' => 'View Content',
 	'last_reply' => 'Last Reply',
 	'attach_not_exists' => 'Вложения не существует',
+	'attach_upload_forbidden' => 'Ваша группа не может загружать вложения',
+	'attach_filetype_not_allowed' => 'Этот тип файла нельзя загружать',
+	'attach_draft_limit_reached' => 'В этой сессии открыто слишком много редакторов. Завершите или закройте один и повторите попытку',
 	'insufficient_privilege_to_download' => 'Your group privilege is insufficient to download this attach',
 	'insufficient_privilege' => 'Insufficient privilege',
 	'advanced_reply' => 'Расширенная форма ответа',

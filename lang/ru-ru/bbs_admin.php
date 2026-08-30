@@ -43,6 +43,7 @@ return array(
 	
 	'admin_login'=>'Авторизация в админпанель',
 	'save_conf_failed'=>'Не удалось сохранить конфигурацию в файл {file}, проверьте права доступа к файлу',
+	'locale_unavailable'=>'Выбранный язык недоступен или его обязательные файлы неполны.',
 	'user_already_exists'=>'Пользователь уже существует',
 	'email_already_exists'=>'E-mail уже используется ',
 	'uid_not_exists'=>'Указанный UID не существует ',
@@ -151,6 +152,7 @@ return array(
 	'admin_plugin_official_free_list'=>'Бесплатные',
 	'admin_plugin_official_fee_list'=>'Платные',	
 	'plugin_dir'=>'Директория плагина',
+	'plugin_dir_invalid'=>'Недопустимое имя каталога плагина. Используйте от 1 до 64 букв, цифр, символов подчёркивания или дефисов; дефис не может быть первым.',
 	'plugin_bbs_version'=>'Версия форума',
 	'price'=>'Цена',
 	'installs'=>'Installs',
@@ -167,6 +169,10 @@ return array(
 	'pugin_cate_99'=>'Без категории',
 	'plugin_detail'=>'Описание',
 	'plugin_not_exists'=>'Плагин не существует',
+	'plugin_not_installed'=>'Плагин не установлен.',
+	'plugin_setting_path_invalid'=>'Недопустимый путь к настройкам плагина.',
+	'plugin_package_path_invalid'=>'Путь пакета плагина недоступен или небезопасен. Убедитесь, что это читаемый локальный каталог, а не символическая ссылка.',
+	'plugin_setting_no_output'=>'Страница настроек плагина не вывела содержимое. Возможно, у плагина нет настраиваемых параметров или его интерфейс настроек несовместим.',
 	'plugin_brief_url'=>'URL-адрес плагина',
 	'plugin_versio_not_match'=>'Этот плагин предназначен для Xiuno BBS  {bbs_version}, Ваша версия: {version}',
 	'plugin_download_sucessfully'=>'Загрузка плагина ({dir}) успешна, нажмите для установки',
@@ -194,6 +200,15 @@ return array(
 	'plugin_not_bought'=>'Не куплено',
 	'plugin_wechat_qrcode_pay'=>'Wechat SCAN for Pay',
 	'plugin_service_qq'=>'Service QQ',
+	'plugin_safe_mode'=>'Безопасный режим плагинов приложения',
+	'plugin_safe_mode_marker_path'=>'Путь к файлу-маркеру',
+	'plugin_safe_mode_log_path'=>'Путь к журналу безопасного режима',
+	'plugin_safe_mode_latest_error'=>'Последняя ошибка плагина или скомпилированного кода среды выполнения',
+	'plugin_safe_mode_exit'=>'Выйти из безопасного режима плагинов',
+	'plugin_safe_mode_exit_success'=>'Маркеры безопасного режима удалены. Обычная загрузка плагинов возобновится при следующем запросе.',
+	'plugin_safe_mode_exit_locked'=>'Другая операция безопасного режима уже выполняется. Повторите попытку позже.',
+	'plugin_safe_mode_exit_clear_failed'=>'Не удалось удалить один или несколько маркеров. Проверьте указанный путь и права файловой системы; плагины остаются отключёнными.',
+	'plugin_safe_mode_exit_unlock_failed'=>'Маркеры удалены, но блокировку операции снять не удалось. Обновите страницу и проверьте состояние.',
 	
 	// hook lang_ru_ru_bbs_admin.php
 	

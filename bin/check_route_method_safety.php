@@ -42,8 +42,13 @@ strpos($front_entry, "conf/.installed.lock") !== FALSE
 strpos($admin_index, "if(!in_array(\$method, array('GET', 'POST'), TRUE))") !== FALSE
 	|| fail('Admin controller must reject unsupported HTTP methods before route dispatch.');
 
-strpos($install, "is_file(APP_PATH.'conf/conf.php') || is_file(INSTALL_LOCK_FILE)") !== FALSE
-	|| fail('Installer must block all direct access after conf/conf.php or the install lock exists.');
+strpos($install, "xn_install_state_inspect(APP_PATH.'conf/conf.php', INSTALL_LOCK_FILE)") !== FALSE
+	&& strpos($install, "array('present-invalid', 'lock-only')") !== FALSE
+	|| fail('Installer must share explicit valid/invalid/lock-only state handling with the front entry.');
+strpos($front_entry, "xn_install_state_inspect(APP_PATH . 'conf/conf.php', APP_PATH . 'conf/.installed.lock')") !== FALSE
+	&& strpos($front_entry, "header('Location: install/', TRUE, 302)") !== FALSE
+	&& strpos($front_entry, "xn_install_state_diagnostic(\$install_state['state'])") !== FALSE
+	|| fail('Front entry must redirect only a missing install and diagnose inconsistent states without a redirect loop.');
 
 strpos($install, "if(!in_array(\$method, array('GET', 'POST'), TRUE))") !== FALSE
 	|| fail('Installer must reject unsupported HTTP methods.');
@@ -51,8 +56,8 @@ strpos($install, "if(!in_array(\$method, array('GET', 'POST'), TRUE))") !== FALS
 strpos($install, "define('INSTALL_LOCK_FILE', APP_PATH.'conf/.installed.lock');") !== FALSE
 	|| fail('Installer must define an install lock file.');
 
-strpos($install, "file_put_contents(INSTALL_LOCK_FILE") !== FALSE && strpos($install, "lang('write_to_file_failed')") !== FALSE
-	|| fail('Installer must write and verify the install lock after successful installation.');
+strpos($front_entry, "if (!is_file(APP_PATH . 'conf/.installed.lock'))") !== FALSE
+	|| fail('Front entry must recreate the defense-in-depth install lock from a published config.');
 
 $attach_create = section_between($attach, "if(empty(\$action) || \$action == 'create')", "} elseif(\$action == 'delete')");
 strpos($attach_create, "\$method != 'POST' AND message(-1, lang('method_error'));") !== FALSE
@@ -76,6 +81,9 @@ strpos($attach_model, 'function attach_filename_safe($filename)') !== FALSE
 
 strpos($attach_model, 'function attach_path($attach)') !== FALSE
 	|| fail('Attachment model must expose canonical attachment path resolution.');
+strpos($attach_model, 'function attach_realpath_within($path, $directory)') !== FALSE
+	&& strpos($attach, 'strpos($real_path, $safe_dir)') === FALSE
+	|| fail('Attachment containment must use a canonical directory boundary instead of a raw string prefix.');
 
 $avatar_end = "\n}\n\n// ho".'ok my_'.'end.php';
 $avatar = section_between($my_route, "} elseif(\$action == 'avatar')", $avatar_end);

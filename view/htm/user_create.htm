@@ -15,14 +15,14 @@
 				
 					<div class="input-group mb-3">
 						<span class="input-group-text"><i class="icon icon-envelope icon-fw"></i></span>
-						<input type="email" class="form-control" placeholder="<?php echo lang('email');?>" name="email" id="email" required>
+						<input type="email" class="form-control" placeholder="<?php echo lang('email');?>" name="email" id="email" autocomplete="email" required>
 					</div>
 					
 					<!--{hook user_create_email_after.htm}-->
 					
 					<div class="input-group mb-3">
 						<span class="input-group-text"><i class="icon icon-user icon-fw"></i></span>
-						<input type="text" class="form-control" placeholder="<?php echo lang('username');?>" name="username" id="username">
+						<input type="text" class="form-control" placeholder="<?php echo lang('username');?>" name="username" id="username" autocomplete="username" required>
 					</div>
 					
 					<!--{hook user_create_username_after.htm}-->
@@ -31,7 +31,7 @@
 						<div class="media-body">
 							<div class="input-group mb-3">
 								<span class="input-group-text"><i class="icon icon-lock icon-fw"></i></span>
-								<input type="password" class="form-control" placeholder="<?php echo lang('password');?>" name="password" id="password">
+								<input type="password" class="form-control" placeholder="<?php echo lang('password');?>" name="password" id="password" autocomplete="new-password" required>
 							</div>
 						</div>
 					</div>
@@ -44,7 +44,7 @@
 						<div class="media-body">
 							<div class="input-group mb-3">
 								<span class="input-group-text"><i class="icon icon-barcode icon-fw"></i></span>
-								<input type="text" class="form-control" placeholder="<?php echo lang('verify_code');?>" name="code" id="code">
+								<input type="text" class="form-control" placeholder="<?php echo lang('verify_code');?>" name="code" id="code" autocomplete="one-time-code" inputmode="numeric" required>
 							</div>
 						</div>
 						<div class="align-self-center ms-1">
@@ -90,7 +90,7 @@
 var jform = $('#form');
 var jsubmit = $('#submit');
 var jsend = $('#sendcode');
-var referer = <?php echo xn_json_encode_for_script(http_referer());?>;
+var referer = <?php echo xn_json_encode_for_script($referer);?>;
 jsend.on('click', function() {
 	jform.reset();
 	jsend.button('loading');
@@ -100,7 +100,7 @@ jsend.on('click', function() {
 			$('#code').focus();
 			var t = 60; // 倒计时
 			jsend.button(<?php echo xn_json_encode_for_script(lang('user_send_sucessfully'));?> + ' 60 ');
-			jsubmit.button('reset');
+			jsubmit.button('enable');
 			// 倒计时，重新发送
 			var handler = setInterval(function() {
 				jsend.button(<?php echo xn_json_encode_for_script(lang('user_send_sucessfully'));?> + ' '+(--t)+' ');

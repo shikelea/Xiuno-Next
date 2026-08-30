@@ -2,6 +2,7 @@
 
 $root = dirname(__DIR__);
 $app = $root.'/tmp/plugin_theme_overwrite_compile_smoke_app/';
+$skips = array();
 
 function fail($message) {
 	fwrite(STDERR, "FAIL: $message\n");
@@ -64,6 +65,8 @@ write_plugin($app, 'symlink_theme_demo', 1, 1, 70);
 $symlink_created = create_symlink_fixture($app.'outside_target.htm', $app.'plugin/symlink_theme_demo/overwrite/view/htm/theme_target.htm');
 if($symlink_created) {
 	file_put_contents($app.'outside_target.htm', 'symlink-overwrite');
+} else {
+	$skips[] = 'overwrite symlink creation is unavailable; the external-target negative case was not exercised.';
 }
 
 defined('DEBUG') || define('DEBUG', 0);
@@ -112,4 +115,5 @@ if($disabled !== 'core-template') {
 
 rm_dir($app);
 
-echo "OK: theme overwrite compile smoke checks passed\n";
+echo "OK: theme overwrite compile smoke checks passed for available fixtures\n";
+foreach($skips as $skip) echo 'SKIP: '.$skip.PHP_EOL;

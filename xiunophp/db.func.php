@@ -57,6 +57,19 @@ function db_sql_find_one($sql, $d = NULL) {
 	return $arr;
 }
 
+// Schema/authorization checks that coordinate with a write must observe the write connection.
+// Unsupported drivers fail closed instead of silently falling back to a potentially stale replica.
+function db_sql_find_one_master($sql, $d = NULL) {
+	$db = $_SERVER['db'];
+	$d = $d ? $d : $db;
+	if(!$d || !method_exists($d, 'sql_find_one_master')) return FALSE;
+	$arr = $d->sql_find_one_master($sql);
+
+	db_errno_errstr($arr, $d, $sql);
+
+	return $arr;
+}
+
 function db_sql_find($sql, $key = NULL, $d = NULL) {
 	$db = $_SERVER['db'];
 	$d = $d ? $d : $db;
@@ -65,6 +78,20 @@ function db_sql_find($sql, $key = NULL, $d = NULL) {
 	
 	db_errno_errstr($arr, $d, $sql);
 	
+	return $arr;
+}
+
+// Generation-bound snapshots must observe the same write connection that advanced their
+// generation. Unsupported drivers fail closed so callers can use an explicit single-endpoint
+// fallback instead of silently publishing replica-stale rows as current.
+function db_sql_find_master($sql, $key = NULL, $d = NULL) {
+	$db = $_SERVER['db'];
+	$d = $d ? $d : $db;
+	if(!$d || !method_exists($d, 'sql_find_master')) return FALSE;
+	$arr = $d->sql_find_master($sql, $key);
+
+	db_errno_errstr($arr, $d, $sql);
+
 	return $arr;
 }
 
@@ -108,6 +135,16 @@ function db_plugin_lifecycle_active() {
 	return !empty($plugin_lifecycle_guard) && is_array($plugin_lifecycle_guard);
 }
 
+// 兼容事件是运维审计信息：生产 DEBUG=0 时也必须落盘。
+// xn_log() 在 DEBUG=0 时丢弃通道名不含 error 的日志，因此这里直接走 XiunoLogger::write()。
+function db_plugin_sql_compat_log($s) {
+	if(class_exists('XiunoLogger')) {
+		XiunoLogger::write('plugin_sql_compat', $s);
+		return;
+	}
+	if(function_exists('xn_log')) xn_log($s, 'plugin_sql_compat');
+}
+
 function db_plugin_lifecycle_normalize_sql($sql) {
 	if(!db_plugin_lifecycle_active() || !db_exec_is_ddl($sql)) return $sql;
 	$normalized = preg_replace_callback(
@@ -124,7 +161,7 @@ function db_plugin_lifecycle_normalize_sql($sql) {
 			."\r\naction: ".$action
 			."\r\nSQL:".$sql
 			."\r\nnormalized: ".$normalized;
-		xn_log($s, 'plugin_sql_compat');
+		db_plugin_sql_compat_log($s);
 	}
 	return $normalized;
 }
@@ -161,7 +198,7 @@ function db_plugin_lifecycle_idempotent_ddl_error($sql, $d) {
 		."\r\naction: ".$action
 		."\r\nSQL:".$sql
 		."\r\nerrno: ".$errno.", errstr: ".(isset($d->errstr) ? $d->errstr : '');
-	xn_log($s, 'plugin_sql_compat');
+	db_plugin_sql_compat_log($s);
 	return TRUE;
 }
 
@@ -270,6 +307,18 @@ function db_find($table, $cond = array(), $orderby = array(), $page = 1, $pagesi
 	return $d->find($table, $cond, $orderby, $page, $pagesize, $key, $col);
 }
 
+// Read a result set from the write connection when replica lag would break a destructive or
+// coordination invariant. Unsupported drivers fail closed instead of silently using a slave.
+function db_find_master($table, $cond = array(), $orderby = array(), $page = 1, $pagesize = 10, $key = '', $col = array(), $d = NULL) {
+	$db = $_SERVER['db'];
+	$d = $d ? $d : $db;
+	if(!$d || !method_exists($d, 'find_master')) return FALSE;
+
+	$r = $d->find_master($table, $cond, $orderby, $page, $pagesize, $key, $col);
+	db_errno_errstr($r, $d);
+	return $r;
+}
+
 function db_find_one($table, $cond = array(), $orderby = array(), $col = array(), $d = NULL) {
 	$db = $_SERVER['db'];
 	
@@ -278,6 +327,18 @@ function db_find_one($table, $cond = array(), $orderby = array(), $col = array()
 	if(!$d) return FALSE;
 	
 	return $d->find_one($table, $cond, $orderby, $col);
+}
+
+// Read from the write connection when stale replica data would violate an authorization or
+// compare-and-swap invariant. Unsupported drivers fail closed instead of silently using a slave.
+function db_find_one_master($table, $cond = array(), $orderby = array(), $col = array(), $d = NULL) {
+	$db = $_SERVER['db'];
+	$d = $d ? $d : $db;
+	if(!$d || !method_exists($d, 'find_one_master')) return FALSE;
+
+	$r = $d->find_one_master($table, $cond, $orderby, $col);
+	db_errno_errstr($r, $d);
+	return $r;
 }
 
 // 保存 $db 错误到全局

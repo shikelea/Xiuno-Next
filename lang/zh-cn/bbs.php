@@ -83,6 +83,7 @@ return array(
 	'thread_create_date'=>'发帖时间',
 	'post_create_date'=>'回帖时间',
 	'uploaded_attach'=>'上传的附件',
+	'attach_upload_in_progress'=>'正在上传附件，请等待上传完成后再提交。',
 	
 	
 	// 用户相关
@@ -110,6 +111,7 @@ return array(
 	'user_send_sucessfully'=>'发送成功',
 	'user_create'=>'用户注册',
 	'user_create_sucessfully'=>'用户注册成功',
+	'user_create_login_failed'=>'账号已创建，但无法建立登录状态。请前往登录页面手动登录。',
 	'user_login'=>'用户登录',
 	'user_profile'=>'个人资料',
 	'user_resetpw'=>'重设密码',
@@ -178,6 +180,8 @@ return array(
 	'filesize_too_large' => '文件尺寸太大，不能超过 {maxsize}，当前大小：{size}',
 	'directory_create_failed' => '目录创建失败',
 	'write_to_file_failed' => '写入文件失败',
+	'attach_filename_invalid' => '附件文件名无效，请移除路径分隔符或控制字符后重试',
+	'attach_filename_too_long' => '附件文件名不能超过 {max} 个字符',
 	'user_group_insufficient_privilege' => '您所在的用户组权限不足',
 	
 	
@@ -232,6 +236,9 @@ return array(
 	'view_thread_message' => '查看主题内容',
 	'last_reply' => '最后回复',
 	'attach_not_exists' => '附件不存在',
+	'attach_upload_forbidden' => '您所在的用户组无权上传附件',
+	'attach_filetype_not_allowed' => '不允许上传此文件类型',
+	'attach_draft_limit_reached' => '当前会话打开的发帖页面过多，请完成或关闭一个页面后重试',
 	'insufficient_privilege_to_download' => '您所在的用户组无权下载该附件',
 	'insufficient_privilege' => '权限不足',
 	'advanced_reply' => '高级回复',

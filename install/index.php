@@ -9,9 +9,13 @@ define('INSTALL_LOCK_FILE', APP_PATH.'conf/.installed.lock');
 
 // 切换到上一级目录，操作很方便。
 
+include INSTALL_PATH.'install.func.php';
+require_once INSTALL_PATH.'install-state.func.php';
+
 $conf = (include APP_PATH.'conf/conf.default.php');
-$lang = include APP_PATH."lang/$conf[lang]/bbs.php";
-$lang += include APP_PATH."lang/$conf[lang]/bbs_install.php";
+$conf['lang'] = install_language_resolve(isset($conf['lang']) ? $conf['lang'] : 'zh-cn');
+$lang = include APP_PATH."lang/{$conf['lang']}/bbs.php";
+$lang += include APP_PATH."lang/{$conf['lang']}/bbs_install.php";
 $conf['log_path'] = APP_PATH.$conf['log_path']; 
 $conf['tmp_path'] = APP_PATH.$conf['tmp_path']; 
 
@@ -29,7 +33,6 @@ include APP_PATH.'model/group.func.php';
 include APP_PATH.'model/check.func.php';
 include APP_PATH.'model/form.func.php';
 include APP_PATH.'model/forum.func.php';
-include INSTALL_PATH.'install.func.php';
 
 $action = param('action');
 
@@ -38,11 +41,18 @@ if(!in_array($method, array('GET', 'POST'), TRUE)) {
 }
 install_session_start();
 
-// Already installed: never expose the installer flow directly.
-(is_file(APP_PATH.'conf/conf.php') || is_file(INSTALL_LOCK_FILE)) AND message(0, jump(lang('installed_tips'), '../'));
+// Use the same state model as the front entry: valid installs redirect, incomplete
+// states stop with an actionable diagnostic instead of bouncing forever.
+$install_state = xn_install_state_inspect(APP_PATH.'conf/conf.php', INSTALL_LOCK_FILE);
+$install_state['state'] === 'valid' AND message(0, jump(lang('installed_tips'), '../'));
+if(in_array($install_state['state'], array('present-invalid', 'lock-only'), TRUE)) {
+	$diagnostic = xn_install_state_diagnostic($install_state['state']);
+	http_response_code(503);
+		message(-1, $diagnostic['message']);
+}
 
-// 从 cookie 中获取数据，默认为中文
-$_lang = param('lang', 'zh-cn');
+// 语言已在加载语言包前从白名单 POST/cookie 中解析。
+$_lang = $conf['lang'];
 
 
 
@@ -57,14 +67,9 @@ if(empty($action)) {
 		include INSTALL_PATH."view/htm/index.htm";
 	} else {
 		install_csrf_check();
-		$_lang = install_post('lang');
-		!in_array($_lang, array('zh-cn', 'zh-tw', 'en-us', 'ru-ru', 'th-th')) AND $_lang = 'zh-cn';
+		$_lang = install_language_normalize(install_post('lang'), 'zh-cn');
+		$conf['lang'] = $_lang;
 		xn_setcookie('lang', $_lang, 0, '', TRUE);
-		
-		//$conf['lang'] = $_lang;
-		//xn_copy(APP_PATH.'./conf/conf.default.php', APP_PATH.'./conf/conf.backup.php');
-		//$r = file_replace_var(APP_PATH.'conf/conf.default.php', array('lang'=>$_lang));
-		//$r === FALSE AND message(-1, jump(lang('please_set_conf_file_writable'), ''));
 		
 		http_location('index.php?action=license');
 	}
@@ -79,9 +84,10 @@ if(empty($action)) {
 } elseif($action == 'env') {
 	
 	if($method == 'GET') {
-		$succeed = 1;
-		$env = $write = array();
-		get_env($env, $write);
+		$requirements = install_requirements_check();
+		$succeed = $requirements['ok'] ? 1 : 0;
+		$env = $requirements['env'];
+		$write = $requirements['write'];
 		include INSTALL_PATH."view/htm/env.htm";
 	} else {
 	
@@ -96,14 +102,25 @@ if(empty($action)) {
 		$pdo_mysql_support = extension_loaded('pdo_mysql');
 		$myisam_support = extension_loaded('pdo_mysql');
 		$innodb_support = extension_loaded('pdo_mysql');
+		$db_defaults = install_db_form_defaults();
 		
 		(!$mysql_support && !$pdo_mysql_support) AND message(-1, lang('evn_not_support_php_mysql'));
 
 		include INSTALL_PATH."view/htm/db.htm";
 		
 	} else {
-		is_file(APP_PATH.'conf/conf.php') AND message(0, jump(lang('installed_tips'), '../'));
+		// Re-read the shared state immediately before accepting an installation POST. Another
+		// request may have published a valid or invalid state after this request entered.
+		$post_install_state = xn_install_state_inspect(APP_PATH.'conf/conf.php', INSTALL_LOCK_FILE);
+		$post_install_state['state'] === 'valid' AND message(0, jump(lang('installed_tips'), '../'));
+		if($post_install_state['state'] !== 'missing') {
+			$diagnostic = xn_install_state_diagnostic($post_install_state['state']);
+			http_response_code(503);
+			message(-1, $diagnostic['message']);
+		}
 		install_csrf_check();
+		$requirements = install_requirements_check();
+		empty($requirements['ok']) AND message(-1, implode("\n", $requirements['errors']));
 		
 		$type = install_post('type');
 		$engine = install_post('engine');
@@ -111,7 +128,6 @@ if(empty($action)) {
 		$name = install_post('name');
 		$user = install_post('user');
 		$password = install_post('password');
-		$force = install_post('force');
 		
 		$adminemail = install_post('adminemail');
 		$adminuser = install_post('adminuser');
@@ -153,6 +169,31 @@ if(empty($action)) {
 		$conf['db']['pdo_mysql']['master']['user'] = $user;
 		$conf['db']['pdo_mysql']['master']['password'] = $password;
 		$conf['db']['pdo_mysql']['master']['engine'] = $engine;
+
+		$auth_key = install_secure_random_hex(32);
+		$auth_key === FALSE AND message(-1, 'Unable to generate a secure installation key.');
+		try {
+			$password_hash = password_hash(md5($adminpass), PASSWORD_BCRYPT);
+		} catch(Throwable $e) {
+			$password_hash = FALSE;
+		}
+		(!is_string($password_hash) || $password_hash === '') AND message(-1, 'Unable to secure the administrator password.');
+		$replace = array(
+			'db'=>$conf['db'],
+			'auth_key'=>$auth_key,
+			'installed'=>1,
+			'lang'=>$conf['lang'],
+		);
+		$conf_stage = install_config_stage_begin(
+			APP_PATH.'conf/conf.default.php',
+			APP_PATH.'conf/conf.php',
+			$replace
+		);
+		empty($conf_stage['ok']) AND message(-1, $conf_stage['error']);
+		foreach(array('tmp', 'attach', 'avatar', 'forum') as $upload_dir) {
+			install_directory_prepare(APP_PATH.'upload/'.$upload_dir, 0777) === FALSE
+				AND message(-1, 'Failed to initialize the upload directories.');
+		}
 		
 		$_SERVER['db'] = $db = db_new($conf['db']);
 		// 此处可能报错
@@ -197,45 +238,38 @@ if(empty($action)) {
 			$db->innodb_first = FALSE;
 		}
 		
-		// 连接成功以后，开始建表，导数据。
+		// 连接成功以后，先在同一连接加锁并确认目标库没有任何 Xiuno 核心表。
+		// 检查失败与发现旧表都 fail-closed，绝不进入 schema DDL。
+		$prepare = install_database_prepare($db, INSTALL_PATH.'install.sql');
+		empty($prepare['ok']) AND message(-1, $prepare['error']);
 		
-		install_sql_file(INSTALL_PATH.'install.sql');
+		// 初始化管理员、本地化数据与必要目录。0 行更新可能是幂等成功，只有 FALSE 才失败。
+		$update = array('username'=>$adminuser, 'email'=>$adminemail, 'password'=>$password_hash, 'salt'=>'', 'create_date'=>$time, 'create_ip'=>$longip);
+		$admin_expected = array('username'=>$adminuser, 'email'=>$adminemail, 'password'=>$password_hash, 'salt'=>'');
+		$admin_write = db_update('user', array('uid'=>1), $update);
+		$admin_record = db_find_one('user', array('uid'=>1));
+		!install_record_update_verified($admin_write, $admin_record, $admin_expected)
+			AND message(-1, 'Failed to initialize the administrator account.');
+		foreach(array(0, 1, 2, 4, 5, 6, 7, 101, 102, 103, 104, 105) as $gid) {
+			$group_expected = array('name'=>lang('group_'.$gid));
+			$group_write = group_update($gid, $group_expected);
+			$group_record = db_find_one('group', array('gid'=>$gid));
+			!install_record_update_verified($group_write, $group_record, $group_expected)
+				AND message(-1, 'Failed to initialize localized group names.');
+		}
+		$forum_expected = array('name'=>lang('default_forum_name'), 'brief'=>lang('default_forum_brief'));
+		$forum_write = forum_update(1, $forum_expected);
+		$forum_record = db_find_one('forum', array('fid'=>1));
+		!install_record_update_verified($forum_write, $forum_record, $forum_expected)
+			AND message(-1, 'Failed to initialize the default forum.');
+
+		// conf.php 是最后核心提交点；同目录 no-clobber link 原子发布，此前退出会清理 owned staging。
+		install_config_stage_commit($conf_stage) === FALSE
+			AND message(-1, lang('write_to_file_failed'));
+		// 防御纵深锁可由前台入口重建，因此提交后写失败不回滚已验证的 conf.php。
+		@file_put_contents(INSTALL_LOCK_FILE, date('c')."\n", LOCK_EX);
 		
-		// 初始化
-		copy(APP_PATH.'conf/conf.default.php', APP_PATH.'conf/conf.php') || message(-1, lang('write_to_file_failed'));
-		
-		$password = password_hash(md5($adminpass), PASSWORD_BCRYPT);
-		$update = array('username'=>$adminuser, 'email'=>$adminemail, 'password'=>$password, 'salt'=>'', 'create_date'=>$time, 'create_ip'=>$longip);
-		db_update('user', array('uid'=>1), $update);
-		
-		$replace = array();
-		$replace['db'] = $conf['db'];
-		$replace['auth_key'] = xn_rand(64);
-		$replace['installed'] = 1;
-		file_replace_var(APP_PATH.'conf/conf.php', $replace) === FALSE AND message(-1, lang('write_to_file_failed'));
-		file_put_contents(INSTALL_LOCK_FILE, date('c')."\n", LOCK_EX) === FALSE AND message(-1, lang('write_to_file_failed'));
-		
-		// 处理语言包
-		group_update(0, array('name'=>lang('group_0')));
-		group_update(1, array('name'=>lang('group_1')));
-		group_update(2, array('name'=>lang('group_2')));
-		group_update(4, array('name'=>lang('group_4')));
-		group_update(5, array('name'=>lang('group_5')));
-		group_update(6, array('name'=>lang('group_6')));
-		group_update(7, array('name'=>lang('group_7')));
-		group_update(101, array('name'=>lang('group_101')));
-		group_update(102, array('name'=>lang('group_102')));
-		group_update(103, array('name'=>lang('group_103')));
-		group_update(104, array('name'=>lang('group_104')));
-		group_update(105, array('name'=>lang('group_105')));
-		
-		forum_update(1, array('name'=>lang('default_forum_name'), 'brief'=>lang('default_forum_brief')));
-				
-		xn_mkdir(APP_PATH.'upload/tmp', 0777);
-		xn_mkdir(APP_PATH.'upload/attach', 0777);
-		xn_mkdir(APP_PATH.'upload/avatar', 0777);
-		xn_mkdir(APP_PATH.'upload/forum', 0777);
-		
+		install_db_advisory_lock_end();
 		install_lock_end();
 		message(0, jump(lang('conguralation_installed'), '../'));
 	}
@@ -250,6 +284,10 @@ function install_lock_start() {
 
 function install_lock_end() {
 	global $install_task_locked;
+	// Shutdown handlers run in registration order. Clean owned staging and release the DB lock here
+	// before exposing the local task lock to another installer request.
+	install_config_stage_cleanup();
+	install_db_advisory_lock_end();
 	if(empty($install_task_locked)) return;
 	xn_lock_end('install_task');
 	$install_task_locked = FALSE;

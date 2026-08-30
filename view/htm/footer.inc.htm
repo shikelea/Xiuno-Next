@@ -63,7 +63,6 @@
 	var gid = <?php echo intval($gid);?>;
 	var csrf_token = <?php echo xn_json_encode_for_script(csrf_token());?>;
 	xn.options.water_image_url = <?php echo xn_json_encode_for_script($conf['logo_water_url']);?>;
-	$.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN',csrf_token);}});
 	</script>
 	<script src="<?php echo $conf['view_url'];?>js/bbs.min.js<?php echo $static_version;?>"></script>
 	<?php theme_render_scripts(); ?>

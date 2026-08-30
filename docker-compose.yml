@@ -4,26 +4,34 @@ services:
     build:
       context: ./docker/php
       dockerfile: Dockerfile
-    image: xiuno-app:latest
-    container_name: xiuno-app
     restart: always
     volumes:
-      - ./:/var/www/html
+      - ./:/var/www/html:ro
+      - ./conf:/var/www/html/conf
+      - ./log:/var/www/html/log
+      - ./tmp:/var/www/html/tmp
+      - ./upload:/var/www/html/upload
+      # 依赖目录使用独立可写卷；源码和第三方插件树继续保持只读。
+      - vendor-data:/var/www/html/vendor
     environment:
       # 设置 PHP 配置
       PHP_OPCACHE_ENABLE: 1
+      # 安装向导只据此预填非敏感的 Compose 数据库连接项；密码仍需手动输入。
+      XIUNO_INSTALL_PROFILE: docker
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - xiuno-net
 
   # Web 服务 (Nginx)
   web:
     image: nginx:alpine
-    container_name: xiuno-web
     restart: always
     ports:
-      - "8080:80"
+      - "${XIUNO_HTTP_PORT:-8080}:80"
     volumes:
-      - ./:/var/www/html
+      - ./:/var/www/html:ro
       - ./docker/nginx/conf.d:/etc/nginx/conf.d
     depends_on:
       - app
@@ -33,7 +41,6 @@ services:
   # 数据库服务 (MySQL)
   db:
     image: mysql:8.0
-    container_name: xiuno-db
     restart: always
     command: --default-authentication-plugin=mysql_native_password
     environment:
@@ -43,6 +50,12 @@ services:
       MYSQL_PASSWORD: xiuno_password_changeme # 生产环境请修改！
     volumes:
       - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$${MYSQL_ROOT_PASSWORD} mysqladmin ping --host=127.0.0.1 --user=root --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
     networks:
       - xiuno-net
 
@@ -52,3 +65,4 @@ networks:
 
 volumes:
   db-data:
+  vendor-data:

@@ -19,6 +19,16 @@
 					<div class="col-md-4"><span class="text-muted"><?php echo lang('attachs');?>：</span><?php echo $stat['attachs']; ?></div>
 					<div class="col-md-4"><span class="text-muted"><?php echo lang('disk_free_space');?>：</span><?php echo $stat['disk_free_space']; ?></div>
 					<div class="col-md-4"><span class="text-muted"><?php echo lang('onlines');?>：</span><?php echo $runtime['onlines']; ?></div>
+					<div class="col-12 mt-2">
+						<?php foreach($stat['storage_spaces'] as $storage_space) { ?>
+							<div class="small">
+								<span class="text-muted"><?php echo htmlspecialchars($storage_space['key'], ENT_QUOTES, 'UTF-8');?>：</span>
+								<?php echo htmlspecialchars($storage_space['free'], ENT_QUOTES, 'UTF-8');?>
+								<code class="text-break ms-1"><?php echo htmlspecialchars($storage_space['path'], ENT_QUOTES, 'UTF-8');?></code>
+								<span class="ms-1 <?php echo $storage_space['exists'] && $storage_space['writable'] ? 'text-success' : 'text-danger';?>">R/W: <?php echo $storage_space['exists'] && $storage_space['writable'] ? lang('yes') : lang('no');?></span>
+							</div>
+						<?php } ?>
+					</div>
 					
 				</div>
 			</div>
@@ -54,12 +64,29 @@
 					<div class="col-md-6"><span class="text-muted"><?php echo lang('upload_max_filesize');?>：</span><?php echo $info['upload_max_filesize']; ?></div>
 					
 					<div class="col-md-6"><span class="text-muted"><?php echo lang('allow_url_fopen');?>：</span><?php echo $info['allow_url_fopen']; ?></div>
-					<div class="col-md-6"><span class="text-muted"><?php echo lang('safe_mode');?>：</span><?php echo $info['safe_mode']; ?></div>
+					<div class="col-md-6"><span class="text-muted"><?php echo lang('plugin_safe_mode');?>：</span><?php echo $info['safe_mode']; ?></div>
 					<div class="col-md-6"><span class="text-muted"><?php echo lang('max_execution_time');?>：</span><?php echo $info['max_execution_time']; ?></div>
 					
 					<div class="col-md-6"><span class="text-muted"><?php echo lang('memory_limit');?>：</span><?php echo $info['memory_limit']; ?></div>
 					<div class="col-md-6"><span class="text-muted"><?php echo lang('client_ip');?>：</span><?php echo $ip; ?></div>
 					<div class="col-md-6"><span class="text-muted"><?php echo lang('server_ip');?>：</span><?php echo _SERVER('SERVER_ADDR'); ?></div>
+					<div class="col-12 mt-2">
+						<div><span class="text-muted"><?php echo lang('plugin_safe_mode_marker_path');?>：</span><code class="text-break"><?php echo plugin_safe_mode_html($info['plugin_safe_mode']['marker_path'], 1024);?></code></div>
+						<div><span class="text-muted"><?php echo lang('plugin_safe_mode_log_path');?>：</span><code class="text-break"><?php echo plugin_safe_mode_html($info['plugin_safe_mode']['log_path'], 1024);?></code></div>
+						<div><span class="text-muted"><?php echo lang('plugin_safe_mode_latest_error');?>：</span>
+							<?php if($info['plugin_safe_mode']['latest_error'] !== '') { ?>
+								<pre class="small bg-light border rounded p-2 mt-1 mb-0 text-wrap"><?php echo plugin_safe_mode_html($info['plugin_safe_mode']['latest_error'], 2048);?></pre>
+							<?php } else { ?>
+								<span class="text-muted"><?php echo lang('none');?></span>
+							<?php } ?>
+						</div>
+						<?php if($info['plugin_safe_mode']['active']) { ?>
+							<form method="post" action="<?php echo plugin_safe_mode_html(url('index-safe_mode_exit'), 2048);?>" class="mt-2 mb-0">
+								<input type="hidden" name="_token" value="<?php echo plugin_safe_mode_html(csrf_token(), 256);?>">
+								<button type="submit" class="btn btn-warning btn-sm"><?php echo lang('plugin_safe_mode_exit');?></button>
+							</form>
+						<?php } ?>
+					</div>
 					
 				</div>
 			</div>

@@ -49,6 +49,23 @@ if($action == 'login') {
 
 	message(0, jump(lang('logout_successfully'), './'));
 
+} elseif ($action == 'safe_mode_exit') {
+
+	$method != 'POST' AND message(-1, 'Method Not Allowed');
+	$safe_mode_error = '';
+	$safe_mode_failed_paths = array();
+	$safe_mode_exited = plugin_safe_mode_exit($conf, APP_PATH, $safe_mode_error, $safe_mode_failed_paths);
+	if(!$safe_mode_exited) {
+		$error_keys = array(
+			'locked'=>'plugin_safe_mode_exit_locked',
+			'clear_failed'=>'plugin_safe_mode_exit_clear_failed',
+			'unlock_failed'=>'plugin_safe_mode_exit_unlock_failed',
+		);
+		$error_key = isset($error_keys[$safe_mode_error]) ? $error_keys[$safe_mode_error] : 'plugin_safe_mode_exit_clear_failed';
+		message(-1, lang($error_key));
+	}
+	message(0, jump(lang('plugin_safe_mode_exit_success'), url('index')));
+
 } elseif ($action == 'phpinfo') {
 
 	// 🔒 安全修复：限制 phpinfo() 仅管理员可访问，防止敏感信息泄露
@@ -70,7 +87,8 @@ if($action == 'login') {
 	$info = array();
 	$info['disable_functions'] = ini_get('disable_functions');
 	$info['allow_url_fopen'] = ini_get('allow_url_fopen') ? lang('yes') : lang('no');
-	$info['safe_mode'] = ini_get('safe_mode') ? lang('yes') : lang('no');
+	$info['plugin_safe_mode'] = plugin_safe_mode_status($conf, APP_PATH);
+	$info['safe_mode'] = $info['plugin_safe_mode']['active'] ? lang('yes') : lang('no');
 	empty($info['disable_functions']) && $info['disable_functions'] = lang('none');
 	$info['upload_max_filesize'] = ini_get('upload_max_filesize');
 	$info['post_max_size'] = ini_get('post_max_size');
@@ -88,6 +106,11 @@ if($action == 'login') {
 	$stat['users'] = user_count();
 	$stat['attachs'] = attach_count();
 	$stat['disk_free_space'] = function_exists('disk_free_space') ? humansize(disk_free_space(APP_PATH)) : lang('unknown');
+	$stat['storage_spaces'] = diagnostic_storage_spaces($conf, APP_PATH);
+	foreach($stat['storage_spaces'] as &$storage_space) {
+		$storage_space['free'] = $storage_space['free_bytes'] === FALSE ? lang('unknown') : humansize($storage_space['free_bytes']);
+	}
+	unset($storage_space);
 	
 	$security = array();
 	$security['version'] = $conf['version'];

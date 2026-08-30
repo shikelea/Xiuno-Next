@@ -28,7 +28,7 @@ if($action == 'create') {
 		
 		$header['title'] = lang('create_thread');
 		$header['mobile_title'] = $fid ? $forum['name'] : '';
-		$header['mobile_linke'] = url("forum-$fid");
+		$header['mobile_link'] = url("forum-$fid");
 		
 		// hook thread_create_get_end.php
 		
@@ -45,15 +45,18 @@ if($action == 'create') {
 		$r = forum_access_user($fid, $gid, 'allowthread');
 		!$r AND message(-1, lang('user_group_insufficient_privilege'));
 		
-		$subject = htmlspecialchars(param('subject', '', FALSE));
+		$subject = thread_subject_normalize(param('subject', '', FALSE));
 		empty($subject) AND message('subject', lang('please_input_subject'));
-		xn_strlen($subject) > 128 AND message('subject', lang('subject_length_over_limit', array('maxlength'=>128)));
+		$subject_maxlength = thread_subject_maxlength();
+		thread_subject_is_too_long($subject) AND message('subject', lang('subject_length_over_limit', array('maxlength'=>$subject_maxlength)));
 		
 		$message = param('message', '', FALSE);
 		empty($message) AND message('message', lang('please_input_message'));
 		$doctype = param('doctype', 0);
 		$doctype > 10 AND message(-1, lang('doc_type_not_supported'));
 		xn_strlen($message) > 2028000 AND message('message', lang('message_too_long'));
+		$attach_draft = param('attach_draft', '', FALSE);
+		!attach_draft_exists($attach_draft) AND message('attach_draft', lang('data_malformation'));
 		
 		$thread = array (
 			'fid'=>$fid,
@@ -68,7 +71,7 @@ if($action == 'create') {
 		
 		// hook thread_create_thread_before.php
 		
-		$tid = thread_create($thread, $pid);
+		$tid = thread_create($thread, $pid, $attach_draft);
 		$pid === FALSE AND message(-1, lang('create_post_failed'));
 		$tid === FALSE AND message(-1, lang('create_thread_failed'));
 		

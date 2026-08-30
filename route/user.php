@@ -78,13 +78,13 @@ if(empty($action)) {
 
 		user_login_rate_limited($email) AND message('email', 'Please try again later');
 		if($login_identifier_type == 'email') {
-			$_user = user_read_by_email($email);
+			$_user = user_read_by_email($email, TRUE);
 			if(empty($_user)) {
 				user_login_rate_fail($email);
 				message('email', lang('email_not_exists'));
 			}
 		} else {
-			$_user = user_read_by_username($email);
+			$_user = user_read_by_username($email, TRUE);
 			if(empty($_user)) {
 				user_login_rate_fail($email);
 				message('email', lang('username_not_exists'));
@@ -104,8 +104,11 @@ if(empty($action)) {
 		// helper 同时同步过程式代码后续会使用的全局 $sid。
 		sess_regenerate_id() OR message(-1, 'Unable to renew session. Please try again.');
 
-		// 渐进式密码升级：旧 MD5 哈希自动迁移为 bcrypt
-		user_password_needs_upgrade($_user) AND user_upgrade_password($_user['uid'], $password);
+		// Re-verify under the credential lock. A concurrently replaced password must not let the
+		// already-presented old password inherit the replacement credential generation.
+		$_user = user_login_credentials_refresh($_user['uid'], $password);
+		empty($_user) AND message(-1, 'Account credentials changed during sign-in. Please try again.');
+		user_format($_user);
 
 		user_update($_user['uid'], array('login_ip'=>$longip, 'login_date' =>$time , 'logins+'=>1));
 		user_login_rate_clear($email);
@@ -114,9 +117,11 @@ if(empty($action)) {
 		// global variable $uid will save to session in register_shutdown_function() (file: model/session.func.php)
 		$uid = $_user['uid'];
 
-		$_SESSION['uid'] = $uid;
-
-		user_token_set($_user['uid']);
+		$login_auth_epoch = user_auth_epoch($_user);
+		user_token_set($_user['uid'], $login_auth_epoch)
+			OR message(-1, 'Unable to issue login credentials. Please try again.');
+		user_session_auth_bind($uid, $login_auth_epoch)
+			OR message(-1, 'Unable to bind the authenticated session. Please try again.');
 
 		// hook user_login_post_end.php
 
@@ -160,11 +165,11 @@ if(empty($action)) {
 		}
 		
 		!is_email($email, $err) AND message('email', $err);
-		$_user = user_read_by_email($email);
+		$_user = user_read_by_email($email, TRUE);
 		$_user AND message('email', lang('email_is_in_use'));
 		
 		!is_username($username, $err) AND message('username', $err);
-		$_user = user_read_by_username($username);
+		$_user = user_read_by_username($username, TRUE);
 		$_user AND message('username', lang('username_is_in_use'));
 		
 		!is_password($password, $err) AND message('password', $err);
@@ -187,15 +192,27 @@ if(empty($action)) {
 		sess_regenerate_id() OR message(-1, 'Unable to renew session. Please try again.');
 		$uid = user_create($_user);
 		$uid === FALSE AND message('email', lang('user_create_failed'));
-		$user = user_read($uid);
+		$user = user_read_primary_proven($uid);
 	
 		// 更新 session
 		
 		user_email_code_clear('user_create');
-		$_SESSION['uid'] = $uid;
-		user_token_set($uid);
+		$create_auth_epoch = user_auth_epoch($user);
+		$create_session_bound = user_session_auth_bind($uid, $create_auth_epoch);
+		$create_token_set = $create_session_bound && user_token_set($uid, $create_auth_epoch);
+		if(!$create_session_bound || !$create_token_set) {
+			$uid = 0;
+			$user = array();
+			$_SESSION['uid'] = 0;
+			unset($_SESSION['auth_epoch']);
+			user_token_clear();
+			message(-1, lang('user_create_login_failed'), array(
+				'account_created'=>1,
+				'login_url'=>url('user-login'),
+			));
+		}
 		
-		$extra = array('token'=>user_token_gen($uid));
+		$extra = array('token'=>user_token_gen($uid, $create_auth_epoch));
 		
 		// hook user_create_post_end.php
 		
@@ -203,24 +220,34 @@ if(empty($action)) {
 	}
 	
 } elseif($action == 'logout') {
-	
-	// hook user_logout_start.php
-	
-	$uid = 0;
-	$_SESSION['uid'] = $uid;
-	user_token_clear();
-	
-	// hook user_logout_end.php
-	
-	message(0, jump(lang('logout_successfully'), http_referer(), 1));
-	//message(0, jump('退出成功', './', 1));
+
+	if($method == 'GET') {
+		// Legacy themes still emit a plain logout link. Keep that URL usable, but require an
+		// explicit CSRF-protected POST before changing Session or long-lived token state.
+		$referer = user_http_referer();
+		$header['title'] = lang('logout');
+		include _include(APP_PATH.'view/htm/user_logout.htm');
+	} elseif($method == 'POST') {
+		// hook user_logout_start.php
+
+		$uid = 0;
+		$_SESSION['uid'] = $uid;
+		unset($_SESSION['auth_epoch']);
+		user_token_clear();
+
+		// hook user_logout_end.php
+
+		message(0, jump(lang('logout_successfully'), user_http_referer(), 1));
+	} else {
+		message(-1, 'Method Not Allowed');
+	}
 	
 // 重设密码第 1 步 | reset password first step
 } elseif($action == 'resetpw') {
 	
 	// hook user_resetpw_get_post.php
 	
-	!$conf['user_resetpw_on'] AND message(-1, '未开启密码找回功能！');
+	!$conf['user_resetpw_on'] AND message(-1, lang('resetpw_not_on'));
 		
 	if($method == 'GET') {
 
@@ -240,15 +267,16 @@ if(empty($action)) {
 		empty($email) AND message('email', lang('please_input_email'));
 		!is_email($email, $err) AND message('email', $err);
 		
-		$_user = user_read_by_email($email);
+		$_user = user_read_by_email($email, TRUE);
 		!$_user AND message('email', lang('email_is_not_in_use'));
 
 		$code = param('code');
 		empty($code) AND message('code', lang('please_input_verify_code'));
 		
 		user_email_code_verify('user_resetpw', $email, $code);
-	
-		$_SESSION['resetpw_verify_ok'] = 1;
+		user_reset_grant_issue($_user['uid'], $email) === FALSE
+			AND message(-1, 'Unable to issue a password-reset authorization. Please try again.');
+		user_email_code_clear('user_resetpw');
 		
 		// hook user_resetpw_post_end.php
 		
@@ -261,13 +289,14 @@ if(empty($action)) {
 	// hook user_resetpw_get_post.php
 	
 	// 校验数据
-	$email = _SESSION('user_resetpw_email');
-	$resetpw_verify_ok = _SESSION('resetpw_verify_ok');
-	(empty($email) || empty($resetpw_verify_ok)) AND message(-1, lang('data_empty_to_last_step'));
-	
-	$_user = user_read_by_email($email);
+	$resetpw_grant = user_reset_grant_current();
+	empty($resetpw_grant) AND message(-1, lang('data_empty_to_last_step'));
+	$_uid = intval($resetpw_grant['uid']);
+	$_user = user_read_primary_proven($_uid);
 	empty($_user) AND message(-1, lang('email_not_exists'));
-	$_uid = $_user['uid'];
+	user_reset_grant_email($_user['email']) !== user_reset_grant_email($resetpw_grant['email'])
+		AND message(-1, lang('data_empty_to_last_step'));
+	$email = $_user['email'];
 	
 	if($method == 'GET') {
 
@@ -289,10 +318,11 @@ if(empty($action)) {
 		!is_password($password, $err) AND message('password', $err);
 		
 		$password = user_hash_password($password);
-		user_update($_uid, array('password'=>$password)) === FALSE AND message(-1, lang('password_modify_failed'));
-		
+		$password_reset_result = user_reset_grant_commit_password($password);
+		$password_reset_result === NULL AND message(-1, lang('link_has_expired'));
+		$password_reset_result === FALSE AND message(-1, lang('password_modify_failed'));
+
 		user_email_code_clear('user_resetpw');
-		unset($_SESSION['resetpw_verify_ok']);
 		
 		// hook user_resetpw_post_end.php
 		
@@ -317,7 +347,7 @@ if(empty($action)) {
 		empty($email) AND message('email', lang('please_input_email'));
 		!is_email($email, $err) AND message('email', $err);
 		empty($conf['user_create_email_on']) AND message(-1, lang('email_verify_not_on'));
-		$_user = user_read_by_email($email);
+		$_user = user_read_by_email($email, TRUE);
 		!empty($_user) AND message('email', lang('email_is_in_use'));
 		
 		$code = user_email_code_issue('user_create', $email);
@@ -330,12 +360,12 @@ if(empty($action)) {
 		
 		empty($email) AND message('email', lang('please_input_email'));
 		!is_email($email, $err) AND message('email', $err);
-		$_user = user_read_by_email($email);
+		$_user = user_read_by_email($email, TRUE);
 		empty($_user) AND message('email', lang('email_is_not_in_use'));
 		
 		empty($conf['user_resetpw_on']) AND message(-1, lang('resetpw_not_on'));
 		
-		$code = user_email_code_issue('user_resetpw', $email);
+		$code = user_email_code_issue('user_resetpw', $email, $_user['uid']);
 
 	} else {
 		message(-1, 'action2 error');
@@ -418,29 +448,26 @@ if(empty($action)) {
 // 获取用户来路
 function user_http_referer() {
 	// hook user_http_referer_start.php
-	$referer = param('referer'); // 优先从参数获取 | GET is priority
+	$referer = param('referer', '', FALSE); // 优先从参数获取 | GET is priority
 	empty($referer) AND $referer = array_value($_SERVER, 'HTTP_REFERER', '');
-	
-	$referer = str_replace(array('\"', '"', '<', '>', ' ', '*', "\t", "\r", "\n"), '', $referer); // 干掉特殊字符 strip special chars
-	
-	if(
-		!preg_match('#^(http|https)://[\w\-=/\.]+/[\w\-=.%\#?]*$#is', $referer) 
-		|| strpos($referer, 'user-login.htm') !== FALSE 
-		|| strpos($referer, 'user-logout.htm') !== FALSE 
-		|| strpos($referer, 'user-create.htm') !== FALSE 
-		|| strpos($referer, 'user-setpw.htm') !== FALSE 
-		|| strpos($referer, 'user-resetpw_complete.htm') !== FALSE
-	) {
-		$referer = './';
-	}
+	$referer = user_return_url_normalize($referer);
 	// hook user_http_referer_end.php
-	return $referer;
+	return user_return_url_normalize($referer);
 }
 
-function user_email_code_issue($prefix, $email) {
+function user_email_code_issue($prefix, $email, $uid = 0) {
 	global $time;
 	user_email_code_rate_limit($prefix, $email);
-	if($prefix == 'user_resetpw') unset($_SESSION['resetpw_verify_ok']);
+	if($prefix == 'user_resetpw') {
+		$uid = intval($uid);
+		if($uid <= 0) {
+			$_reset_user = user_read_by_email($email, TRUE);
+			$uid = empty($_reset_user) ? 0 : intval($_reset_user['uid']);
+		}
+		($uid <= 0 || !user_reset_grant_revoke_uid($uid))
+			AND message(-1, 'Unable to revoke an earlier password-reset authorization. Please try again.');
+		unset($_SESSION['resetpw_grant']);
+	}
 	$code = (string)random_int(100000, 999999);
 	$_SESSION[$prefix.'_email'] = $email;
 	$_SESSION[$prefix.'_code'] = $code;
@@ -466,21 +493,6 @@ function user_email_code_verify($prefix, $email, $code) {
 		$_SESSION[$prefix.'_code_attempts'] = $attempts + 1;
 		message('code', lang('verify_code_incorrect'));
 	}
-}
-
-function user_email_code_rate_limit($prefix, $email) {
-	global $time;
-	$window_email = _SESSION($prefix.'_send_email');
-	$window_start = intval(_SESSION($prefix.'_send_window_start'));
-	$send_count = intval(_SESSION($prefix.'_send_count'));
-	if($window_email != $email || $window_start <= 0 || $time - $window_start > 3600) {
-		$window_start = $time;
-		$send_count = 0;
-	}
-	$send_count >= 5 AND message('email', lang('verify_code_try_too_frequently', array('times'=>5)));
-	$_SESSION[$prefix.'_send_email'] = $email;
-	$_SESSION[$prefix.'_send_window_start'] = $window_start;
-	$_SESSION[$prefix.'_send_count'] = $send_count + 1;
 }
 
 function user_email_code_clear($prefix) {
@@ -530,7 +542,7 @@ function user_auth_check($token) {
 	$arr = explode('-', $s);
 	count($arr) != 3 AND message(-1, lang('encrypt_failed'));
 	list($_ip, $_time, $_uid) = $arr;
-	$_user = user_read($_uid);
+	$_user = user_read_primary_proven($_uid);
 	empty($_user) AND message(-1, lang('user_not_exists'));
 	$time - $_time > 3600 AND message(-1, lang('link_has_expired'));
 	// hook user_auth_check_end.php

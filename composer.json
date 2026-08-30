@@ -11,10 +11,13 @@
     ],
     "require": {
         "php": ">=8.0",
+        "ext-gd": "*",
         "ext-json": "*",
+        "ext-mbstring": "*",
         "ext-openssl": "*",
         "ext-pdo": "*",
         "ext-pdo_mysql": "*",
+        "ext-zip": "*",
         "phpmailer/phpmailer": "^6.9",
         "symfony/console": "^6.0"
     },
@@ -29,6 +32,11 @@
     "scripts": {
         "fix": "php-cs-fixer fix",
         "check": "php-cs-fixer fix --dry-run --diff",
+        "test": "php bin/run_checks.php --profile=deterministic",
+        "test:browser": "php bin/run_checks.php --profile=browser",
+        "test:db": "php bin/run_checks.php --profile=db --fail-on-skip",
+        "test:docker": "php bin/run_checks.php --profile=docker",
+        "test:full": "php bin/run_checks.php --profile=full --fail-on-skip",
         "docs:hooks": "php bin/generate_hook_docs.php",
         "check:version": "php bin/check_version.php"
     },

@@ -84,6 +84,7 @@ return array(
 	'post_create_date'=>'回帖時間',
 	
 	'uploaded_attach'=>'上傳的附件',
+	'attach_upload_in_progress'=>'正在上傳附件，請等待上傳完成後再提交。',
 	
 	// 用戶相關
 	'group_0'=>'遊客組',
@@ -110,6 +111,7 @@ return array(
 	'user_send_sucessfully'=>'發送成功',
 	'user_create'=>'用戶註冊',
 	'user_create_sucessfully'=>'用戶註冊成功',
+	'user_create_login_failed'=>'帳號已建立，但無法建立登入狀態。請前往登入頁面手動登入。',
 	'user_login'=>'用戶登錄',
 	'user_profile'=>'個人資料',
 	'user_resetpw'=>'重設密碼',
@@ -178,6 +180,8 @@ return array(
 	'filesize_too_large' => '文件尺寸太大，不能超過 {maxsize}，當前大小：{size}',
 	'directory_create_failed' => '目錄創建失敗',
 	'write_to_file_failed' => '寫入文件失敗',
+	'attach_filename_invalid' => '附件文件名無效，請移除路徑分隔符或控制字元後重試',
+	'attach_filename_too_long' => '附件文件名不能超過 {max} 個字元',
 	'user_group_insufficient_privilege' => '您所在的用戶組權限不足',
 	
 	// 帖子
@@ -231,6 +235,9 @@ return array(
 	'view_thread_message' => '查看主題內容',
 	'last_reply' => '最後回復',
 	'attach_not_exists' => '附件不存在',
+	'attach_upload_forbidden' => '您所在的用戶組無權上傳附件',
+	'attach_filetype_not_allowed' => '不允許上傳此文件類型',
+	'attach_draft_limit_reached' => '當前工作階段開啟的發帖頁面過多，請完成或關閉一個頁面後重試',
 	'insufficient_privilege_to_download' => '您所在的用戶組無權下載該附件',
 	'insufficient_privilege' => '权限不足',
 	'advanced_reply' => '高級回復',

@@ -811,8 +811,21 @@ function mysql8_check_strict_mode_smoke_config(string $root, array &$errors): vo
         $errors[] = '.github/workflows/ci.yml: unable to read file';
         return;
     }
-    if (substr_count($workflow, 'XIUNO_SQL_MODE: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION') < 3) {
-        $errors[] = '.github/workflows/ci.yml: strict sql_mode must cover install, legacy upgrade, and plugin SQL smokes';
+    $strictMode = 'XIUNO_SQL_MODE: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION';
+    if (strpos($workflow, $strictMode) === false
+        || strpos($workflow, 'php bin/run_checks.php --profile=db --fail-on-skip') === false) {
+        $errors[] = '.github/workflows/ci.yml: strict sql_mode must run the complete fail-closed database profile';
+    }
+
+    $manifest = require $root . '/bin/checks.manifest.php';
+    $databaseChecks = array();
+    foreach (($manifest['checks'] ?? array()) as $check) {
+        if(($check['group'] ?? '') === 'database') $databaseChecks[] = $check['name'] ?? '';
+    }
+    foreach (array('check_install_schema.php', 'check_legacy_upgrade_smoke.php', 'check_plugin_install_sql_smoke.php') as $requiredCheck) {
+        if(!in_array($requiredCheck, $databaseChecks, true)) {
+            $errors[] = "bin/checks.manifest.php: strict database profile is missing $requiredCheck";
+        }
     }
 }
 

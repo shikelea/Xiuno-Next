@@ -15,21 +15,33 @@ $grouplist = group_list_cache();
 // 支持 Token 接口（token 与 session 双重登陆机制，方便 REST 接口设计，也方便 $_SESSION 使用）
 // Support Token interface (token and session dual match, to facilitate the design of the REST interface, but also to facilitate the use of $_SESSION)
 $uid = intval(_SESSION('uid'));
+$user = array();
 if(empty($uid)) {
-	$uid = user_token_get();
+	$token_auth_epoch = NULL;
+	$uid = user_token_get($token_auth_epoch);
 	if($uid) {
-		if(sess_regenerate_id()) {
-			$_SESSION['uid'] = $uid;
+		$user = user_read_primary_proven($uid);
+		if(!empty($user) && user_auth_epoch_matches($user, $token_auth_epoch) && sess_regenerate_id()) {
+			user_session_auth_bind($uid, $token_auth_epoch);
 		} else {
 			user_token_clear();
 			$uid = 0;
+			$user = array();
 		}
 	}
 }
-$user = user_read($uid);
+empty($user) AND $user = user_read_primary_proven($uid);
 if($uid && empty($user)) {
 	$uid = 0;
 	$_SESSION['uid'] = 0;
+	unset($_SESSION['auth_epoch']);
+	user_token_clear();
+} elseif($uid && !user_session_auth_matches($user)) {
+	// Password reset/admin change invalidates all older Session generations lazily at authorization.
+	$uid = 0;
+	$user = array();
+	$_SESSION['uid'] = 0;
+	unset($_SESSION['auth_epoch']);
 	user_token_clear();
 }
 

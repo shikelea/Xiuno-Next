@@ -17,7 +17,7 @@
 		$form_title = lang('post_update');
 		$form_action = url("post-update-$pid");
 		$form_submit_txt = lang('post_update');
-		$form_subject = $thread['subject'];
+		$form_subject = thread_subject_normalize($thread['subject']);
 		$form_message = $post['message'];
 		$form_doctype = $post['doctype'];
 		$isfirst = $post['isfirst'];
@@ -38,7 +38,9 @@
 	
 	// hook post_start_init.htm
 	
-	$filelist += (array)_SESSION('tmp_files');
+	$attach_draft = attach_draft_open(param('attach_draft', '', FALSE));
+	$attach_draft === FALSE AND message(-1, lang('attach_draft_limit_reached'));
+	$filelist = array_merge((array)$filelist, attach_draft_files($attach_draft));
 ?>
 
 <!--{hook post_start.htm}-->
@@ -50,7 +52,8 @@
 				<?php echo $form_title; ?>
 			</div>
 			<div class="card-body">
-				<form action="<?php echo $form_action;?>" method="post" id="form">
+			<form action="<?php echo $form_action;?>" method="post" id="form">
+				<input type="hidden" name="attach_draft" value="<?php echo htmlspecialchars($attach_draft, ENT_QUOTES, 'UTF-8');?>">
 					<input type="hidden" name="doctype" value="<?php echo $form_doctype;?>" />
 					<input type="hidden" name="quotepid" value="<?php echo $quotepid;?>" />
 					
@@ -67,7 +70,7 @@
 					</div>
 					<!--{hook post_subject_before.htm}-->
 					<div class="mb-3">
-						<input type="text" class="form-control" placeholder="<?php echo lang('subject');?>" name="subject" value="<?php echo htmlspecialchars($form_subject, ENT_QUOTES, 'UTF-8');?>" id="subject">
+						<input type="text" class="form-control" placeholder="<?php echo lang('subject');?>" name="subject" value="<?php echo htmlspecialchars($form_subject, ENT_QUOTES, 'UTF-8');?>" id="subject" maxlength="<?php echo thread_subject_maxlength();?>">
 					</div>
 					<!--{hook post_subject_after.htm}-->
 					<?php } ?>
@@ -111,7 +114,13 @@
 var jform = $('#form');
 var jsubmit = $('#submit');
 var jfid = jform.find('select[name="fid"]');
+var attach_upload_busy = false;
+var attach_upload_wait_message = <?php echo xn_json_encode_for_script(lang('attach_upload_in_progress'));?>;
 jform.on('submit', function() {
+	if (attach_upload_busy) {
+		$.alert(attach_upload_wait_message);
+		return false;
+	}
 	jform.reset();
 	jsubmit.button('loading');
 	var postdata = jform.serialize();
@@ -125,8 +134,8 @@ jform.on('submit', function() {
 			alert(message);
 			jsubmit.button('reset');
 		} else {
-			$.alert(message);
-			//jform.find('[name="'+code+'"]').alert(message).focus();
+			var jfield = jform.find(':input').filter(function() { return this.name == code; }).first();
+			jfield.length ? jfield.alert(message).focus() : $.alert(message);
 			jsubmit.button('reset');
 		}
 	});
@@ -134,9 +143,24 @@ jform.on('submit', function() {
 });
 
 var jattachparent = $('.attachlist_parent');
-$('#addattach').on('change', function(e) {
+var jattachinput = $('#addattach input[type="file"]');
+var attach_draft = <?php echo xn_json_encode_for_script($attach_draft);?>;
+function attach_upload_set_busy(busy) {
+	attach_upload_busy = !!busy;
+	jattachinput.prop('disabled', attach_upload_busy);
+	jsubmit.prop('disabled', attach_upload_busy);
+}
+jattachinput.on('change', function(e) {
 	var files = xn.get_files_from_event(e);
-	if (!files) return;
+	if (!files || !files.length) return;
+	var selected_files = [];
+	for (var file_index = 0; file_index < files.length; file_index++) selected_files.push(files[file_index]);
+	files = selected_files;
+	// File inputs do not emit change when the same file remains selected. Clear only after
+	// copying the File objects so a failed upload can be selected again immediately.
+	jattachinput.val('');
+	if (attach_upload_busy) return;
+	attach_upload_set_busy(true);
 	
 	// 并发下会 服务端 session 写入会有问题，由客户端控制改为串行
 	if (!jattachparent.find('.attachlist').length) {
@@ -150,12 +174,16 @@ $('#addattach').on('change', function(e) {
 	if(!jprogress.length) {
 		jprogress = $('<div class="progress"><div class="progress-bar" role="progressbar" style="width: 25%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">25%</div></div>').appendTo(jattachparent);
 	}
-	jprogressbar = jprogress.find('.progress-bar');
+	var jprogressbar = jprogress.find('.progress-bar');
 
 	$.each_sync(files, function(i, callback) {
 		var file = files[i];
-		xn.upload_file(file, xn.url('attach-create'), {is_image: 0}, function(code, message) {
-			if (code != 0) return $.alert(message);
+		xn.upload_file(file, xn.url('attach-create'), {is_image: 0, attach_draft: attach_draft}, function(code, message) {
+			if (code != 0) {
+				$.alert(message);
+				callback();
+				return;
+			}
 			// 把文件 append 到附件列表
 			var url = message.url;
 			var filetype = String(message.filetype || '').replace(/[^\w-]/g, '');
@@ -175,7 +203,6 @@ $('#addattach').on('change', function(e) {
 			jli.append(jfile, ' ', jdelete);
 			$('.attachlist').append(jli);
 			callback();
-			jprogress.hide();
 		}, function(percent) {
 			percent = xn.intval(percent);
 			jprogressbar.css('width', percent+'%');
@@ -183,6 +210,9 @@ $('#addattach').on('change', function(e) {
 			jprogress.show();
 			console.log('progress:'+ percent); 
 		});
+	}, function() {
+		jprogress.hide();
+		attach_upload_set_busy(false);
 	});
 });
 
@@ -192,7 +222,7 @@ jattachparent.on('click', 'a.delete', function() {
 	var jli = jlink.parents('li');
 	var aid = jli.attr('aid');
 	if(!window.confirm(lang.confirm_delete)) return false;
-	$.xpost(xn.url('attach-delete-'+aid), function(code, message) {
+	$.xpost(xn.url('attach-delete-'+aid), {attach_draft: attach_draft}, function(code, message) {
 		if(code != 0) return $.alert(message);
 		jlink.parent().remove();
 	});

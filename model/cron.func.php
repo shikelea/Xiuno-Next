@@ -19,8 +19,10 @@ function cron_run($force = 0) {
 			
 			sess_gc($conf['online_hold_time']);
 			
-			$runtime['onlines'] = max(0, online_count());
-			$runtime['online_member_compat_version'] = 2;
+			$online_snapshot = online_member_snapshot();
+			$runtime['onlines'] = isset($online_snapshot['count']) ? max(0, intval($online_snapshot['count'])) : 0;
+			$runtime['online_member_compat_version'] = 3;
+			$runtime['online_member_generation'] = isset($online_snapshot['generation']) ? (string)$online_snapshot['generation'] : '';
 			
 			runtime_set('cron_1_last_date', $time);
 			

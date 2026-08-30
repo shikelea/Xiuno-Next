@@ -7,8 +7,12 @@ $smtplist = array();
 function smtp_create($arr) {
 	// hook model_smtp_create_start.php
 	global $smtplist;
+	$original = $smtplist;
 	$smtplist[] = $arr;
-	smtp_save();
+	if(smtp_save() === FALSE) {
+		$smtplist = $original;
+		return FALSE;
+	}
 	// hook model_smtp_create_end.php
 	return count($smtplist);
 }
@@ -17,10 +21,14 @@ function smtp_update($id, $arr) {
 	// hook model_smtp_update_start.php
 	global $smtplist;
 	if(!isset($smtplist[$id])) return FALSE;
+	$original = $smtplist;
 	foreach($arr as $k=>$v) {
 		$smtplist[$id][$k] = $v;
 	}
-	smtp_save();
+	if(smtp_save() === FALSE) {
+		$smtplist = $original;
+		return FALSE;
+	}
 	// hook model_smtp_update_end.php
 	return TRUE;
 }
@@ -35,8 +43,12 @@ function smtp_read($id) {
 function smtp_delete($id) {
 	// hook model_smtp_delete_start.php
 	global $smtplist;
+	$original = $smtplist;
 	unset($smtplist[$id]);
-	smtp_save();
+	if(smtp_save() === FALSE) {
+		$smtplist = $original;
+		return FALSE;
+	}
 	// hook model_smtp_delete_end.php
 	return TRUE;
 }
@@ -45,7 +57,11 @@ function smtp_save() {
 	// hook model_smtp_save_start.php
 	global $smtplist;
 	// hook model_smtp_save_end.php
-	file_put_contents(APP_PATH.'conf/smtp.conf.php', "<?php\r\nreturn ".var_export($smtplist,true).";\r\n?>");
+	$file = APP_PATH.'conf/smtp.conf.php';
+	$original = file_get_contents_try($file);
+	if($original === FALSE) return FALSE;
+	$replacement = "<?php\r\nreturn ".var_export($smtplist, TRUE).";\r\n?>";
+	return file_replace_var_write($file, $original, $replacement);
 }
 
 function smtp_init($confile) {

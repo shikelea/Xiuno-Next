@@ -1,26 +1,18 @@
 @echo off
-echo =========================================
-echo Xiuno Next Performance Benchmark Script
-echo =========================================
-echo.
-echo Please ensure your local server is running at http://127.0.0.1:8080/
-echo Requiring Apache Benchmark (ab).
-echo.
+setlocal EnableExtensions
 
-set TARGET=http://127.0.0.1:8080/
+if defined XIUNO_PHP_BINARY goto explicit_php
+where php >nul 2>nul || (
+  echo FAIL: PHP is required. Set XIUNO_PHP_BINARY to the PHP CLI executable. 1>&2
+  exit /b 2
+)
+php "%~dp0benchmark.php" %*
+exit /b %ERRORLEVEL%
 
-echo [1/3] Benchmarking Homepage...
-ab -n 1000 -c 50 %TARGET% > tmp/bench_home.txt
-echo Homepage benchmark saved to tmp/bench_home.txt
-
-echo [2/3] Benchmarking Forum List (fid=1)...
-ab -n 1000 -c 50 %TARGET%?forum-1.htm > tmp/bench_forum.txt
-echo Forum List benchmark saved to tmp/bench_forum.txt
-
-echo [3/3] Benchmarking Thread Detail (tid=1)...
-ab -n 500 -c 50 %TARGET%?thread-1.htm > tmp/bench_thread.txt
-echo Thread Detail benchmark saved to tmp/bench_thread.txt
-
-echo.
-echo Benchmark completed! Please check the tmp/bench_*.txt files.
-pause
+:explicit_php
+if not exist "%XIUNO_PHP_BINARY%" (
+  echo FAIL: XIUNO_PHP_BINARY is not a file: %XIUNO_PHP_BINARY% 1>&2
+  exit /b 2
+)
+"%XIUNO_PHP_BINARY%" "%~dp0benchmark.php" %*
+exit /b %ERRORLEVEL%

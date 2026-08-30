@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+	<meta charset="utf-8">
+	<title>Xiuno BS4 compatibility runtime browser checks</title>
+	<link rel="icon" href="data:,">
+	<style>
+		body { font: 14px/1.5 Consolas, monospace; margin: 24px; }
+		.pass { color: #087f23; }
+		.fail { color: #b42318; }
+	</style>
+</head>
+<body>
+	<h1>Xiuno BS4 compatibility runtime browser checks</h1>
+	<pre id="results">RUNNING</pre>
+	<script>
+	(function () {
+		'use strict';
+		var output = document.getElementById('results');
+		var results = [];
+		var useGeneratedAssets = new URLSearchParams(window.location.search).get('assets') === 'min';
+
+		function wait(ms) {
+			return new Promise(function (resolve) { setTimeout(resolve, ms || 0); });
+		}
+
+		function record(ok, label, detail) {
+			results.push({ ok: !!ok, label: label, detail: detail || '' });
+		}
+
+		function assert(ok, label, detail) {
+			record(ok, label, detail);
+			if (!ok) throw new Error(label + (detail ? ': ' + detail : ''));
+		}
+
+		function render() {
+			var passed = results.filter(function (item) { return item.ok; }).length;
+			var failed = results.length - passed;
+			output.className = failed ? 'fail' : 'pass';
+			output.textContent = results.map(function (item) {
+				return (item.ok ? 'PASS ' : 'FAIL ') + item.label + (item.detail ? ' - ' + item.detail : '');
+			}).join('\n') + '\n\nTOTAL ' + results.length + ' / PASS ' + passed + ' / FAIL ' + failed;
+		output.setAttribute('data-complete', '1');
+		output.setAttribute('data-failed', String(failed));
+	}
+
+	function createFrame() {
+		return new Promise(function (resolve) {
+			var frame = document.createElement('iframe');
+			frame.hidden = true;
+			frame.src = '/bin/fixtures/bs4_compat_frame.html?fixture=' + Math.random().toString(36).slice(2);
+			frame.onload = function () {
+				var win = frame.contentWindow;
+				win.lang = {
+					ajax_empty_response: 'fixture empty response',
+					ajax_invalid_response: 'fixture invalid response',
+					ajax_request_timeout: 'fixture timeout',
+					ajax_request_forbidden: 'fixture forbidden',
+					ajax_request_http_error: 'fixture HTTP {status}',
+					ajax_request_network_error: 'fixture network failure',
+					ajax_request_id: 'fixture request {id}'
+				};
+				win.debug = 0;
+				win.csrf_token = 'fixture-token';
+				resolve({ frame: frame, window: win, document: win.document });
+			};
+			document.body.appendChild(frame);
+		});
+	}
+
+		function loadScript(context, source) {
+			if (useGeneratedAssets) {
+				if (source === '/view/js/xiuno.js') source = '/view/js/xiuno.min.js';
+				if (source === '/view/js/bootstrap-plugin.js') source = '/view/js/bootstrap-plugin.min.js';
+				if (source === '/view/js/bs4-compat.js') source = '/view/js/bs4-compat.min.js';
+			}
+			return new Promise(function (resolve, reject) {
+			var script = context.document.createElement('script');
+			script.src = source + '?fixture=' + Math.random().toString(36).slice(2);
+			script.onload = resolve;
+			script.onerror = function () { reject(new Error('Unable to load ' + source)); };
+			context.document.head.appendChild(script);
+		});
+		}
+
+		function loadStyle(context, source) {
+			if (useGeneratedAssets && source === '/view/css/bs4-compat.css') source = '/view/css/bs4-compat.min.css';
+			return new Promise(function (resolve, reject) {
+				var link = context.document.createElement('link');
+				link.rel = 'stylesheet';
+				link.href = source + '?fixture=' + Math.random().toString(36).slice(2);
+				link.onload = resolve;
+				link.onerror = function () { reject(new Error('Unable to load ' + source)); };
+				context.document.head.appendChild(link);
+			});
+		}
+
+	async function loadStack(context, compatFirst) {
+		await loadStyle(context, '/view/css/bs4-compat.css');
+		if (compatFirst) await loadScript(context, '/view/js/bs4-compat.js');
+		await loadScript(context, '/view/js/jquery-3.1.0.js');
+		await loadScript(context, '/view/js/popper.js');
+		await loadScript(context, '/view/js/bootstrap.js');
+		await loadScript(context, '/view/js/xiuno.js');
+		await loadScript(context, '/view/js/bootstrap-plugin.js');
+		await loadScript(context, '/view/js/bs4-compat.js');
+		await wait(30);
+	}
+
+	function assertApis(context, prefix) {
+		var jq = context.window.jQuery;
+		var bootstrap = context.window.bootstrap;
+		['alert', 'button', 'carousel', 'collapse', 'dropdown', 'modal', 'offcanvas', 'popover', 'scrollspy', 'tab', 'toast', 'tooltip'].forEach(function (name) {
+			assert(typeof jq.fn[name] === 'function', prefix + ' ' + name + ' API installed');
+			assert(typeof jq.fn[name].noConflict === 'function', prefix + ' ' + name + ' noConflict exposed');
+			var constructorName = name === 'scrollspy' ? 'ScrollSpy' : name.charAt(0).toUpperCase() + name.slice(1);
+			assert(jq.fn[name].Constructor === bootstrap[constructorName], prefix + ' ' + name + ' Constructor preserved');
+		});
+	}
+
+	async function testDefaultRuntime() {
+		var context = await createFrame();
+		await loadStack(context, false);
+		var win = context.window;
+		var doc = context.document;
+		var jq = win.jQuery;
+		assert(win.XiunoCompat && win.XiunoCompat.jquery === jq, 'default runtime binds current jQuery identity');
+		assertApis(context, 'default');
+
+		var modal = doc.createElement('div');
+		modal.className = 'modal';
+		modal.innerHTML = '<div class="modal-dialog"><div class="modal-content">modal</div></div>';
+		doc.body.appendChild(modal);
+		jq(modal).modal({ show: false });
+		assert(!!win.bootstrap.Modal.getInstance(modal), 'modal show:false initializes an instance');
+		assert(!modal.classList.contains('show'), 'modal show:false stays hidden');
+		jq(modal).modal('dispose');
+
+		var alertBox = doc.createElement('div');
+		alertBox.className = 'alert show';
+		doc.body.appendChild(alertBox);
+		jq(alertBox).alert('close');
+		assert(!doc.body.contains(alertBox), 'alert component close removes the component');
+
+		var field = doc.createElement('input');
+		doc.body.appendChild(field);
+		jq(field).alert('required');
+		assert(field.classList.contains('is-invalid'), 'field alert keeps Xiuno validation semantics');
+		assert(field.nextElementSibling && field.nextElementSibling.textContent === 'required', 'field alert renders visible feedback');
+		jq(field).trigger('input');
+		assert(!field.hasAttribute('title'), 'field alert cleanup removes compatibility-owned title text');
+		assert(win.bootstrap.Tooltip.getInstance(field) === null, 'field alert cleanup disposes only its compatibility-owned tooltip');
+		var titledField = doc.createElement('input');
+		titledField.setAttribute('title', 'original title');
+		doc.body.appendChild(titledField);
+		jq(titledField).alert('temporary error');
+		jq(titledField).trigger('change');
+		assert(titledField.getAttribute('title') === 'original title', 'field alert cleanup restores a caller-owned title');
+
+		var callerTooltipField = doc.createElement('input');
+		callerTooltipField.setAttribute('title', 'caller tooltip');
+		doc.body.appendChild(callerTooltipField);
+		var callerTooltip = new win.bootstrap.Tooltip(callerTooltipField, { title: 'caller tooltip', trigger: 'manual', animation: false });
+		jq(callerTooltipField).alert('validation error');
+		assert(win.bootstrap.Tooltip.getInstance(callerTooltipField) === callerTooltip, 'field alert reuses a caller-owned tooltip instance');
+		jq(callerTooltipField).trigger('input');
+		await wait(10);
+		assert(win.bootstrap.Tooltip.getInstance(callerTooltipField) === callerTooltip && !callerTooltip._isShown(), 'field alert restores a hidden caller tooltip without disposing it');
+		callerTooltip.dispose();
+
+		var visibleTooltipField = doc.createElement('input');
+		visibleTooltipField.setAttribute('title', 'visible caller tooltip');
+		doc.body.appendChild(visibleTooltipField);
+		var visibleCallerTooltip = new win.bootstrap.Tooltip(visibleTooltipField, { title: 'visible caller tooltip', trigger: 'manual', animation: false });
+		visibleCallerTooltip.show();
+		jq(visibleTooltipField).alert('temporary validation');
+		jq(visibleTooltipField).trigger('change');
+		await wait(10);
+		assert(win.bootstrap.Tooltip.getInstance(visibleTooltipField) === visibleCallerTooltip && visibleCallerTooltip._isShown(), 'field alert preserves the visible state of a caller-owned tooltip');
+		visibleCallerTooltip.dispose();
+
+		var resetForm = doc.createElement('form');
+		var resetTooltipField = doc.createElement('input');
+		resetTooltipField.setAttribute('title', 'form tooltip');
+		resetForm.appendChild(resetTooltipField);
+		doc.body.appendChild(resetForm);
+		var resetCallerTooltip = new win.bootstrap.Tooltip(resetTooltipField, { title: 'form tooltip', trigger: 'manual' });
+		jq(resetForm).reset();
+		assert(win.bootstrap.Tooltip.getInstance(resetTooltipField) === resetCallerTooltip, 'form reset leaves unrelated caller-owned tooltips intact');
+		resetCallerTooltip.dispose();
+
+		var disabledButton = doc.createElement('button');
+		disabledButton.disabled = true;
+		disabledButton.className = 'disabled';
+		disabledButton.setAttribute('aria-disabled', 'mixed');
+		disabledButton.setAttribute('data-loading-text', 'loading');
+		doc.body.appendChild(disabledButton);
+		jq(disabledButton).button('loading').button('reset');
+		assert(disabledButton.disabled && disabledButton.classList.contains('disabled') && disabledButton.innerHTML === '', 'button reset restores an empty label and original disabled state');
+		assert(disabledButton.getAttribute('aria-disabled') === 'mixed', 'button reset restores caller-owned aria-disabled state');
+		var enabledButton = doc.createElement('button');
+		enabledButton.textContent = 'save';
+		enabledButton.setAttribute('data-loading-text', 'saving');
+		doc.body.appendChild(enabledButton);
+		jq(enabledButton).button('loading').button('reset');
+		assert(!enabledButton.disabled && enabledButton.textContent === 'save', 'button reset restores an originally enabled button');
+		var delayedButton = doc.createElement('button');
+		delayedButton.textContent = 'publish';
+		delayedButton.setAttribute('data-loading-text', 'publishing');
+		doc.body.appendChild(delayedButton);
+		jq(delayedButton).button('loading').button('published').delay(40).button('reset');
+		assert(delayedButton.disabled && delayedButton.textContent === 'published', 'button reset waits behind an explicit jQuery delay');
+		await wait(15);
+		assert(delayedButton.textContent === 'published', 'delayed button feedback remains visible before the queue delay expires');
+		await wait(60);
+		assert(!delayedButton.disabled && delayedButton.textContent === 'publish', 'delayed button reset eventually restores its captured state');
+
+		var tooltip = doc.createElement('button');
+		tooltip.setAttribute('title', 'tooltip content');
+		doc.body.appendChild(tooltip);
+		jq(tooltip).tooltip('show');
+		await wait(10);
+		assert(!!win.bootstrap.Tooltip.getInstance(tooltip), 'tooltip show creates an uninitialized instance');
+		assert(!!doc.querySelector('.tooltip.show'), 'tooltip show produces visible tooltip DOM');
+		jq(tooltip).tooltip('dispose');
+
+		var popover = doc.createElement('button');
+		popover.setAttribute('title', 'popover title');
+		popover.setAttribute('data-bs-content', 'popover content');
+		doc.body.appendChild(popover);
+		jq(popover).popover('show');
+		await wait(10);
+		assert(!!win.bootstrap.Popover.getInstance(popover), 'popover show creates an uninitialized instance');
+		assert(!!doc.querySelector('.popover.show'), 'popover show produces visible popover DOM');
+		jq(popover).popover('dispose');
+
+		var toast = doc.createElement('div');
+		toast.className = 'toast';
+		toast.setAttribute('data-autohide', 'false');
+		toast.setAttribute('data-delay', '1');
+		toast.setAttribute('data-animation', 'false');
+		doc.body.appendChild(toast);
+		// Legacy packages commonly initialize in the same task as append(). The
+		// component bridge must normalize attributes synchronously, before the
+		// MutationObserver microtask can run.
+		jq(toast).toast('show');
+		var toastInstance = win.bootstrap.Toast.getInstance(toast);
+		assert(toast.getAttribute('data-bs-autohide') === 'false', 'immediate toast call synchronously maps data-autohide');
+		assert(toastInstance && toastInstance._config.autohide === false, 'immediate toast call preserves legacy persistent-toast semantics');
+		await wait(20);
+		assert(toast.classList.contains('show'), 'legacy data-autohide=false toast remains visible');
+		jq(toast).toast('dispose');
+
+		var realDropdown = doc.createElement('div');
+		realDropdown.className = 'dropdown';
+		realDropdown.innerHTML = '<button data-toggle="dropdown">real</button><div class="dropdown-menu"></div>';
+		doc.body.appendChild(realDropdown);
+		var fakeDropdown = doc.createElement('div');
+		fakeDropdown.innerHTML = '<a class="menu-toggle" data-toggle="dropdown">fake</a><div class="menu-sub"></div>';
+		doc.body.appendChild(fakeDropdown);
+		var nativeDropdown = doc.createElement('a');
+		nativeDropdown.setAttribute('data-toggle', 'dropdown');
+		nativeDropdown.setAttribute('data-bs-toggle', 'dropdown');
+		doc.body.appendChild(nativeDropdown);
+		await wait(20);
+		var realToggle = realDropdown.querySelector('button');
+		var fakeToggle = fakeDropdown.querySelector('a');
+		assert(realToggle.getAttribute('data-bs-toggle') === 'dropdown', 'real Bootstrap dropdown structure is mapped');
+		assert(realToggle.getAttribute('data-xn-bs-auto-toggle') === 'dropdown', 'runtime owns its dropdown mapping');
+		assert(!fakeToggle.hasAttribute('data-bs-toggle'), 'non-Bootstrap menu is not mapped as dropdown');
+		assert(nativeDropdown.getAttribute('data-bs-toggle') === 'dropdown' && !nativeDropdown.hasAttribute('data-xn-bs-auto-toggle'), 'native modern dropdown attribute remains caller-owned');
+		realDropdown.querySelector('.dropdown-menu').remove();
+		await wait(20);
+		assert(!realToggle.hasAttribute('data-bs-toggle'), 'owned dropdown mapping is removed when structure disappears');
+		assert(nativeDropdown.getAttribute('data-bs-toggle') === 'dropdown', 'caller-owned modern dropdown survives invalid structure');
+
+		var alignRoot = doc.createElement('div');
+		alignRoot.className = 'dropdown-menu-right';
+		doc.body.appendChild(alignRoot);
+		var fileRoot = doc.createElement('input');
+		fileRoot.className = 'custom-file-input';
+		doc.body.appendChild(fileRoot);
+		var groupRoot = doc.createElement('div');
+		groupRoot.setAttribute('data-toggle', 'buttons');
+		groupRoot.innerHTML = '<label class="btn"><input type="checkbox" value="1"></label>';
+		doc.body.appendChild(groupRoot);
+		var nav = doc.createElement('div');
+		nav.className = 'nav';
+		var tabRoot = doc.createElement('a');
+		tabRoot.setAttribute('data-toggle', 'tab');
+		tabRoot.setAttribute('href', '#fixture-panel');
+		nav.appendChild(tabRoot);
+		doc.body.appendChild(nav);
+		var panel = doc.createElement('div');
+		panel.id = 'fixture-panel';
+		doc.body.appendChild(panel);
+		await wait(20);
+		assert(alignRoot.classList.contains('dropdown-menu-end'), 'dynamic root dropdown alignment is initialized');
+		alignRoot.classList.remove('dropdown-menu-right');
+		await wait(20);
+		assert(!alignRoot.classList.contains('dropdown-menu-end') && !alignRoot.hasAttribute('data-xn-bs4c-align-end'), 'removed legacy dropdown alignment cleans its owned modern class');
+		assert(fileRoot.getAttribute('data-bs4c-bound') === '1', 'dynamic root custom file is initialized');
+		assert(groupRoot.getAttribute('data-bs4c-toggle-init') === '1', 'dynamic root button group is initialized');
+		assert(tabRoot.getAttribute('data-bs-toggle') === 'tab' && tabRoot.getAttribute('data-bs-target') === '#fixture-panel', 'dynamic root tab is normalized');
+		var namedFileWrapper = doc.createElement('div');
+		namedFileWrapper.innerHTML = '<input class="custom-file-input" type="file" multiple><label class="custom-file-label">choose</label>';
+		doc.body.appendChild(namedFileWrapper);
+		var namedFileInput = namedFileWrapper.querySelector('input');
+		Object.defineProperty(namedFileInput, 'files', {
+			configurable: true,
+			value: [{ name: '一号图片.png' }, { name: 'notes.txt' }]
+		});
+		namedFileInput.dispatchEvent(new win.Event('change', { bubbles: true }));
+		assert(namedFileWrapper.querySelector('label').textContent === '一号图片.png, notes.txt', 'multiple custom files expose their real names without a hard-coded language string');
+		var defaultBrowseStyle = win.getComputedStyle(namedFileWrapper.querySelector('label'), '::after');
+		assert(defaultBrowseStyle.display !== 'none' && defaultBrowseStyle.content.indexOf('Browse') !== -1, 'custom file label keeps the BS4 default Browse affordance without data-browse');
+		namedFileWrapper.querySelector('label').setAttribute('data-browse', '选择');
+		var localizedBrowseStyle = win.getComputedStyle(namedFileWrapper.querySelector('label'), '::after');
+		assert(localizedBrowseStyle.content.indexOf('选择') !== -1, 'custom file label preserves an explicit localized data-browse caption');
+
+		var authForms = doc.createElement('div');
+		authForms.innerHTML = '<form method="post" action="user-login.htm"><input name="email" type="text"><input name="password" type="password"></form>'
+			+ '<form method="post" action="?/user/resetpw_complete"><input name="password" type="password"><input id="repeat" type="password"></form>'
+			+ '<form method="post" action="my-password.htm"><input name="password_old" type="password"><input name="password_new" type="password"></form>'
+			+ '<form method="post" action="user-update-42.htm"><input name="password" type="password"></form>'
+			+ '<form method="post" action="https://outside.invalid/user-login.htm"><input name="email" type="text"><input name="password" type="password"></form>';
+		doc.body.appendChild(authForms);
+		win.XiunoCompat.refresh(authForms);
+		var authFormList = authForms.querySelectorAll('form');
+		assert(authFormList[0].elements.email.autocomplete === 'username' && authFormList[0].elements.email.required
+			&& authFormList[0].elements.password.autocomplete === 'current-password' && authFormList[0].elements.password.required,
+			'core login fields regain required credential semantics under a theme overwrite');
+		var resetPasswords = authFormList[1].querySelectorAll('input[type="password"]');
+		assert(resetPasswords[0].autocomplete === 'new-password' && resetPasswords[0].required
+			&& resetPasswords[1].autocomplete === 'new-password' && resetPasswords[1].required,
+			'core reset completion repairs all standard password inputs without a private theme selector');
+		assert(authFormList[2].elements.password_old.autocomplete === 'current-password'
+			&& authFormList[2].elements.password_new.autocomplete === 'new-password'
+			&& authFormList[2].elements.password_old.required && authFormList[2].elements.password_new.required,
+			'core password change distinguishes current and new credentials');
+		assert(authFormList[3].elements.password.autocomplete === 'new-password' && !authFormList[3].elements.password.required,
+			'optional admin password replacement gains autocomplete without becoming mandatory');
+		assert(!authFormList[4].elements.email.hasAttribute('autocomplete') && !authFormList[4].elements.password.hasAttribute('required'),
+			'same-shaped cross-origin forms remain untouched');
+
+		var radioGroup = doc.createElement('div');
+		radioGroup.setAttribute('data-toggle', 'buttons');
+		radioGroup.innerHTML = '<label class="btn active"><input type="radio" name="choice" checked></label><label class="btn"><input type="radio" name="choice"></label><label class="btn disabled"><input type="radio" name="choice" disabled></label>';
+		doc.body.appendChild(radioGroup);
+		win.XiunoCompat.refresh(radioGroup);
+		var radioInputs = radioGroup.querySelectorAll('input');
+		var radioChanges = 0;
+		radioGroup.addEventListener('change', function () { radioChanges++; });
+		radioInputs[1].parentElement.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
+		assert(!radioInputs[0].checked && radioInputs[1].checked && radioChanges === 1, 'button group radio toggle updates the checked value and emits one change event');
+		assert(radioInputs[0].parentElement.getAttribute('aria-pressed') === 'false' && radioInputs[1].parentElement.getAttribute('aria-pressed') === 'true', 'button group radio toggle synchronizes every aria-pressed state');
+		radioInputs[2].parentElement.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
+		assert(!radioInputs[2].checked && radioInputs[1].checked && radioChanges === 1, 'button group ignores a disabled input without emitting change');
+
+		var lateAttribute = doc.createElement('button');
+		doc.body.appendChild(lateAttribute);
+		lateAttribute.setAttribute('data-toggle', 'tooltip');
+		lateAttribute.setAttribute('data-placement', 'bottom');
+		await wait(20);
+		assert(lateAttribute.getAttribute('data-bs-toggle') === 'tooltip' && lateAttribute.getAttribute('data-bs-placement') === 'bottom', 'late legacy attributes are observed');
+		lateAttribute.removeAttribute('data-placement');
+		lateAttribute.removeAttribute('data-toggle');
+		await wait(20);
+		assert(!lateAttribute.hasAttribute('data-bs-placement') && !lateAttribute.hasAttribute('data-xn-bs-auto-placement'), 'removed legacy placement cleans its owned mapping');
+		assert(!lateAttribute.hasAttribute('data-bs-toggle') && !lateAttribute.hasAttribute('data-xn-bs-auto-toggle'), 'removed legacy toggle cleans its owned mapping');
+
+		var legacyPopover = doc.createElement('button');
+		legacyPopover.setAttribute('data-toggle', 'popover');
+		legacyPopover.setAttribute('data-content', 'legacy content');
+		doc.body.appendChild(legacyPopover);
+		await wait(20);
+		assert(legacyPopover.getAttribute('data-bs-content') === 'legacy content', 'legacy popover content is mapped');
+		legacyPopover.removeAttribute('data-content');
+		await wait(20);
+		assert(!legacyPopover.hasAttribute('data-bs-content') && !legacyPopover.hasAttribute('data-xn-bs-auto-content'), 'removed legacy popover content cleans its owned mapping');
+		var unrelatedContent = doc.createElement('div');
+		unrelatedContent.setAttribute('data-content', 'theme-private-content');
+		doc.body.appendChild(unrelatedContent);
+		win.XiunoCompat.refresh(unrelatedContent);
+		assert(!unrelatedContent.hasAttribute('data-bs-content'), 'data-content is only mapped for an actual popover contract');
+		var brokenImage = doc.createElement('img');
+		brokenImage.width = 20;
+		doc.body.appendChild(brokenImage);
+		brokenImage.dispatchEvent(new win.Event('error'));
+		assert(brokenImage.classList.contains('bs4c-img-fallback') && brokenImage.style.visibility === '', 'broken image receives a neutral fallback without hiding its native placeholder or alt text');
+		brokenImage.dispatchEvent(new win.Event('load'));
+		assert(!brokenImage.classList.contains('bs4c-img-fallback') && brokenImage.style.visibility === '', 'recovered image clears compatibility-owned fallback state');
+		var pendingParent = doc.createElement('div');
+		var pendingChild = doc.createElement('span');
+		pendingParent.appendChild(pendingChild);
+		win.XiunoCompat._pendingRoots = [];
+		win.XiunoCompat.scheduleRefresh(pendingChild);
+		win.XiunoCompat.scheduleRefresh(pendingParent);
+		assert(win.XiunoCompat._pendingRoots.length === 1 && win.XiunoCompat._pendingRoots[0] === pendingParent, 'scheduled refresh roots collapse descendants under their ancestor');
+		await wait(30);
+		var noOpAttribute = doc.createElement('div');
+		noOpAttribute.className = 'fixture-noop';
+		doc.body.appendChild(noOpAttribute);
+		await wait(30);
+		var refreshBeforeNoOp = win.XiunoCompat.refreshCount;
+		noOpAttribute.setAttribute('class', 'fixture-noop');
+		await wait(30);
+		assert(win.XiunoCompat.refreshCount === refreshBeforeNoOp, 'setting an observed attribute to its existing value does not schedule a compatibility refresh');
+
+		var lateFileClass = doc.createElement('input');
+		doc.body.appendChild(lateFileClass);
+		lateFileClass.className = 'custom-file-input';
+		await wait(20);
+		assert(lateFileClass.getAttribute('data-bs4c-bound') === '1', 'late custom-file class mutation is initialized');
+		var lateDropdown = doc.createElement('div');
+		lateDropdown.className = 'dropdown';
+		lateDropdown.innerHTML = '<button data-toggle="dropdown">late</button><div></div>';
+		doc.body.appendChild(lateDropdown);
+		await wait(20);
+		assert(!lateDropdown.querySelector('button').hasAttribute('data-bs-toggle'), 'dropdown without a real menu stays unmapped');
+		lateDropdown.lastElementChild.className = 'dropdown-menu';
+		await wait(20);
+		assert(lateDropdown.querySelector('button').getAttribute('data-bs-toggle') === 'dropdown', 'late dropdown-menu class mutation revalidates its toggle');
+		var insertedMenuDropdown = doc.createElement('div');
+		insertedMenuDropdown.className = 'dropdown';
+		insertedMenuDropdown.innerHTML = '<button data-toggle="dropdown">inserted menu</button>';
+		doc.body.appendChild(insertedMenuDropdown);
+		await wait(20);
+		assert(!insertedMenuDropdown.querySelector('button').hasAttribute('data-bs-toggle'), 'dropdown without an inserted menu starts unmapped');
+		var insertedMenu = doc.createElement('div');
+		insertedMenu.className = 'dropdown-menu';
+		insertedMenuDropdown.appendChild(insertedMenu);
+		await wait(20);
+		assert(insertedMenuDropdown.querySelector('button').getAttribute('data-bs-toggle') === 'dropdown', 'inserting a ready dropdown-menu revalidates an existing sibling toggle');
+
+		var fragment = doc.createDocumentFragment();
+		var fragmentRoot = doc.createElement('button');
+		fragmentRoot.setAttribute('data-toggle', 'modal');
+		fragment.appendChild(fragmentRoot);
+		win.XiunoCompat.refresh(fragment);
+		assert(fragmentRoot.getAttribute('data-bs-toggle') === 'modal', 'DocumentFragment root and descendants can refresh');
+		var eventRoot = doc.createElement('button');
+		eventRoot.setAttribute('data-toggle', 'tooltip');
+		doc.body.appendChild(eventRoot);
+		doc.dispatchEvent(new win.CustomEvent('xiuno:fragment-ready', { detail: { elt: eventRoot } }));
+		assert(eventRoot.getAttribute('data-bs-toggle') === 'tooltip', 'xiuno fragment-ready refreshes the event detail root');
+		var unifiedFragmentRoot = doc.createElement('button');
+		unifiedFragmentRoot.setAttribute('data-toggle', 'popover');
+		doc.body.appendChild(unifiedFragmentRoot);
+		win.xn_fragment_ready(unifiedFragmentRoot);
+		assert(unifiedFragmentRoot.getAttribute('data-bs-toggle') === 'popover', 'core fragment-ready helper drives the shared compatibility lifecycle');
+		tabRoot.setAttribute('href', 'https://example.invalid/not-a-fragment');
+		await wait(20);
+		assert(!tabRoot.hasAttribute('data-bs-target') && !tabRoot.hasAttribute('data-xn-bs-auto-tab-target'), 'tab href leaving a fragment cleans its owned target');
+
+		var sameOriginForm = doc.createElement('form');
+		sameOriginForm.method = 'post';
+		sameOriginForm.action = '/same-origin';
+		doc.body.appendChild(sameOriginForm);
+		win.XiunoCompat.refresh(sameOriginForm);
+		assert(!!sameOriginForm.querySelector('input[data-xn-csrf-auto="1"]'), 'same-origin POST form receives an owned CSRF token');
+		sameOriginForm.querySelector('input[name="_token"]').value = 'stale-token';
+		win.XiunoCompat.refresh(sameOriginForm);
+		assert(sameOriginForm.querySelector('input[name="_token"]').value === 'fixture-token', 'same-origin POST form heals a stale token');
+		sameOriginForm.action = 'https://example.invalid/post';
+		win.XiunoCompat.refresh(sameOriginForm);
+		assert(!sameOriginForm.querySelector('input[name="_token"]'), 'dynamic cross-origin form action removes the local CSRF token');
+		var backslashForm = doc.createElement('form');
+		backslashForm.method = 'post';
+		backslashForm.setAttribute('action', '\\\\example.invalid/collect');
+		var backslashToken = doc.createElement('input');
+		backslashToken.name = '_token';
+		backslashToken.value = 'fixture-token';
+		backslashForm.appendChild(backslashToken);
+		doc.body.appendChild(backslashForm);
+		win.XiunoCompat.refresh(backslashForm);
+		assert(new win.URL(backslashForm.action).origin !== win.location.origin && !backslashForm.querySelector('input[name="_token"]'), 'browser-normalized backslash cross-origin form action never retains the local token');
+		var associatedForm = doc.createElement('form');
+		associatedForm.id = 'associated-form';
+		associatedForm.method = 'post';
+		associatedForm.action = 'https://example.invalid/post';
+		doc.body.appendChild(associatedForm);
+		var associatedLocal = doc.createElement('input');
+		associatedLocal.name = '_token';
+		associatedLocal.value = 'fixture-token';
+		associatedLocal.setAttribute('form', associatedForm.id);
+		doc.body.appendChild(associatedLocal);
+		var associatedExternal = doc.createElement('input');
+		associatedExternal.name = '_token';
+		associatedExternal.value = 'external-token';
+		associatedExternal.setAttribute('form', associatedForm.id);
+		doc.body.appendChild(associatedExternal);
+		var associatedData = new win.FormData(associatedForm);
+		assert(!doc.body.contains(associatedLocal) && doc.body.contains(associatedExternal), 'cross-origin form removes an associated local control but preserves a different token control');
+		assert(associatedData.getAll('_token').length === 1 && associatedData.get('_token') === 'external-token', 'formdata stripping preserves a different external token');
+
+		var submitterForm = doc.createElement('form');
+		submitterForm.method = 'post';
+		submitterForm.action = '/same-origin';
+		var crossSubmitter = doc.createElement('button');
+		crossSubmitter.type = 'submit';
+		crossSubmitter.setAttribute('formaction', 'https://example.invalid/post');
+		submitterForm.appendChild(crossSubmitter);
+		doc.body.appendChild(submitterForm);
+		win.XiunoCompat.refresh(submitterForm);
+		var crossSubmitterToken = 'not-submitted';
+		submitterForm.addEventListener('submit', function (event) {
+			event.preventDefault();
+			var input = submitterForm.querySelector('input[name="_token"]');
+			crossSubmitterToken = input ? input.value : '';
+		}, { once: true });
+		submitterForm.requestSubmit(crossSubmitter);
+		assert(crossSubmitterToken === '', 'cross-origin submitter formaction removes the local token before submission');
+
+		var overrideForm = doc.createElement('form');
+		overrideForm.method = 'get';
+		overrideForm.action = 'https://example.invalid/default';
+		var localPostSubmitter = doc.createElement('button');
+		localPostSubmitter.type = 'submit';
+		localPostSubmitter.setAttribute('formmethod', 'post');
+		localPostSubmitter.setAttribute('formaction', '/same-origin');
+		overrideForm.appendChild(localPostSubmitter);
+		doc.body.appendChild(overrideForm);
+		var localSubmitterToken = '';
+		overrideForm.addEventListener('submit', function (event) {
+			event.preventDefault();
+			var input = overrideForm.querySelector('input[name="_token"]');
+			localSubmitterToken = input ? input.value : '';
+		}, { once: true });
+		overrideForm.requestSubmit(localPostSubmitter);
+		assert(localSubmitterToken === 'fixture-token', 'same-origin POST submitter override receives the current token');
+
+		var lateMutationForm = doc.createElement('form');
+		lateMutationForm.method = 'post';
+		lateMutationForm.action = '/same-origin';
+		var lateMutationSubmitter = doc.createElement('button');
+		lateMutationSubmitter.type = 'submit';
+		lateMutationForm.appendChild(lateMutationSubmitter);
+		doc.body.appendChild(lateMutationForm);
+		win.XiunoCompat.refresh(lateMutationForm);
+		var lateMutationData = null;
+		lateMutationForm.addEventListener('submit', function (event) {
+			event.preventDefault();
+			lateMutationSubmitter.setAttribute('formaction', 'https://example.invalid/changed-during-submit');
+			lateMutationData = new win.FormData(lateMutationForm);
+		}, { once: true });
+		lateMutationForm.requestSubmit(lateMutationSubmitter);
+		assert(lateMutationData && !lateMutationData.has('_token'), 'formdata rechecks submitter mutations made during submit handlers');
+
+		var ajaxOptions = null;
+		var originalAjax = jq.ajax;
+		jq.ajax = function (options) { ajaxOptions = options; return {}; };
+		function responseXhr(body, contentType, requestId) {
+			return {
+				status: 200,
+				responseText: body,
+				getResponseHeader: function (name) {
+					name = String(name || '').toLowerCase();
+					if (name === 'content-type') return contentType || '';
+					if (name === 'x-request-id') return requestId || '';
+					return '';
+				}
+			};
+		}
+		var sharedPayload = { value: 'kept', _token: 'stale-token' };
+		jq.xpost('/same-origin', sharedPayload, function () {});
+		assert(sharedPayload._token === 'stale-token', 'xpost does not mutate a caller-owned object');
+		assert(ajaxOptions.data !== sharedPayload && ajaxOptions.data._token === 'fixture-token', 'same-origin xpost clones and heals a stale object token');
+		jq.xpost('https://example.invalid/post', { value: 'kept', _token: 'fixture-token' }, function () {});
+		assert(ajaxOptions.data.value === 'kept' && ajaxOptions.data._token === undefined, 'cross-origin xpost strips the current session token');
+		jq.xpost('https://example.invalid/post', { _token: 'external-token' }, function () {});
+		assert(ajaxOptions.data._token === 'external-token', 'cross-origin xpost preserves a different external token');
+		var sharedArray = [{ name: 'value', value: 'kept' }];
+		jq.xpost('/same-origin', sharedArray, function () {});
+		assert(sharedArray.length === 1 && ajaxOptions.data.length === 2, 'xpost clones serializeArray payloads before token injection');
+		var sharedFormData = new win.FormData();
+		sharedFormData.append('value', 'kept');
+		jq.xpost('/same-origin', sharedFormData, function () {});
+		assert(!sharedFormData.has('_token') && ajaxOptions.data.get('_token') === 'fixture-token', 'xpost clones FormData before token injection');
+		jq.xpost('https://example.invalid/post', 'value=kept&_token=fixture-token', function () {});
+		assert(ajaxOptions.data.indexOf('_token=') === -1, 'cross-origin xpost strips the current token from encoded strings');
+		var sharedParams = new win.URLSearchParams('value=kept');
+		jq.xpost('/same-origin', sharedParams, function () {});
+		assert(!sharedParams.has('_token') && ajaxOptions.data.get('_token') === 'fixture-token', 'xpost clones URLSearchParams before token injection');
+		var ajaxFailure = null;
+		jq.xpost('/ordinary-post', {}, function (code, message) { ajaxFailure = { code: code, message: message }; });
+		assert(ajaxOptions.timeout === 30000, 'ordinary xpost uses a bounded 30 second timeout');
+		ajaxOptions.success('', 'success', responseXhr('', 'application/json', 'request-post-empty'));
+		assert(ajaxFailure.code === -1 && ajaxFailure.message.indexOf('fixture empty response') !== -1 && ajaxFailure.message.indexOf('fixture request request-post-empty') !== -1 && ajaxFailure.message.indexOf('<') === -1, 'empty xpost response returns a localized safe actionable message with its request identifier');
+		ajaxFailure = null;
+		jq.xpost('/contaminated-post', {}, function (code, message) { ajaxFailure = { code: code, message: message }; });
+		var contaminatedPost = '<html><body>warning</body></html>{"code":0,"message":"false success"}';
+		ajaxOptions.success(contaminatedPost, 'success', responseXhr(contaminatedPost, 'text/plain', 'request-post-invalid'));
+		assert(ajaxFailure.code === -1 && ajaxFailure.message.indexOf('fixture invalid response') !== -1 && ajaxFailure.message.indexOf('fixture request request-post-invalid') !== -1 && ajaxFailure.message.indexOf('<html>') === -1, 'xpost rejects contaminated JSON with a localized message while preserving its request identifier');
+		ajaxFailure = null;
+		jq.xpost('/failed-post', {}, function (code, message) { ajaxFailure = { code: code, message: message }; });
+		ajaxOptions.error({ status: 500, responseText: '<html><body>fatal source</body></html>', getResponseHeader: function () { return 'request-500'; } }, 'error');
+		assert(ajaxFailure.code === -1001 && ajaxFailure.message.indexOf('HTTP 500') !== -1 && ajaxFailure.message.indexOf('request-500') !== -1 && ajaxFailure.message.indexOf('<html>') === -1, 'xpost transport failure keeps raw error pages out of user-visible text');
+		jq.xpost('/upload-post', {}, function () {}, function () {});
+		assert(ajaxOptions.timeout === 600000, 'upload xpost uses a separate bounded 10 minute timeout');
+		var xgetResult = null;
+		jq.xget('/modal-document', function (code, message, metadata) {
+			xgetResult = { code: code, message: message, metadata: metadata };
+		});
+		var modalDocument = '<!doctype html><html><head><title>Fixture</title></head><body><div id="modal-document-marker">Modal document body</div></body></html>';
+		ajaxOptions.success(modalDocument, 'success', responseXhr(modalDocument, 'text/html; charset=UTF-8', 'request-modal'));
+		assert(xgetResult.code === -101 && xgetResult.message === modalDocument && xgetResult.metadata.kind === 'html-document', 'xget preserves intentional HTML documents for legacy modal consumers');
+		xgetResult = null;
+		jq.xget('/empty-response', function (code, message) { xgetResult = { code: code, message: message }; });
+		ajaxOptions.success('', 'success', responseXhr('', 'application/json', 'request-get-empty'));
+		assert(xgetResult.code === -100 && xgetResult.message.indexOf('fixture empty response') !== -1 && xgetResult.message.indexOf('fixture request request-get-empty') !== -1, 'empty xget response uses the localized message and preserves its request identifier');
+		xgetResult = null;
+		jq.xget('/plain-invalid-response', function (code, message) { xgetResult = { code: code, message: message }; });
+		var invalidGet = '<fatal>not a document</fatal>';
+		ajaxOptions.success(invalidGet, 'success', responseXhr(invalidGet, 'text/plain; charset=UTF-8', 'request-get-invalid'));
+		assert(xgetResult.code === -102 && xgetResult.message.indexOf('request-get-invalid') !== -1 && xgetResult.message.indexOf('<fatal>') === -1, 'xget keeps malformed non-document bodies out of user-visible errors while preserving its request identifier');
+		var ajaxModal = jq.ajax_modal('/modal-document', 'Fixture modal', 'md');
+		ajaxOptions.success(modalDocument, 'success', responseXhr(modalDocument, 'text/html; charset=UTF-8', 'request-modal'));
+		assert(ajaxModal.find('#modal-document-marker').length === 1, 'ajax modal renders an xget HTML document body');
+		ajaxModal.modal('dispose');
+		jq.ajax = originalAjax;
+
+		var legacyHookCalls = 0;
+		jq.ajaxSetup({ beforeSend: function (xhr) {
+			legacyHookCalls++;
+			xhr.setRequestHeader('X-CSRF-TOKEN', 'fixture-token');
+			xhr.setRequestHeader('X-Legacy-Hook', 'kept');
+		} });
+		win.XiunoCompat.refresh(doc);
+		var transportHeaders = [];
+		jq.ajaxPrefilter(function (options, originalOptions, xhr) {
+			xhr.setRequestHeader('X-CSRF-TOKEN', 'fixture-token');
+			xhr.setRequestHeader('X-Prefilter-Hook', 'kept');
+		});
+		jq.ajaxTransport('+*', function () {
+			return {
+				send: function (headers, complete) {
+					transportHeaders.push(headers);
+					complete(204, 'nocontent');
+				},
+				abort: function () {}
+			};
+		});
+		function captureAjax(options) {
+			return new Promise(function (resolve) {
+				options.complete = resolve;
+				jq.ajax(options);
+			});
+		}
+		await captureAjax({ url: 'https://example.invalid/post', type: 'POST', headers: { 'X-CSRF-TOKEN': 'fixture-token', 'X-Fixture': 'kept' } });
+		assert(legacyHookCalls === 1, 'cross-origin jQuery request preserves legacy beforeSend side effects');
+		assert(transportHeaders[0]['X-CSRF-TOKEN'] === undefined && transportHeaders[0]['X-Fixture'] === 'kept' && transportHeaders[0]['X-Legacy-Hook'] === 'kept' && transportHeaders[0]['X-Prefilter-Hook'] === 'kept', 'cross-origin jQuery strips the local token from configured headers, prefilters and chained hooks only');
+		await captureAjax({ url: '/same-origin', type: 'POST', headers: { 'X-CSRF-TOKEN': 'stale-token' } });
+		assert(transportHeaders[1]['X-CSRF-TOKEN'] === 'fixture-token' && transportHeaders[1]['X-Legacy-Hook'] === 'kept', 'same-origin jQuery heals the token and preserves a chained legacy hook');
+		jq.ajaxSetup({ beforeSend: function () { return false; } });
+		win.XiunoCompat.refresh(doc);
+		var cancelledHeaders = {};
+		var cancelResult = jq.ajaxSettings.beforeSend({ setRequestHeader: function (name, value) { cancelledHeaders[name] = value; } }, { url: '/same-origin', type: 'POST', crossDomain: false });
+		assert(cancelResult === false && cancelledHeaders['X-CSRF-TOKEN'] === undefined, 'jQuery compatibility preserves chained beforeSend cancellation without adding a token');
+
+		var fetchCalls = [];
+		win.fetch = function (input, init) {
+			fetchCalls.push({ input: input, init: init });
+			return Promise.resolve({ ok: true });
+		};
+		win.XiunoCompat.refresh(doc);
+		var sharedInit = { method: 'POST', headers: { 'X-CSRF-TOKEN': 'stale-token', 'X-Fixture': 'kept' } };
+		await win.fetch('/same-origin', sharedInit);
+		assert(sharedInit.headers['X-CSRF-TOKEN'] === 'stale-token', 'fetch does not mutate a caller-owned RequestInit');
+		assert(fetchCalls[0].init.headers.get('X-CSRF-TOKEN') === 'fixture-token' && fetchCalls[0].init.headers.get('X-Fixture') === 'kept', 'same-origin fetch clones headers and heals a stale token');
+		var crossInit = { method: 'POST', headers: { 'X-CSRF-TOKEN': 'fixture-token', 'X-Fixture': 'kept' } };
+		await win.fetch('https://example.invalid/post', crossInit);
+		assert(crossInit.headers['X-CSRF-TOKEN'] === 'fixture-token', 'cross-origin fetch leaves the caller init untouched');
+		assert(fetchCalls[1].init.headers.get('X-CSRF-TOKEN') === null && fetchCalls[1].init.headers.get('X-Fixture') === 'kept', 'cross-origin fetch strips the transmitted current token only');
+		await win.fetch('https://example.invalid/post', { method: 'POST', headers: { 'X-CSRF-TOKEN': 'external-token' } });
+		assert(fetchCalls[2].init === undefined || fetchCalls[2].init.headers['X-CSRF-TOKEN'] === 'external-token' || new win.Headers(fetchCalls[2].init.headers).get('X-CSRF-TOKEN') === 'external-token', 'cross-origin fetch preserves a different external token');
+		var crossRequest = new win.Request('https://example.invalid/post', { method: 'POST', headers: { 'X-CSRF-TOKEN': 'fixture-token', 'X-Request': 'kept' } });
+		await win.fetch(crossRequest);
+		assert(fetchCalls[3].init.headers.get('X-CSRF-TOKEN') === null && fetchCalls[3].init.headers.get('X-Request') === 'kept', 'cross-origin Request input strips the current token without losing other headers');
+
+		var crossFormBody = new win.FormData();
+		crossFormBody.append('_token', 'fixture-token');
+		crossFormBody.append('_token', 'external-token');
+		crossFormBody.append('_token', new win.Blob(['file-token'], { type: 'text/plain' }), 'token.txt');
+		crossFormBody.append('field', 'kept');
+		var crossFormInit = { method: 'POST', body: crossFormBody };
+		await win.fetch('https://example.invalid/form-data', crossFormInit);
+		var transmittedFormBody = fetchCalls[fetchCalls.length - 1].init.body;
+		var callerFormTokens = crossFormBody.getAll('_token');
+		var transmittedFormTokens = transmittedFormBody.getAll('_token');
+		assert(crossFormInit.body === crossFormBody && callerFormTokens.length === 3 && callerFormTokens[0] === 'fixture-token', 'cross-origin fetch leaves caller-owned FormData untouched');
+		assert(transmittedFormBody !== crossFormBody && transmittedFormTokens.length === 2 && transmittedFormTokens[0] === 'external-token' && transmittedFormTokens[1].name === 'token.txt' && transmittedFormBody.get('field') === 'kept', 'cross-origin fetch FormData strips only the scalar current token and preserves external tokens, files and fields');
+
+		var crossParameters = new win.URLSearchParams();
+		crossParameters.append('_token', 'fixture-token');
+		crossParameters.append('_token', 'external-token');
+		crossParameters.append('field', 'kept value');
+		var crossParametersInit = { method: 'POST', body: crossParameters };
+		await win.fetch('https://example.invalid/parameters', crossParametersInit);
+		var transmittedParameters = fetchCalls[fetchCalls.length - 1].init.body;
+		assert(crossParametersInit.body === crossParameters && crossParameters.getAll('_token').length === 2, 'cross-origin fetch leaves caller-owned URLSearchParams untouched');
+		assert(transmittedParameters !== crossParameters && transmittedParameters.getAll('_token').length === 1 && transmittedParameters.get('_token') === 'external-token' && transmittedParameters.get('field') === 'kept value', 'cross-origin fetch URLSearchParams strips only the current token');
+
+		var encodedBody = '_token=fixture-token&_token=external-token&field=kept+value';
+		var encodedInit = { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: encodedBody };
+		await win.fetch('https://example.invalid/encoded', encodedInit);
+		var transmittedEncoded = new win.URLSearchParams(fetchCalls[fetchCalls.length - 1].init.body);
+		assert(encodedInit.body === encodedBody, 'cross-origin fetch leaves a caller-owned form-encoded string untouched');
+		assert(transmittedEncoded.getAll('_token').length === 1 && transmittedEncoded.get('_token') === 'external-token' && transmittedEncoded.get('field') === 'kept value', 'cross-origin fetch strips the current token from an explicitly form-encoded string');
+
+		var opaqueStringBody = '_token=fixture-token&field=opaque';
+		await win.fetch('https://example.invalid/plain', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: opaqueStringBody });
+		assert(fetchCalls[fetchCalls.length - 1].init.body === opaqueStringBody, 'cross-origin fetch does not reinterpret a string body without a form-encoded content type');
+
+		var localFormBody = new win.FormData();
+		localFormBody.append('_token', 'fixture-token');
+		var localFormInit = { method: 'POST', body: localFormBody };
+		await win.fetch('/same-origin-form-data', localFormInit);
+		assert(localFormInit.body === localFormBody && fetchCalls[fetchCalls.length - 1].init.body === localFormBody, 'same-origin fetch preserves the caller FormData body while injecting the header token');
+
+		var baseDocument = doc.implementation.createHTMLDocument('base-origin-fixture');
+		var externalBase = baseDocument.createElement('base');
+		externalBase.href = 'https://example.invalid/theme/';
+		baseDocument.head.appendChild(externalBase);
+		var relativeCompatAsset = baseDocument.createElement('script');
+		relativeCompatAsset.setAttribute('src', 'view/js/bs4-compat.js');
+		baseDocument.head.appendChild(relativeCompatAsset);
+		var absoluteCompatAsset = baseDocument.createElement('script');
+		absoluteCompatAsset.setAttribute('src', win.location.origin + '/view/js/bs4-compat.js');
+		baseDocument.head.appendChild(absoluteCompatAsset);
+		assert(new win.URL(relativeCompatAsset.src).origin === 'https://example.invalid' && new win.URL(absoluteCompatAsset.src).origin === win.location.origin, 'absolute current-origin compatibility assets resist an external document base');
+		var invalidFetchRejected = false;
+		var invalidFetchReturnedPromise = false;
+		var fetchCallCountBeforeInvalidHeaders = fetchCalls.length;
+		try {
+			var invalidFetch = win.fetch('/same-origin', { method: 'POST', headers: [['X-Test', 'kept', 'invalid-extra-value']] });
+			invalidFetchReturnedPromise = !!(invalidFetch && typeof invalidFetch.then === 'function');
+			await invalidFetch;
+		} catch (error) {
+			invalidFetchRejected = error instanceof win.TypeError;
+		}
+		assert(invalidFetchReturnedPromise && invalidFetchRejected, 'invalid HeadersInit keeps native fetch rejected-promise semantics');
+		assert(fetchCalls.length === fetchCallCountBeforeInvalidHeaders, 'invalid HeadersInit never reaches the wrapped transport');
+
+		var runtimeBefore = win.XiunoCompat;
+		var refreshBefore = runtimeBefore.refreshCount;
+		await loadScript(context, '/view/js/bs4-compat.js');
+		assert(win.XiunoCompat === runtimeBefore && runtimeBefore.refreshCount > refreshBefore, 'duplicate compat load reuses singleton and refreshes');
+		await wait(40);
+		var idleRefreshCount = runtimeBefore.refreshCount;
+		await wait(40);
+		assert(runtimeBefore.refreshCount === idleRefreshCount, 'compatibility runtime becomes idle after pending mutation turns instead of self-refreshing forever');
+
+		var proxy = jq.fn.modal;
+		var restoredProxy = proxy.noConflict();
+		assert(restoredProxy === proxy, 'noConflict returns the compat proxy');
+		assert(jq.fn.modal !== proxy && jq.fn.modal.Constructor === win.bootstrap.Modal, 'noConflict restores the captured implementation');
+		context.frame.remove();
+	}
+
+	function appendLegacyQuickReplyFixture(context) {
+		var doc = context.document;
+		var wrapper = doc.createElement('div');
+		wrapper.innerHTML = '<span class="posts" data-fixture-counter="reply">4</span>'
+			+ '<span class="posts" data-fixture-counter="favorite">0</span>'
+			+ '<form id="quick_reply_form" method="post" action="?post-create-42-1.htm">'
+			+ '<input type="hidden" name="doctype" value="1">'
+			+ '<input type="hidden" name="return_html" value="1">'
+			+ '<input type="hidden" name="quotepid" value="12">'
+			+ '<textarea name="message">fixture reply</textarea>'
+			+ '<button type="submit">reply</button>'
+			+ '</form>';
+		doc.body.appendChild(wrapper);
+		var form = wrapper.querySelector('form');
+		form.addEventListener('submit', function (event) { event.preventDefault(); });
+		return { wrapper: wrapper, form: form };
+	}
+
+	function dispatchQuickReplySubmit(context, form, submitter) {
+		var event;
+		if (typeof context.window.SubmitEvent === 'function') {
+			event = new context.window.SubmitEvent('submit', { bubbles: true, cancelable: true, submitter: submitter || null });
+		} else {
+			event = new context.window.Event('submit', { bubbles: true, cancelable: true });
+			if (submitter) Object.defineProperty(event, 'submitter', { value: submitter });
+		}
+		form.dispatchEvent(event);
+	}
+
+	function triggerQuickReplyAjaxResponse(context, form, response, mutateAfterSend) {
+		var jq = context.window.jQuery;
+		var xhr = { responseText: response };
+		var settings = { type: 'POST', method: 'POST', url: form.getAttribute('action'), data: jq(form).serialize() };
+		jq(context.document).trigger('ajaxSend', [xhr, settings]);
+		if (mutateAfterSend) mutateAfterSend(settings);
+		jq(context.document).trigger('ajaxSuccess', [
+			xhr,
+			settings,
+			response
+		]);
+		return { xhr: xhr, settings: settings, response: response };
+	}
+
+	function triggerQuickReplyAjaxSuccess(context, form, code) {
+		var response = JSON.stringify({ code: String(code), message: code === 0 ? '<li class="post">fixture</li>' : 'fixture validation' });
+		return triggerQuickReplyAjaxResponse(context, form, response);
+	}
+
+	async function testLegacyQuickReplyReload() {
+		var context = await createFrame();
+		await loadStack(context, false);
+		var fixture = appendLegacyQuickReplyFixture(context);
+		var form = fixture.form;
+		var reloads = 0;
+		context.frame.addEventListener('load', function () { reloads++; });
+
+		triggerQuickReplyAjaxSuccess(context, form, 0);
+		await wait(30);
+		assert(reloads === 0, 'quick reply success without a matching submit does not reload the page');
+
+		var routeShapes = [
+			'?post-create-42-1.htm',
+			'?post/create/42/1',
+			'/fixture/subdir/post-create-42-1.htm',
+			'/fixture/subdir/post/create/42/1'
+		];
+		for (var routeIndex = 0; routeIndex < routeShapes.length; routeIndex++) {
+			form.setAttribute('action', routeShapes[routeIndex]);
+			dispatchQuickReplySubmit(context, form);
+			assert(!!context.window.XiunoCompat._legacyQuickReplyPending,
+				'core quick reply route shape ' + (routeIndex + 1) + ' is recognized without a theme-specific selector');
+			context.window.XiunoCompat._legacyQuickReplyPending = null;
+		}
+
+		form.setAttribute('action', '?post-create-42.htm');
+		dispatchQuickReplySubmit(context, form);
+		triggerQuickReplyAjaxSuccess(context, form, 0);
+		await wait(30);
+		assert(reloads === 0, 'advanced reply route is not classified as the core quick reply action');
+
+		form.setAttribute('action', '?theme-post-create-42-1.htm');
+		dispatchQuickReplySubmit(context, form);
+		triggerQuickReplyAjaxSuccess(context, form, 0);
+		await wait(30);
+		assert(reloads === 0, 'same-origin route suffix lookalikes fail closed');
+
+		form.setAttribute('action', '?post-create-42-1.htm');
+		var returnHtml = form.querySelector('[name="return_html"]');
+		returnHtml.remove();
+		dispatchQuickReplySubmit(context, form);
+		triggerQuickReplyAjaxSuccess(context, form, 0);
+		await wait(30);
+		assert(reloads === 0, 'quick reply lookalikes missing a core request field remain untouched');
+		form.appendChild(returnHtml);
+		var duplicateReturnHtml = returnHtml.cloneNode(true);
+		form.appendChild(duplicateReturnHtml);
+		dispatchQuickReplySubmit(context, form);
+		triggerQuickReplyAjaxSuccess(context, form, 0);
+		await wait(30);
+		assert(reloads === 0, 'ambiguous duplicate return_html controls fail closed');
+		duplicateReturnHtml.remove();
+
+		form.setAttribute('action', 'https://example.invalid/post-create-42-1.htm');
+		dispatchQuickReplySubmit(context, form);
+		triggerQuickReplyAjaxSuccess(context, form, 0);
+		await wait(30);
+		assert(reloads === 0, 'cross-origin quick reply lookalikes never receive navigation behavior');
+		form.setAttribute('action', '?post-create-42-1.htm');
+
+		var duplicateForm = form.cloneNode(true);
+		fixture.wrapper.appendChild(duplicateForm);
+		dispatchQuickReplySubmit(context, form);
+		triggerQuickReplyAjaxSuccess(context, form, 0);
+		await wait(30);
+		assert(reloads === 0, 'ambiguous duplicate quick reply forms fail closed');
+		duplicateForm.remove();
+
+		var submitter = form.querySelector('button');
+		submitter.setAttribute('formmethod', 'get');
+		dispatchQuickReplySubmit(context, form, submitter);
+		triggerQuickReplyAjaxSuccess(context, form, 0);
+		await wait(30);
+		assert(reloads === 0, 'GET submitter overrides remain outside the quick reply fallback');
+		submitter.removeAttribute('formmethod');
+
+		var marker = context.document.createElement('span');
+		marker.setAttribute('data-xn-thread-post-count', '');
+		context.document.body.appendChild(marker);
+		dispatchQuickReplySubmit(context, form);
+		triggerQuickReplyAjaxSuccess(context, form, 0);
+		await wait(30);
+		assert(reloads === 0, 'current themes with the dedicated thread count marker keep local quick reply updates');
+		marker.remove();
+
+		dispatchQuickReplySubmit(context, form);
+		triggerQuickReplyAjaxSuccess(context, form, 2);
+		await wait(30);
+		assert(reloads === 0, 'quick reply validation failures remain on the current page');
+		dispatchQuickReplySubmit(context, form);
+		triggerQuickReplyAjaxResponse(context, form, '{not-json');
+		await wait(30);
+		assert(reloads === 0, 'malformed success transport bodies never trigger a reload');
+		dispatchQuickReplySubmit(context, form);
+		triggerQuickReplyAjaxResponse(context, form, JSON.stringify({ code: false, message: 'not success' }));
+		await wait(30);
+		assert(reloads === 0, 'false-like response codes are not accepted as success');
+
+		dispatchQuickReplySubmit(context, form);
+		triggerQuickReplyAjaxResponse(context, form, JSON.stringify({ code: '0', message: 'fixture' }), function (settings) {
+			settings.url = '?post-create-99-1.htm';
+		});
+		await wait(30);
+		assert(reloads === 0 && context.window.XiunoCompat._legacyQuickReplyPending === null,
+			'a bound request whose settings change fails closed and clears pending state');
+
+		dispatchQuickReplySubmit(context, form);
+		context.window.XiunoCompat._legacyQuickReplyPending.startedAt -= 120001;
+		triggerQuickReplyAjaxSuccess(context, form, 0);
+		await wait(30);
+		assert(reloads === 0 && context.window.XiunoCompat._legacyQuickReplyPending === null,
+			'expired quick reply state cannot affect a later request');
+
+		form.querySelector('[name="doctype"]').remove();
+		form.querySelector('[name="quotepid"]').remove();
+		dispatchQuickReplySubmit(context, form);
+		var successfulRequest = triggerQuickReplyAjaxSuccess(context, form, 0);
+		context.window.jQuery(context.document).trigger('ajaxSuccess', [
+			successfulRequest.xhr,
+			successfulRequest.settings,
+			successfulRequest.response
+		]);
+		assert(fixture.wrapper.querySelector('[data-fixture-counter="reply"]').textContent === '4'
+			&& fixture.wrapper.querySelector('[data-fixture-counter="favorite"]').textContent === '0',
+			'compatibility runtime never guesses among legacy theme .posts counters');
+		for (var attempt = 0; attempt < 20 && reloads === 0; attempt++) await wait(20);
+		assert(reloads === 1, 'successful legacy quick reply reloads once without requiring optional doctype or quote fields');
+		context.frame.remove();
+	}
+
+	async function testCompatFirst() {
+		var context = await createFrame();
+		await loadStack(context, true);
+		assert(context.window.XiunoCompat.jquery === context.window.jQuery, 'compat-first order refreshes after jQuery and Bootstrap');
+		assertApis(context, 'compat-first');
+		context.frame.remove();
+	}
+
+	async function testHeadCompatWithoutReload() {
+		var context = await createFrame();
+		await loadScript(context, '/view/js/bs4-compat.js');
+		await loadScript(context, '/view/js/jquery-3.1.0.js');
+		await loadScript(context, '/view/js/popper.js');
+		await loadScript(context, '/view/js/bootstrap.js');
+		await loadScript(context, '/view/js/xiuno.js');
+		assert(context.window.XiunoCompat.jquery === context.window.jQuery, 'head compat synchronously rebinds after later dependency scripts');
+		assertApis(context, 'head-only');
+		var toast = context.document.createElement('div');
+		toast.className = 'toast';
+		toast.setAttribute('data-autohide', 'false');
+		context.document.body.appendChild(toast);
+		context.window.jQuery(toast).toast('show');
+		assert(context.window.bootstrap.Toast.getInstance(toast)._config.autohide === false, 'head compat protects an immediate legacy call without a second compat load');
+		context.frame.remove();
+	}
+
+	async function testJQueryReplacement() {
+		var context = await createFrame();
+		await loadStack(context, false);
+		var oldJQuery = context.window.jQuery;
+		await loadScript(context, '/view/js/jquery-3.1.0.js');
+		await wait(30);
+		var newJQuery = context.window.jQuery;
+		assert(newJQuery !== oldJQuery, 'late script replaces the jQuery identity');
+		assert(context.window.XiunoCompat.jquery === newJQuery, 'runtime detects the replacement jQuery identity');
+		assertApis(context, 'replacement');
+		['xpost', 'xget', 'require', 'each_sync'].forEach(function (name) {
+			assert(typeof newJQuery[name] === 'function', 'replacement restores Xiuno static API ' + name);
+		});
+		['serializeObject', 'reset', 'checked', 'xn_dropdown'].forEach(function (name) {
+			assert(typeof newJQuery.fn[name] === 'function', 'replacement restores Xiuno fn API ' + name);
+		});
+		assert(newJQuery.ajaxSettings.beforeSend && newJQuery.ajaxSettings.beforeSend._xnCsrf, 'replacement jQuery receives CSRF ajax hook');
+		context.frame.remove();
+	}
+
+	async function runCase(test, label) {
+		try {
+			await test();
+		} catch (error) {
+			record(false, label + ' case aborted', error && error.stack ? error.stack : String(error));
+		}
+	}
+
+	(async function run() {
+		await runCase(testDefaultRuntime, 'default runtime');
+		await runCase(testLegacyQuickReplyReload, 'legacy quick reply reload');
+		await runCase(testCompatFirst, 'compat-first runtime');
+		await runCase(testHeadCompatWithoutReload, 'head-only runtime');
+		await runCase(testJQueryReplacement, 'replacement runtime');
+		render();
+	})();
+	})();
+	</script>
+</body>
+</html>

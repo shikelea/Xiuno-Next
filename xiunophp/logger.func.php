@@ -45,6 +45,8 @@ if (!class_exists('XiunoLogger', false)) {
 			$ip = isset($_SERVER['ip']) ? $_SERVER['ip'] : (isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1');
 			$conf = _SERVER('conf', array());
 			$uid = intval(G('uid'));
+			$request_id = isset($_SERVER['request_id']) ? (string)$_SERVER['request_id'] : '';
+			if(preg_match('/\A[a-f0-9]{32}\z/D', $request_id) !== 1) $request_id = '';
 			$day = date('Ym', $time);
 			$mtime = date('Y-m-d H:i:s', $time);
 			$url = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
@@ -56,7 +58,9 @@ if (!class_exists('XiunoLogger', false)) {
 			}
 
 			$message = str_replace(array("\r\n", "\n", "\t"), ' ', (string)$message);
-			$line = "<?php exit;?>\t$mtime\t$ip\t$url\t$uid\t$message\r\n";
+			// Keep the legacy message column at index 5; append correlation metadata so existing
+			// fixed-column readers continue to see the same timestamp/IP/URL/uid/message layout.
+			$line = "<?php exit;?>\t$mtime\t$ip\t$url\t$uid\t$message\t$request_id\r\n";
 			return @error_log($line, 3, $logpath.'/'.$channel.'.php');
 		}
 

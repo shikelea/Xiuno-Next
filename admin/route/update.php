@@ -256,18 +256,15 @@ if ($action == 'check') {
 	@unlink($zipfile);
 	rmdir_recusive($extract_dir, 1);
 
-	// 清理缓存
-	$cachedir = $conf['tmp_path'];
-	$cachefiles = glob($cachedir . '*.php');
-	if ($cachefiles) {
-		foreach ($cachefiles as $f) @unlink($f);
-	}
+	// 清理缓存必须遵守与 Hook/model 编译器相同的 reader lease 和受保护状态边界。
+	$cache_clear_ok = runtime_cache_clear_regenerable();
 
 	$msg = lang('update_success', array('version' => $latest_version));
 	$msg .= ' ' . ($checksum_verified ? lang('update_checksum_verified') : lang('update_checksum_unverified'));
 	if (!empty($proxy_fallback_used)) $msg .= ' ' . lang('update_proxy_fallback_used');
 	if (!empty($result['backed_up'])) $msg .= ' Backup: ' . str_replace(APP_PATH, '', $backup_dir);
-	update_message(0, $msg);
+	if (!$cache_clear_ok) $msg .= ' Runtime cache cleanup was incomplete; retry after active requests finish.';
+	update_message($cache_clear_ok ? 0 : 1, $msg);
 
 // ==================== 回滚到最近备份 ====================
 } elseif ($action == 'rollback') {
@@ -287,14 +284,13 @@ if ($action == 'check') {
 		update_message(-1, lang('update_rollback_failed') . ' (' . htmlspecialchars($restore_error) . ')');
 	}
 
-	// 清理缓存
-	$cachefiles = glob($conf['tmp_path'] . '*.php');
-	if ($cachefiles) {
-		foreach ($cachefiles as $f) @unlink($f);
-	}
+	// 清理缓存必须遵守与 Hook/model 编译器相同的 reader lease 和受保护状态边界。
+	$cache_clear_ok = runtime_cache_clear_regenerable();
 
 	@file_put_contents(APP_PATH . 'log/update.log', date('Y-m-d H:i:s') . " rollback from {$backup_dir}, restored={$result['restored']}\n", FILE_APPEND);
-	update_message(0, lang('update_rollback_success', array('count' => $result['restored'])));
+	$msg = lang('update_rollback_success', array('count' => $result['restored']));
+	if (!$cache_clear_ok) $msg .= ' Runtime cache cleanup was incomplete; retry after active requests finish.';
+	update_message($cache_clear_ok ? 0 : 1, $msg);
 
 }
 

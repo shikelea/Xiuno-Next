@@ -2,10 +2,36 @@
 
 // hook model_thread_start.php
 
+// Keep every thread creation and edit entry point on the same persisted subject-length contract.
+function thread_subject_maxlength() {
+	return 128;
+}
+
+// Subjects are persisted as canonical plain text. Older Xiuno rows may contain one layer of HTML
+// entities because routes escaped before storage; decode that layer so edit/save stays idempotent.
+function thread_subject_normalize($subject) {
+	$subject = html_entity_decode((string)$subject, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+	$subject = strip_tags($subject);
+	$subject = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $subject);
+	return trim(is_string($subject) ? $subject : '');
+}
+
+function thread_subject_html($subject) {
+	return htmlspecialchars(thread_subject_normalize($subject), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function thread_subject_is_too_long($subject) {
+	return xn_strlen(thread_subject_normalize($subject)) > thread_subject_maxlength();
+}
+
 // ------------> 最原生的 CURD，无关联其他数据。
 
 function thread__create($arr) {
 	// hook model_thread__create_start.php
+	if(isset($arr['subject'])) {
+		$arr['subject'] = thread_subject_normalize($arr['subject']);
+		if($arr['subject'] === '' || thread_subject_is_too_long($arr['subject'])) return FALSE;
+	}
 	$r = db_insert('thread', $arr);
 	// hook model_thread__create_end.php
 	return $r;
@@ -13,22 +39,31 @@ function thread__create($arr) {
 
 function thread__update($tid, $arr) {
 	// hook model_thread__update_start.php
+	if(isset($arr['subject'])) {
+		$arr['subject'] = thread_subject_normalize($arr['subject']);
+		if($arr['subject'] === '' || thread_subject_is_too_long($arr['subject'])) return FALSE;
+	}
 	$r = db_update('thread', array('tid'=>$tid), $arr);
 	// hook model_thread__update_end.php
 	return $r;
 }
 
-function thread__read($tid) {
+function thread__read($tid, $primary = FALSE) {
+	$primary_requested = (bool)$primary;
 	// hook model_thread__read_start.php
-	$thread = db_find_one('thread', array('tid'=>$tid));
+	$thread = $primary_requested
+		? db_find_one_master('thread', array('tid'=>$tid))
+		: db_find_one('thread', array('tid'=>$tid));
 	// hook model_thread__read_end.php
 	return $thread;
 }
 
-function thread__delete($tid) {
+function thread__delete($tid, &$db_result = NULL) {
 	// hook model_thread__delete_start.php
 	$r = db_delete('thread', array('tid'=>$tid));
+	$core_db_result = $r;
 	// hook model_thread__delete_end.php
+	$db_result = $core_db_result;
 	return $r;
 }
 
@@ -45,7 +80,7 @@ function thread__find($cond = array(), $orderby = array(), $page = 1, $pagesize 
 	return $threadlist;
 }
 
-function thread_create($arr, &$pid) {
+function thread_create($arr, &$pid, $attach_draft = '') {
 	global $conf, $gid;
 	$fid = $arr['fid'];
 	$uid = $arr['uid'];
@@ -90,20 +125,29 @@ function thread_create($arr, &$pid) {
 		post__delete($pid);
 		return FALSE;
 	}
+	// 关联
+	if(post__update($pid, array('tid'=>$tid), $tid) === FALSE) {
+		thread__delete($tid);
+		post__delete($pid);
+		return FALSE;
+	}
+
+	// Publish attachments before counters and participation records. A failed draft association is
+	// compensated by the attachment layer, so the new core rows can still be removed without orphans.
+	if(!attach_assoc_post($pid, $attach_draft)) {
+		thread__delete($tid);
+		post__delete($pid);
+		return FALSE;
+	}
+
 	// 板块总数+1, 用户发帖+1
 	
 	// 更新统计数据
 	$uid AND user__update($uid, array('threads+'=>1));
 	forum__update($fid, array('threads+'=>1, 'todaythreads+'=>1));
-	
-	// 关联
-	post__update($pid, array('tid'=>$tid), $tid);
 
 	// 我参与的发帖
 	$uid AND mythread_create($uid, $tid);
-	
-	// 关联附件
-	attach_assoc_post($pid);
 	
 	// 全站发帖数
 	runtime_set('threads+', 1);
@@ -160,11 +204,22 @@ function thread_inc_views($tid, $n = 1) {
 	return $r;
 }
 
-function thread_read($tid) {
+function thread_read($tid, $primary = FALSE) {
+	$primary_requested = (bool)$primary;
 	// hook model_thread_read_start.php
-	$thread = thread__read($tid);
+	$thread = thread__read($tid, $primary_requested);
 	thread_format($thread);
 	// hook model_thread_read_end.php
+	return $thread;
+}
+
+function thread_read_by_firstpid_primary($firstpid) {
+	$firstpid = intval($firstpid);
+	if($firstpid <= 0) return array();
+	$thread = db_find_one_master('thread', array('firstpid'=>$firstpid));
+	if($thread === FALSE || empty($thread)) return $thread;
+	if(!isset($thread['firstpid']) || intval($thread['firstpid']) !== $firstpid) return FALSE;
+	thread_format($thread);
 	return $thread;
 }
 
@@ -181,7 +236,8 @@ function thread_read_cache($tid) {
 // 删除主题
 function thread_delete($tid) {
 	global $conf;
-	$thread = thread__read($tid);
+	$thread = thread_read($tid, TRUE);
+	if($thread === FALSE) return FALSE;
 	if(empty($thread)) return TRUE;
 	$fid = $thread['fid'];
 	$uid = $thread['uid'];
@@ -189,7 +245,8 @@ function thread_delete($tid) {
 	// hook model_thread_delete_start.php
 	
 	// 删除所有回帖，同时更新 posts 统计数
-	$n = post_delete_by_tid($tid);
+	$n = post_delete_by_tid($tid, $thread['firstpid']);
+	if($n === FALSE) return FALSE;
 	
 	// 删除我的主题
 	$uid AND mythread_delete($uid, $tid);
@@ -197,15 +254,18 @@ function thread_delete($tid) {
 	// 清除相关缓存
 	forum_list_cache_delete();
 	
-	$r = thread__delete($tid);
-	if($r === FALSE) return FALSE;
+	$db_result = NULL;
+	$r = thread__delete($tid, $db_result);
+	if($db_result === FALSE || $r === FALSE) return FALSE;
 	
 	// 更新统计
-	forum__update($fid, array('threads-'=>1));
-	user__update($uid, array('threads-'=>1));
-	
-	// 全站统计
-	runtime_set('threads-', 1);
+	if(intval($db_result) > 0) {
+		forum__update($fid, array('threads-'=>1));
+		user__update($uid, array('threads-'=>1));
+
+		// 全站统计
+		runtime_set('threads-', 1);
+	}
 	
 	// hook model_thread_delete_end.php
 	
@@ -340,6 +400,8 @@ function thread_format(&$thread) {
 	if(empty($thread)) return;
 	
 	// hook model_thread_format_start.php
+	$thread['subject_raw'] = thread_subject_normalize(isset($thread['subject']) ? $thread['subject'] : '');
+	$thread['subject'] = thread_subject_html($thread['subject_raw']);
 	
 	$thread['create_date_fmt'] = humandate($thread['create_date']);
 	$thread['last_date_fmt'] = humandate($thread['last_date']);
@@ -398,6 +460,10 @@ function thread_maxid() {
 
 function thread_safe_info($thread) {
 	// hook model_thread_safe_info_start.php
+	if(isset($thread['subject_raw'])) {
+		$thread['subject'] = $thread['subject_raw'];
+		unset($thread['subject_raw']);
+	}
 	unset($thread['userip']);
 	if(!empty($thread['user'])) {
 		$thread['user'] = user_safe_info($thread['user']);

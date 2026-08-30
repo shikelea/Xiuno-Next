@@ -721,6 +721,66 @@ $.cookie = function (name, value, time, path) {
 };
 
 
+function xn_ajax_localized_message(key, fallback, replacements) {
+	var message = typeof lang === 'object' && lang && typeof lang[key] === 'string' && lang[key] !== '' ? lang[key] : fallback;
+	if (replacements) {
+		$.each(replacements, function (name, value) {
+			message = message.replace(new RegExp('\\{' + name + '\\}', 'g'), String(value));
+		});
+	}
+	return message;
+}
+
+function xn_ajax_failure_message(method, url, xhr, type, reason) {
+	var status = xhr && Number(xhr.status) ? Number(xhr.status) : 0;
+	var requestId = '';
+	try {
+		requestId = xhr && xhr.getResponseHeader ? (xhr.getResponseHeader('X-Request-ID') || '') : '';
+	} catch (e) { }
+	requestId = String(requestId).replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 80);
+	var detail = {
+		method: method,
+		url: String(url || ''),
+		status: status,
+		type: String(type || ''),
+		reason: String(reason || ''),
+		requestId: requestId,
+		response: xhr && typeof xhr.responseText === 'string' ? xhr.responseText.slice(0, 2048) : ''
+	};
+	if (window.console && console.error) console.error('Xiuno AJAX request failed', detail);
+
+	var message;
+	if (reason === 'empty') {
+		message = xn_ajax_localized_message('ajax_empty_response', 'The server returned an empty response. Please try again later.');
+	} else if (reason === 'invalid-json') {
+		message = xn_ajax_localized_message('ajax_invalid_response', 'The server returned an invalid response. Please try again later.');
+	} else if (type === 'timeout') {
+		message = xn_ajax_localized_message('ajax_request_timeout', 'The request timed out. Please try again later.');
+	} else if (status === 403) {
+		message = xn_ajax_localized_message('ajax_request_forbidden', 'The request was rejected (HTTP 403). Refresh the page and try again.');
+	} else if (status > 0) {
+		message = xn_ajax_localized_message('ajax_request_http_error', 'The request failed (HTTP {status}). Please try again later.', { status: status });
+	} else {
+		message = xn_ajax_localized_message('ajax_request_network_error', 'The network request failed. Check your connection and try again.');
+	}
+	if (requestId) message += ' ' + xn_ajax_localized_message('ajax_request_id', 'Request ID: {id}', { id: requestId });
+	return message;
+}
+
+function xn_ajax_response_is_html_document(response, xhr) {
+	var contentType = '';
+	try {
+		contentType = xhr && xhr.getResponseHeader ? (xhr.getResponseHeader('Content-Type') || '') : '';
+	} catch (e) { }
+	contentType = String(contentType).toLowerCase();
+	if (contentType.indexOf('json') !== -1 || contentType.indexOf('text/plain') !== -1) return false;
+	var text = String(response || '').replace(/^\s+/, '');
+	return /^<!doctype\s+html(?:\s|>)/i.test(text)
+		|| /^<html(?:\s|>)/i.test(text)
+		|| (contentType.indexOf('text/html') !== -1 || contentType.indexOf('application/xhtml+xml') !== -1)
+			&& /<(?:head|body)(?:\s|>)/i.test(text);
+}
+
 // 改变Location URL ?
 $.xget = function (url, callback, retry) {
 	if (retry === undefined) retry = 1;
@@ -730,23 +790,20 @@ $.xget = function (url, callback, retry) {
 		dataType: 'text',
 		timeout: 15000,
 		xhrFields: { withCredentials: true },
-		success: function (r) {
-			if (!r) return callback(-100, 'Server Response Empty!');
+		success: function (r, textStatus, xhr) {
+			if (!r) return callback(-100, xn_ajax_failure_message('GET', url, xhr, 'success', 'empty'));
 			var s = xn.json_decode(r);
 			if (!s) {
-				console.error("JSON Decode Failed. Raw response:", r);
-				// 尝试提取 JSON 部分
-				var match = r.match(/\{.*\}/);
-				if (match) {
-					s = xn.json_decode(match[0]);
+				if (xn_ajax_response_is_html_document(r, xhr)) {
+					return callback(-101, r, { kind: 'html-document' });
 				}
-				if (!s) return callback(-101, r);
+				return callback(-102, xn_ajax_failure_message('GET', url, xhr, 'parsererror', 'invalid-json'));
 			}
 			if (s.code === undefined) {
 				if ($.isPlainObject(s)) {
 					return callback(0, s);
 				} else {
-					return callback(-102, r); // 'Server Response Not JSON 2：'+
+					return callback(-102, xn_ajax_failure_message('GET', url, xhr, 'parsererror', 'invalid-json'));
 				}
 			} else if (s.code == 0) {
 				return callback(0, s.message);
@@ -764,12 +821,8 @@ $.xget = function (url, callback, retry) {
 			if (retry > 1) {
 				$.xget(url, callback, retry - 1);
 			} else {
-				if ((type != 'abort' && type != 'error') || xhr.status == 403 || xhr.status == 404) {
-					return callback(-1000, "xhr.responseText:" + xhr.responseText + ', type:' + type);
-				} else {
-					return callback(-1001, "xhr.responseText:" + xhr.responseText + ', type:' + type);
-					console.log("xhr.responseText:" + xhr.responseText + ', type:' + type);
-				}
+				var code = ((type != 'abort' && type != 'error') || xhr.status == 403 || xhr.status == 404) ? -1000 : -1001;
+				return callback(code, xn_ajax_failure_message('GET', url, xhr, type, 'transport'));
 			}
 		}
 	});
@@ -807,46 +860,95 @@ function xn_csrf_token() {
 	return meta ? meta.getAttribute('content') : '';
 }
 
-function xn_postdata_with_csrf(postdata) {
+// CSRF token 只允许发往同源地址：插件对外部 URL 调用 $.xpost 时绝不能携带本地 session token
+function xn_url_same_origin(url) {
+	if (!url) return true;
+	try {
+		var target = typeof url === 'string' ? url : (url && typeof url.href === 'string' ? url.href : (url && typeof url.url === 'string' ? url.url : null));
+		if (target === null) return false;
+		var u = new URL(target, document.baseURI || window.location.href);
+		return u.origin === window.location.origin;
+	} catch (e) {
+		return false;
+	}
+}
+
+function xn_postdata_with_csrf(postdata, same_origin) {
 	var token = xn_csrf_token();
-	if (!token) return postdata;
+	var includeLocalToken = same_origin !== false && !!token;
+	var keepToken = function (value) {
+		return same_origin === false && (!token || String(value) !== String(token));
+	};
+
+	// Request payloads are caller-owned and are often reused. Always normalize a copy so a
+	// same-origin request cannot plant the local session token in a later cross-origin request.
 	if (typeof FormData !== 'undefined' && postdata instanceof FormData) {
-		var formDataHasToken = false;
-		if (typeof postdata.has === 'function') {
-			formDataHasToken = postdata.has('_token');
+		var copiedFormData = new FormData();
+		var canIterate = false;
+		if (typeof postdata.forEach === 'function') {
+			postdata.forEach(function (value, name) {
+				canIterate = true;
+				if (name !== '_token' || keepToken(value)) copiedFormData.append(name, value);
+			});
 		} else if (typeof postdata.entries === 'function') {
-			var formDataEntries = postdata.entries();
-			var formDataEntry = formDataEntries.next();
-			while (!formDataEntry.done) {
-				if (formDataEntry.value && formDataEntry.value[0] === '_token') {
-					formDataHasToken = true;
-					break;
-				}
-				formDataEntry = formDataEntries.next();
+			var iterator = postdata.entries();
+			var entry = iterator.next();
+			while (!entry.done) {
+				canIterate = true;
+				if (entry.value[0] !== '_token' || keepToken(entry.value[1])) copiedFormData.append(entry.value[0], entry.value[1]);
+				entry = iterator.next();
 			}
 		}
-		if (!formDataHasToken) postdata.append('_token', token);
-		return postdata;
+		if (!canIterate && typeof postdata.entries !== 'function' && typeof postdata.forEach !== 'function') return postdata;
+		if (includeLocalToken) copiedFormData.append('_token', token);
+		return copiedFormData;
 	}
+
+	if (typeof URLSearchParams !== 'undefined' && postdata instanceof URLSearchParams) {
+		var copiedParams = new URLSearchParams();
+		postdata.forEach(function (value, name) {
+			if (name !== '_token' || keepToken(value)) copiedParams.append(name, value);
+		});
+		if (includeLocalToken) copiedParams.append('_token', token);
+		return copiedParams;
+	}
+
 	if (typeof postdata === 'string') {
-		return /(^|&)_token=/.test(postdata) ? postdata : postdata + (postdata ? '&' : '') + '_token=' + encodeURIComponent(token);
-	}
-	if ($.isArray(postdata)) {
-		var hasToken = false;
-		for (var i = 0; i < postdata.length; i++) {
-			if (postdata[i] && postdata[i].name === '_token') {
-				hasToken = true;
-				break;
-			}
+		try {
+			var sourceParams = new URLSearchParams(postdata);
+			var normalizedParams = xn_postdata_with_csrf(sourceParams, same_origin);
+			return normalizedParams.toString();
+		} catch (e) {
+			if (!includeLocalToken) return postdata;
+			return postdata + (postdata ? '&' : '') + '_token=' + encodeURIComponent(token);
 		}
-		if (!hasToken) postdata.push({ name: '_token', value: token });
-		return postdata;
 	}
+
+	if ($.isArray(postdata)) {
+		var copiedArray = [];
+		for (var i = 0; i < postdata.length; i++) {
+			var item = postdata[i];
+			if (item && item.name === '_token' && !keepToken(item.value)) continue;
+			copiedArray.push(item && typeof item === 'object' ? $.extend({}, item) : item);
+		}
+		if (includeLocalToken) copiedArray.push({ name: '_token', value: token });
+		return copiedArray;
+	}
+
 	if ($.isPlainObject(postdata)) {
-		if (postdata._token === undefined) postdata._token = token;
-		return postdata;
+		var copiedObject = $.extend({}, postdata);
+		if (includeLocalToken) {
+			copiedObject._token = token;
+		} else if ($.isArray(copiedObject._token)) {
+			copiedObject._token = copiedObject._token.filter(keepToken);
+			if (!copiedObject._token.length) delete copiedObject._token;
+		} else if (copiedObject._token !== undefined && !keepToken(copiedObject._token)) {
+			delete copiedObject._token;
+		}
+		return copiedObject;
 	}
-	return postdata || { _token: token };
+
+	return postdata == null && includeLocalToken ? { _token: token } : postdata;
 }
 
 $.xpost = function (url, postdata, callback, progress_callback) {
@@ -854,31 +956,25 @@ $.xpost = function (url, postdata, callback, progress_callback) {
 		callback = postdata;
 		postdata = null;
 	}
-	postdata = xn_postdata_with_csrf(postdata);
+	postdata = xn_postdata_with_csrf(postdata, xn_url_same_origin(url));
 
 	$.ajax({
 		type: 'POST',
 		url: url,
 		data: postdata,
 		dataType: 'text',
-		timeout: 6000000,
+		timeout: progress_callback ? 600000 : 30000,
 		progress: function (e) {
 			if (e.lengthComputable) {
 				if (progress_callback) progress_callback(e.loaded / e.total * 100);
 				//console.log('progress1:'+e.loaded / e.total * 100 + '%');
 			}
 		},
-		success: function (r) {
-			if (!r) return callback(-1, 'Server Response Empty!');
+		success: function (r, textStatus, xhr) {
+			if (!r) return callback(-1, xn_ajax_failure_message('POST', url, xhr, 'success', 'empty'));
 			var s = xn.json_decode(r);
 			if (!s || s.code === undefined) {
-				console.error("JSON Decode Failed (POST). Raw response:", r);
-				// 尝试提取 JSON 部分
-				var match = r.match(/\{.*\}/);
-				if (match) {
-					s = xn.json_decode(match[0]);
-				}
-				if (!s || s.code === undefined) return callback(-1, 'Server Response Not JSON');
+				return callback(-1, xn_ajax_failure_message('POST', url, xhr, 'parsererror', 'invalid-json'));
 			}
 			if (s.code == 0) {
 				return callback(0, s.message);
@@ -890,12 +986,8 @@ $.xpost = function (url, postdata, callback, progress_callback) {
 			}
 		},
 		error: function (xhr, type) {
-			if (type != 'abort' && type != 'error' || xhr.status == 403) {
-				return callback(-1000, "xhr.responseText:" + xhr.responseText + ', type:' + type);
-			} else {
-				return callback(-1001, "xhr.responseText:" + xhr.responseText + ', type:' + type);
-				console.log("xhr.responseText:" + xhr.responseText + ', type:' + type);
-			}
+			var code = (type != 'abort' && type != 'error' || xhr.status == 403) ? -1000 : -1001;
+			return callback(code, xn_ajax_failure_message('POST', url, xhr, type, 'transport'));
 		}
 	});
 };
@@ -1473,28 +1565,73 @@ $.fn.checked = function (v) {
 	}
 };
 
+function xn_button_content(jthis, element, value) {
+	var usesValue = element.tagName === 'INPUT';
+	if (arguments.length < 3) return usesValue ? jthis.val() : jthis.html();
+	if (usesValue) jthis.val(value);
+	else jthis.html(value);
+}
+
+function xn_button_capture_state(jthis, element) {
+	var state = jthis.data('xn-button-state');
+	if (typeof state !== 'undefined') return state;
+	state = {
+		content: xn_button_content(jthis, element),
+		disabled: !!element.disabled,
+		disabledClass: jthis.hasClass('disabled'),
+		hadAriaDisabled: element.hasAttribute('aria-disabled'),
+		ariaDisabled: element.getAttribute('aria-disabled') || ''
+	};
+	jthis.data('xn-button-state', state);
+	return state;
+}
+
+// Shared by the core and BS4 compatibility proxy so reset restores caller-owned state.
+function xn_button_apply(jq, element, status) {
+	if (!element || status === 'toggle' || typeof status === 'undefined') return false;
+	var jthis = jq(element);
+	if (status === 'loading') {
+		xn_button_capture_state(jthis, element);
+		var loadingText = jthis.attr('data-loading-text') || jthis.attr('loading-text') || jthis.data('loading-text');
+		jthis.prop('disabled', true).addClass('disabled').attr('aria-disabled', 'true');
+		if (typeof loadingText !== 'undefined' && loadingText !== '') xn_button_content(jthis, element, loadingText);
+		return true;
+	}
+	if (status === 'disabled' || status === 'disable') {
+		jthis.prop('disabled', true).addClass('disabled').attr('aria-disabled', 'true');
+		return true;
+	}
+	if (status === 'enable') {
+		jthis.prop('disabled', false).removeClass('disabled').removeAttr('aria-disabled');
+		return true;
+	}
+	if (status === 'reset') {
+		var state = jthis.data('xn-button-state');
+		if (typeof state === 'undefined') return true;
+		xn_button_content(jthis, element, state.content);
+		jthis.prop('disabled', !!state.disabled).toggleClass('disabled', !!state.disabledClass);
+		if (state.hadAriaDisabled) jthis.attr('aria-disabled', state.ariaDisabled);
+		else jthis.removeAttr('aria-disabled');
+		jthis.removeData('xn-button-state');
+		return true;
+	}
+	xn_button_capture_state(jthis, element);
+	xn_button_content(jthis, element, status);
+	return true;
+}
+window.xn_button_apply = xn_button_apply;
+
 // 支持连续操作 jsubmit.button(message).delay(1000).button('reset');
 $.fn.button = function (status) {
 	return this.each(function () {
-		var jthis = $(this);
-		var loading_text = jthis.attr('loading-text') || jthis.data('loading-text');
-		if (status == 'loading') {
-			jthis.prop('disabled', true).addClass('disabled');
-			jthis.data('default-text', jthis.html()); // Use html() to preserve icons
-			if (loading_text) jthis.html(loading_text);
-		} else if (status == 'disabled') {
-			jthis.prop('disabled', true).addClass('disabled');
-		} else if (status == 'enable') {
-			jthis.prop('disabled', false).removeClass('disabled');
-		} else if (status == 'reset') {
-			jthis.prop('disabled', false).removeClass('disabled');
-			var default_text = jthis.data('default-text');
-			if (default_text) {
-				jthis.html(default_text);
+		var element = this;
+		$(element).queue(function (next) {
+			if (!xn_button_apply($, element, status) && status === 'toggle') {
+				var jthis = $(element);
+				jthis.toggleClass('active').attr('aria-pressed', jthis.hasClass('active') ? 'true' : 'false');
 			}
-		} else {
-			jthis.html(status);
-		}
+			next();
+		});
 	});
 };
 
@@ -1511,93 +1648,144 @@ $.fn.location = function (href) {
 	});
 };
 
+// Notify every core/compatibility initializer after a fragment is inserted.
+xn.fragment_ready = function (root) {
+	root = root && root.jquery ? root[0] : root;
+	root = root || document;
+	var event;
+	try {
+		event = new CustomEvent('xiuno:fragment-ready', { bubbles: true, detail: { elt: root } });
+	} catch (error) {
+		event = document.createEvent('CustomEvent');
+		event.initCustomEvent('xiuno:fragment-ready', true, false, { elt: root });
+	}
+	document.dispatchEvent(event);
+	return root;
+};
+window.xn_fragment_ready = xn.fragment_ready;
+
+function xn_field_alert_restore_aria(jq, jthis, extraDescribedby) {
+	var original = jthis.data('xn-alert-original-aria-describedby') || '';
+	var values = (original + ' ' + (extraDescribedby || '')).replace(/^\s+|\s+$/g, '').split(/\s+/);
+	var unique = [];
+	for (var i = 0; i < values.length; i++) {
+		if (values[i] && jq.inArray(values[i], unique) === -1) unique.push(values[i]);
+	}
+	if (unique.length) jthis.attr('aria-describedby', unique.join(' '));
+	else jthis.removeAttr('aria-describedby');
+}
+
+function xn_field_alert_restore_title(jthis) {
+	if (jthis.data('xn-alert-title-saved') !== true) return;
+	if (jthis.data('xn-alert-had-title')) jthis.attr('title', jthis.data('xn-alert-original-title') || '');
+	else jthis.removeAttr('title');
+	if (jthis.data('xn-alert-had-bs-original-title')) jthis.attr('data-bs-original-title', jthis.data('xn-alert-original-bs-title') || '');
+	else jthis.removeAttr('data-bs-original-title');
+	jthis.removeData('xn-alert-title-saved').removeData('xn-alert-had-title').removeData('xn-alert-original-title');
+	jthis.removeData('xn-alert-had-bs-original-title').removeData('xn-alert-original-bs-title');
+}
+
+function xn_field_alert_show_tooltip(jq, jthis, message) {
+	var Tooltip = window.bootstrap && window.bootstrap.Tooltip;
+	if (!Tooltip) return;
+	var instance = Tooltip.getInstance ? Tooltip.getInstance(jthis[0]) : null;
+	var state = jthis.data('xn-alert-tooltip-state');
+	if (!state || state.instance !== instance) {
+		state = null;
+		if (instance) {
+			state = {
+				instance: instance,
+				owned: false,
+				wasShown: typeof instance._isShown === 'function' ? !!instance._isShown() : false,
+				hadNewContent: instance._newContent !== null && typeof instance._newContent !== 'undefined',
+				content: instance._newContent,
+				title: instance._config ? instance._config.title : (jthis.attr('data-bs-original-title') || '')
+			};
+		}
+	}
+	if (!instance) {
+		instance = new Tooltip(jthis[0], { title: message, trigger: 'manual', placement: 'top' });
+		state = { instance: instance, owned: true, wasShown: false, hadNewContent: false, content: null, title: '' };
+	}
+	jthis.data('xn-alert-tooltip-state', state);
+	if (!state.owned && typeof instance.setContent === 'function') {
+		if ('_isHovered' in instance) instance._isHovered = null;
+		instance.setContent({ '.tooltip-inner': message });
+	}
+	if (typeof instance.show === 'function') {
+		if ('_isHovered' in instance) instance._isHovered = null;
+		instance.show();
+	}
+}
+
+function xn_field_alert_clear(jq, element) {
+	var jthis = jq(element);
+	jthis.off('input.xn-alert change.xn-alert').removeClass('is-invalid').removeAttr('aria-invalid');
+	var feedback = jthis.data('xn-alert-feedback');
+	if (feedback && feedback.length) feedback.text('').removeClass('d-block');
+
+	var state = jthis.data('xn-alert-tooltip-state');
+	var keepTooltipAria = '';
+	try {
+		var Tooltip = window.bootstrap && window.bootstrap.Tooltip;
+		var instance = Tooltip && Tooltip.getInstance ? Tooltip.getInstance(element) : null;
+		if (state && instance === state.instance) {
+			if (state.owned) {
+				instance.dispose();
+			} else {
+				if (typeof instance.setContent === 'function') {
+					if ('_isHovered' in instance) instance._isHovered = null;
+					instance.setContent(state.hadNewContent ? state.content : { '.tooltip-inner': state.title });
+				}
+				if (state.wasShown) {
+					if (typeof instance.show === 'function') {
+						if ('_isHovered' in instance) instance._isHovered = null;
+						instance.show();
+					}
+					keepTooltipAria = jthis.attr('aria-describedby') || '';
+				} else if (typeof instance.hide === 'function') {
+					element.addEventListener('hidden.bs.tooltip', function () { xn_field_alert_restore_aria(jq, jq(element), ''); }, { once: true });
+					instance.hide();
+				}
+			}
+		}
+	} catch (ignored) {}
+
+	xn_field_alert_restore_aria(jq, jthis, keepTooltipAria);
+	xn_field_alert_restore_title(jthis);
+	jthis.removeData('xn-alert-original-aria-describedby').removeData('xn-alert-feedback').removeData('xn-alert-tooltip-state');
+}
+
+function xn_field_alert_show(jq, element, message) {
+	var jthis = jq(element);
+	jthis.addClass('is-invalid').attr('aria-invalid', 'true');
+	if (jthis.data('xn-alert-original-aria-describedby') === undefined) jthis.data('xn-alert-original-aria-describedby', jthis.attr('aria-describedby') || '');
+	if (jthis.data('xn-alert-title-saved') !== true) {
+		jthis.data('xn-alert-title-saved', true);
+		jthis.data('xn-alert-had-title', element.hasAttribute('title'));
+		jthis.data('xn-alert-original-title', element.getAttribute('title') || '');
+		jthis.data('xn-alert-had-bs-original-title', element.hasAttribute('data-bs-original-title'));
+		jthis.data('xn-alert-original-bs-title', element.getAttribute('data-bs-original-title') || '');
+	}
+	var feedback = jthis.siblings('.invalid-feedback').first();
+	if (!feedback.length) feedback = jthis.closest('.input-group, .mb-3, .form-group, .form-floating').find('.invalid-feedback').first();
+	if (!feedback.length) feedback = jq('<div class="invalid-feedback"></div>').insertAfter(jthis);
+	feedback.text(message).addClass('d-block');
+	if (!feedback.attr('id')) feedback.attr('id', 'invalid-feedback-' + Math.random().toString(36).slice(2));
+	jthis.data('xn-alert-feedback', feedback).attr('title', message);
+	try { xn_field_alert_show_tooltip(jq, jthis, message); } catch (ignored) {}
+
+	var currentDescribedby = jthis.attr('aria-describedby') || '';
+	var describedby = (currentDescribedby + ' ' + feedback.attr('id')).replace(/^\s+|\s+$/g, '');
+	xn_field_alert_restore_aria(jq, jthis, describedby);
+	jthis.off('input.xn-alert change.xn-alert').one('input.xn-alert change.xn-alert', function () { xn_field_alert_clear(jq, element); });
+}
+window.xn_field_alert_show = xn_field_alert_show;
+window.xn_field_alert_clear = xn_field_alert_clear;
+
 // 在控件上方提示错误信息，如果为手机版，则调用 toast
 $.fn.alert = function (message) {
-	var jthis = $(this);
-	// BS5: is-invalid for input
-	jthis.addClass('is-invalid');
-	jthis.attr('aria-invalid', 'true');
-	if (jthis.data('xn-alert-original-aria-describedby') === undefined) {
-		jthis.data('xn-alert-original-aria-describedby', jthis.attr('aria-describedby') || '');
-	}
-
-	var jfeedback = jthis.siblings('.invalid-feedback').first();
-	if (!jfeedback.length) {
-		jfeedback = jthis.closest('.input-group, .mb-3, .form-group, .form-floating').find('.invalid-feedback').first();
-	}
-	if (!jfeedback.length) {
-		jfeedback = $('<div class="invalid-feedback"></div>').insertAfter(jthis);
-	}
-	jfeedback.text(message).addClass('d-block');
-	if (!jfeedback.attr('id')) {
-		jfeedback.attr('id', 'invalid-feedback-' + Math.random().toString(36).slice(2));
-	}
-	jthis.data('xn-alert-feedback', jfeedback);
-
-	// Attempt to use BS5 Tooltip
-	// We need to set the title attribute for the tooltip to pick it up
-	jthis.attr('title', message);
-	jthis.attr('data-bs-original-title', message); // For good measure
-
-	// Check if tooltip instance exists
-	// Try both standard and jQuery interface if available
-	try {
-		var tooltip = bootstrap.Tooltip.getInstance(jthis[0]);
-		if (tooltip) {
-			tooltip.setContent({ '.tooltip-inner': message });
-			tooltip.show();
-		} else {
-			// Initialize new tooltip
-			new bootstrap.Tooltip(jthis[0], {
-				title: message,
-				trigger: 'manual',
-				placement: 'top'
-			}).show();
-		}
-	} catch (e) {
-		console.log('BS5 Tooltip init failed', e);
-		// Fallback for no-BS5 environment or jQuery plugin
-		try {
-			jthis.tooltip('dispose');
-			jthis.tooltip({ title: message, trigger: 'manual', placement: 'top' }).tooltip('show');
-		} catch (e2) { }
-	}
-
-	var feedbackId = jfeedback.attr('id');
-	var originalDescribedby = jthis.data('xn-alert-original-aria-describedby') || '';
-	var describedby = originalDescribedby ? originalDescribedby.split(/\s+/) : [];
-	if ($.inArray(feedbackId, describedby) === -1) {
-		describedby.push(feedbackId);
-	}
-	jthis.attr('aria-describedby', $.trim(describedby.join(' ')));
-
-	// Remove is-invalid and tooltip when user changes input.
-	jthis.off('input.xn-alert change.xn-alert').one('input.xn-alert change.xn-alert', function () {
-		jthis.removeClass('is-invalid');
-		jthis.removeAttr('aria-invalid');
-		var jfeedback = jthis.data('xn-alert-feedback');
-		if (jfeedback && jfeedback.length) {
-			jfeedback.text('').removeClass('d-block');
-		}
-		try {
-			var tooltip = bootstrap.Tooltip.getInstance(jthis[0]);
-			if (tooltip) {
-				tooltip.dispose();
-			}
-		} catch (e) {
-			try { jthis.tooltip('dispose'); } catch (e2) { }
-		}
-		var originalDescribedby = jthis.data('xn-alert-original-aria-describedby');
-		if (originalDescribedby) {
-			jthis.attr('aria-describedby', originalDescribedby);
-		} else {
-			jthis.removeAttr('aria-describedby');
-		}
-		jthis.removeData('xn-alert-original-aria-describedby');
-		jthis.removeData('xn-alert-feedback');
-	});
-
-	return this;
+	return this.each(function () { xn_field_alert_show($, this, message); });
 };
 
 $.fn.serializeObject = function () {
@@ -1718,23 +1906,10 @@ $.fn.attr_name_index = function (rowid) {
 $.fn.reset = function () {
 	var jform = $(this);
 	jform.find('input[type="submit"], button[type="submit"]').button('reset');
-	jform.find('input').tooltip('dispose');
 	jform.find('.is-invalid').each(function () {
-		var jfield = $(this);
-		var jfeedback = jfield.data('xn-alert-feedback');
-		var originalDescribedby = jfield.data('xn-alert-original-aria-describedby');
-		if (originalDescribedby) {
-			jfield.attr('aria-describedby', originalDescribedby);
-		} else {
-			jfield.removeAttr('aria-describedby');
-		}
-		if (jfeedback && jfeedback.length) {
-			jfeedback.removeClass('d-block').text('');
-		}
-		jfield.removeData('xn-alert-original-aria-describedby');
-		jfield.removeData('xn-alert-feedback');
+		xn_field_alert_clear($, this);
 	});
-	jform.find('.is-invalid').removeClass('is-invalid').removeAttr('aria-invalid');
+	return this;
 };
 
 // 用来代替 <base href="../" /> 的功能
@@ -2016,43 +2191,66 @@ $.fn.xn_toggle = function () {
 $('.xn-dropdown').xn_dropdown();
 $('.xn-toggle').xn_toggle();
 
-/* Bootstrap 4 to 5 Compatibility Polyfill for legacy plugins */
-(function () {
-	function migrateBS4Attributes(node) {
-		if (node.nodeType !== 1) return;
-		var attrs = ['toggle', 'target', 'dismiss', 'placement', 'ride', 'slide', 'slide-to'];
-		for (var i = 0; i < attrs.length; i++) {
-			var bs4Attr = 'data-' + attrs[i];
-			var bs5Attr = 'data-bs-' + attrs[i];
-			if (node.hasAttribute(bs4Attr) && !node.hasAttribute(bs5Attr)) {
-				node.setAttribute(bs5Attr, node.getAttribute(bs4Attr));
-			}
+/*
+ * Publish only Xiuno's documented jQuery extensions for a later jQuery identity.
+ * A theme can load or replace jQuery after xiuno.js; bs4-compat.js uses this
+ * descriptor snapshot instead of copying the whole source $.fn object (which
+ * would also copy unrelated plugins and jQuery internals).
+ */
+(function (global, source) {
+	if (!source || !source.fn) return;
+	var staticNames = ['location', 'pdata', 'cookie', 'xget', 'xpost', 'required', 'require', 'require_css', 'each_sync'];
+	var fnNames = ['loading', 'base64_encode_file', 'removeDeep', 'emptyDeep', 'son', 'checked', 'button', 'location', 'alert', 'serializeObject', 'attr_name_index', 'reset', 'base_href', 'xn_position', 'xn_menu', 'xn_dropdown', 'xn_toggle'];
+	var staticDescriptors = {};
+	var fnDescriptors = {};
+	var installedTargets = typeof WeakSet !== 'undefined' ? new WeakSet() : [];
+
+	function targetInstalled(target) {
+		return installedTargets instanceof Array ? installedTargets.indexOf(target) !== -1 : installedTargets.has(target);
+	}
+
+	function rememberTarget(target) {
+		if (installedTargets instanceof Array) installedTargets.push(target);
+		else installedTargets.add(target);
+	}
+
+	function snapshot(owner, names, output) {
+		for (var i = 0; i < names.length; i++) {
+			var descriptor = Object.getOwnPropertyDescriptor(owner, names[i]);
+			if (descriptor) output[names[i]] = descriptor;
 		}
 	}
-	function processNodeAndChildren(node) {
-		if (node.nodeType === 1) {
-			migrateBS4Attributes(node);
-			var elements = node.querySelectorAll('[data-toggle], [data-target], [data-dismiss], [data-placement]');
-			for (var i = 0; i < elements.length; i++) {
-				migrateBS4Attributes(elements[i]);
+
+	function installDescriptors(owner, names, descriptors) {
+		for (var i = 0; i < names.length; i++) {
+			var name = names[i];
+			if (!descriptors[name]) continue;
+			try {
+				Object.defineProperty(owner, name, descriptors[name]);
+			} catch (error) {
+				owner[name] = descriptors[name].value;
 			}
+	}
+	}
+
+	snapshot(source, staticNames, staticDescriptors);
+	snapshot(source.fn, fnNames, fnDescriptors);
+	global.XiunoJQueryCore = {
+		source: source,
+		staticNames: staticNames.slice(),
+		fnNames: fnNames.slice(),
+		install: function (target) {
+			if (!target || !target.fn || target === source || targetInstalled(target)) return target;
+			installDescriptors(target, staticNames, staticDescriptors);
+			installDescriptors(target.fn, fnNames, fnDescriptors);
+			rememberTarget(target);
+			return target;
 		}
+	};
+
+	if (global.XiunoCompat && typeof global.XiunoCompat.refresh === 'function') {
+		global.XiunoCompat.refresh(document);
 	}
-	document.addEventListener('DOMContentLoaded', function () {
-		processNodeAndChildren(document.body);
-	});
-	if (typeof MutationObserver !== 'undefined') {
-		var observer = new MutationObserver(function (mutations) {
-			mutations.forEach(function (mutation) {
-				if (mutation.addedNodes) {
-					for (var i = 0; i < mutation.addedNodes.length; i++) {
-						processNodeAndChildren(mutation.addedNodes[i]);
-					}
-				}
-			});
-		});
-		observer.observe(document.documentElement, { childList: true, subtree: true });
-	}
-})();
+})(window, window.jQuery);
 
 console.log('xiuno.js loaded');

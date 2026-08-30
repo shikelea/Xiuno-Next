@@ -5,6 +5,9 @@
 function runtime_init() {
 	// hook model_runtime_init_start.php
 	global $conf;
+	$online_snapshot = online_member_snapshot();
+	$online_count = isset($online_snapshot['count']) ? max(0, intval($online_snapshot['count'])) : 0;
+	$online_generation = isset($online_snapshot['generation']) ? (string)$online_snapshot['generation'] : '';
 	$runtime = cache_get('runtime'); // 实时运行的数据，初始化！
 	if($runtime === NULL || !isset($runtime['users'])) {
 		$runtime = array();
@@ -15,20 +18,28 @@ function runtime_init() {
 		$runtime['todayusers'] = 0;
 		$runtime['todayposts'] = 0;
 		$runtime['todaythreads'] = 0;
-		$runtime['onlines'] = max(0, online_count());
-		$runtime['online_member_compat_version'] = 2;
+		$runtime['onlines'] = $online_count;
+		$runtime['online_member_compat_version'] = 3;
+		$runtime['online_member_generation'] = $online_generation;
 		$runtime['cron_1_last_date'] = 0;
 		$runtime['cron_2_last_date'] = 0;
 		
 		cache_set('runtime', $runtime);
 		
 	}
-	// Refresh a runtime cache written before online members were counted by
-	// unique UID. This makes the correction immediate instead of waiting for
-	// the five-minute cron interval.
-	if(isset($runtime['users']) && (!isset($runtime['online_member_compat_version']) || intval($runtime['online_member_compat_version']) < 2)) {
-		$runtime['onlines'] = max(0, online_count());
-		$runtime['online_member_compat_version'] = 2;
+	// Runtime and the public member list must expose the same generation on every request;
+	// the five-minute cron remains maintenance, not a second online-members data source.
+	if(isset($runtime['users']) && (
+		!isset($runtime['online_member_compat_version'])
+		|| intval($runtime['online_member_compat_version']) < 3
+		|| !isset($runtime['online_member_generation'])
+		|| (string)$runtime['online_member_generation'] !== $online_generation
+		|| !isset($runtime['onlines'])
+		|| intval($runtime['onlines']) !== $online_count
+	)) {
+		$runtime['onlines'] = $online_count;
+		$runtime['online_member_compat_version'] = 3;
+		$runtime['online_member_generation'] = $online_generation;
 		cache_set('runtime', $runtime);
 	}
 	// hook model_runtime_init_end.php

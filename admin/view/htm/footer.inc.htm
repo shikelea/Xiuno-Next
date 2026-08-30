@@ -56,7 +56,6 @@
 	var url_rewrite_on = <?php echo intval($conf['url_rewrite_on']);?>;
 	var fid = <?php echo intval($fid);?>;
 	var csrf_token = <?php echo xn_json_encode_for_script(csrf_token());?>;
-	$.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-CSRF-TOKEN',csrf_token);}});
 	</script>
 	<script src="../view/js/bbs.min.js<?php echo $static_version;?>"></script>
 	

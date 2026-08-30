@@ -194,8 +194,10 @@ function jump($message, $url = '', $delay = 3) {
 	if(!$url) return $message;
 	$url == 'back' AND $url = 'javascript:history.back()';
 	$safe_message = xn_html_escape($message);
-	$htmladd = '<script>setTimeout(function() {window.location=\''.$url.'\'}, '.($delay * 1000).');</script>';
-	return '<a href="'.$url.'">'.$safe_message.'</a>'.$htmladd;
+	$url_html = xn_html_escape($url);
+	$url_script = xn_json_encode_for_script((string)$url);
+	$htmladd = '<script>setTimeout(function() {window.location='.$url_script.'}, '.($delay * 1000).');</script>';
+	return '<a href="'.$url_html.'">'.$safe_message.'</a>'.$htmladd;
 }
 
 function xn_html_escape($s) {
@@ -956,29 +958,106 @@ function http_multi_get($urls) {
 }
 
 
-// 将变量写入到文件，根据后缀判断文件格式，先备份，再写入，写入失败，还原备份
+// file_replace_var() 的稳定跨进程写锁。
+// 锁文件优先放在 tmp_path，避免在插件/配置目录写入运行时锁；锁路径不删除，防止 Unix 上
+// 已持有 inode 与新打开 inode 分裂。plugin_clear_tmp_dir() 会保留所有 .lock 文件。
+function file_replace_var_lock_path($filepath) {
+	global $conf;
+	$lockdir = is_array($conf) && isset($conf['tmp_path']) ? $conf['tmp_path'] : '';
+	if(!is_string($lockdir) || $lockdir === '' || !is_dir($lockdir)) $lockdir = dirname($filepath);
+	$lockdir_real = realpath($lockdir);
+	if($lockdir_real !== FALSE) $lockdir = $lockdir_real;
+
+	$identity = realpath($filepath);
+	if($identity === FALSE) {
+		$parent = realpath(dirname($filepath));
+		$identity = ($parent === FALSE ? dirname($filepath) : $parent).DIRECTORY_SEPARATOR.basename($filepath);
+	}
+	$identity = str_replace('\\', '/', $identity);
+	if(DIRECTORY_SEPARATOR === '\\') $identity = strtolower($identity);
+	return rtrim($lockdir, '/\\').DIRECTORY_SEPARATOR.'file_replace_'.sha1($identity).'.lock';
+}
+
+function file_replace_var_lock($filepath) {
+	$lockfile = file_replace_var_lock_path($filepath);
+	$lock = @fopen($lockfile, 'c+b');
+	if(!$lock) return FALSE;
+	if(!flock($lock, LOCK_EX)) {
+		fclose($lock);
+		return FALSE;
+	}
+	return $lock;
+}
+
+function file_replace_var_unlock($lock) {
+	if(!is_resource($lock)) return FALSE;
+	$r = flock($lock, LOCK_UN);
+	fclose($lock);
+	return $r;
+}
+
+// 将变量写入到文件，根据后缀判断文件格式，先备份，再写入，写入失败，还原备份。
+// 锁覆盖“确认原始内容 -> 备份 -> 发布 -> 验证 -> 清理”的完整提交区间；锁内再次确认
+// original，避免两个请求基于同一旧快照互相覆盖，或返回 FALSE 后磁盘却保留失败请求内容。
+function file_replace_var_write($filepath, $original, $replacement) {
+	if(!is_string($original) || !is_string($replacement)) return FALSE;
+	$lock = file_replace_var_lock($filepath);
+	if($lock === FALSE) return FALSE;
+	try {
+		// file_replace_var() parses before entering this helper. Revalidate under the stable lock so
+		// a concurrent committed generation is never overwritten by that stale parsed snapshot.
+		if(file_get_contents_try($filepath) !== $original) return FALSE;
+		if(!file_backup($filepath)) return FALSE;
+		$backfile = file_backname($filepath);
+		$backup = file_get_contents_try($backfile);
+		if($backup !== $original) return FALSE;
+
+		$r = file_put_contents_try($filepath, $replacement);
+		$published = $r === strlen($replacement) && file_get_contents_try($filepath) === $replacement;
+		if(!$published) {
+			file_backup_restore($filepath);
+			clearstatcache(TRUE, $filepath);
+			// A restored short/invalid write is still a failed write. Never return the short byte count.
+			return FALSE;
+		}
+
+		if(!file_backup_unlink($filepath)) {
+			// Keep the operation fail-closed: if the backup cannot be retired, restore the original so
+			// the next writer is not blocked by a stale backup that describes a different generation.
+			file_backup_restore($filepath);
+			return FALSE;
+		}
+		return $r;
+	} finally {
+		file_replace_var_unlock($lock);
+	}
+}
+
 function file_replace_var($filepath, $replace = array(), $pretty = FALSE) {
 	$ext = file_ext($filepath);
 	if($ext == 'php') {
-		$arr = include $filepath;
+		$original = file_get_contents_try($filepath);
+		if($original === FALSE) return FALSE;
+		try {
+			$arr = include $filepath;
+		} catch(Throwable $e) {
+			return FALSE;
+		}
+		if(!is_array($arr)) return FALSE;
 		$arr = array_merge($arr, $replace);
 		$s = "<?php\r\nreturn ".var_export($arr, true).";\r\n?>";
-		// 备份文件
-		file_backup($filepath);
-		$r = file_put_contents_try($filepath, $s);
-		$r != strlen($s) ? file_backup_restore($filepath) : file_backup_unlink($filepath);
-		return $r;
+		return file_replace_var_write($filepath, $original, $s);
 	} elseif($ext == 'js' || $ext == 'json') {
-		$s = file_get_contents_try($filepath);
-		$arr = xn_json_decode($s);
+		$original = file_get_contents_try($filepath);
+		if($original === FALSE) return FALSE;
+		$arr = xn_json_decode($original);
 		if(empty($arr)) return FALSE;
 		$arr = array_merge($arr, $replace);
 		$s = xn_json_encode($arr, $pretty);
-		file_backup($filepath);
-		$r = file_put_contents_try($filepath, $s);
-		$r != strlen($s) ? file_backup_restore($filepath) : file_backup_unlink($filepath);
-		return $r;
+		if(!is_string($s)) return FALSE;
+		return file_replace_var_write($filepath, $original, $s);
 	}
+	return FALSE;
 }
 
 function file_backname($filepath) {
@@ -1096,9 +1175,11 @@ function http_url_path() {
 	$port = _SERVER('SERVER_PORT');
 	//$portadd = ($port == 80 ? '' : ':'.$port);
 	$host = _SERVER('HTTP_HOST');  // host 里包含 port
-	$https = strtolower(_SERVER('HTTPS', 'off'));
-	$proto = strtolower(_SERVER('HTTP_X_FORWARDED_PROTO'));
-	$path = substr($_SERVER['PHP_SELF'], 0, strrpos($_SERVER['PHP_SELF'], '/'));
+	$https = strtolower((string)_SERVER('HTTPS', 'off'));
+	$proto = strtolower((string)_SERVER('HTTP_X_FORWARDED_PROTO', ''));
+	$php_self = (string)_SERVER('PHP_SELF', '/');
+	$slash = strrpos($php_self, '/');
+	$path = $slash === FALSE ? '' : substr($php_self, 0, $slash);
 	$http = (($port == 443) || $proto == 'https' || ($https && $https != 'off')) ? 'https' : 'http';
 	return  "$http://$host$path/";
 }
@@ -1445,8 +1526,9 @@ function xn_setcookie($name, $value, $expires = 0, $path = '', $httponly = TRUE,
 // 获取 referer
 function http_referer() {
 	$len = strlen(http_url_path());
-	$referer = param('referer');
-	empty($referer) AND $referer = _SERVER('HTTP_REFERER');
+	$referer = (string)param('referer', '');
+	empty($referer) AND $referer = (string)_SERVER('HTTP_REFERER', '');
+	if($referer === '') return './';
 	$referer2 = substr($referer, $len);
 	if(strpos($referer, url('user-login')) !== FALSE || strpos($referer, url('user-logout')) !== FALSE || strpos($referer, url('user-create')) !== FALSE) {
 		$referer = './';

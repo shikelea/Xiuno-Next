@@ -8,6 +8,7 @@ class db_pdo_sqlite {
 	public $link = NULL;   // 最后一次使用的连接
 	public $errno = 0;
 	public $errstr = '';
+	public $sqls = array();
 	public $tablepre = '';
 	
 	public function __construct($conf) {
@@ -51,9 +52,8 @@ class db_pdo_sqlite {
 				PDO::ATTR_TIMEOUT => 5,
 				PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
 			);
-			$link = new PDO($sqlitedb, $attr);//连接sqlite
-			//new PDO($sqlitedb,'','',$attr);//连接sqlite
-		} catch (Exception $e) {
+			$link = new PDO($sqlitedb, NULL, NULL, $attr);//连接sqlite
+		} catch (Throwable $e) {
 			$this->error($e->getCode(), '连接数据库服务器失败:'.$e->getMessage());
 			return FALSE;
 	        }
@@ -66,11 +66,34 @@ class db_pdo_sqlite {
 		$query = $this->query($sql);
 		if(!$query) return $query;
 		$query->setFetchMode(PDO::FETCH_ASSOC);
-		return $query->fetch();
+		$r = $query->fetch();
+		return $r === FALSE ? NULL : $r;
+	}
+
+	// Keep the same primary-read contract as the replicated SQL drivers.
+	public function sql_find_one_master($sql) {
+		$link = $this->connect_master();
+		if(!$link) return FALSE;
+		$query = $this->query($sql, $link);
+		if(!$query) return $query;
+		$query->setFetchMode(PDO::FETCH_ASSOC);
+		$r = $query->fetch();
+		return $r === FALSE ? NULL : $r;
 	}
 	
 	public function sql_find($sql, $key = NULL) {
 		$query = $this->query($sql);
+		if(!$query) return $query;
+		$query->setFetchMode(PDO::FETCH_ASSOC);
+		$arrlist = $query->fetchAll();
+		$key AND $arrlist = arrlist_change_key($arrlist, $key);
+		return $arrlist;
+	}
+
+	public function sql_find_master($sql, $key = NULL) {
+		$link = $this->connect_master();
+		if(!$link) return FALSE;
+		$query = $this->query($sql, $link);
 		if(!$query) return $query;
 		$query->setFetchMode(PDO::FETCH_ASSOC);
 		$arrlist = $query->fetchAll();
@@ -87,6 +110,15 @@ class db_pdo_sqlite {
 		return $this->sql_find("SELECT $cols FROM {$this->tablepre}$table $cond$orderby LIMIT $offset,$pagesize", $key);
 		
 	}
+
+	public function find_master($table, $cond = array(), $orderby = array(), $page = 1, $pagesize = 10, $key = '', $col = array()) {
+		$page = max(1, $page);
+		$cond = db_cond_to_sqladd($cond);
+		$orderby = db_orderby_to_sqladd($orderby);
+		$offset = ($page - 1) * $pagesize;
+		$cols = $col ? implode(',', $col) : '*';
+		return $this->sql_find_master("SELECT $cols FROM {$this->tablepre}$table $cond$orderby LIMIT $offset,$pagesize", $key);
+	}
 		
 	public function find_one($table, $cond = array(), $orderby = array(), $col = array()) {
 		$cond = db_cond_to_sqladd($cond);
@@ -94,10 +126,20 @@ class db_pdo_sqlite {
 		$cols = $col ? implode(',', $col) : '*';
 		return $this->sql_find_one("SELECT $cols FROM {$this->tablepre}$table $cond$orderby LIMIT 1");
 	}
+
+	public function find_one_master($table, $cond = array(), $orderby = array(), $col = array()) {
+		$cond = db_cond_to_sqladd($cond);
+		$orderby = db_orderby_to_sqladd($orderby);
+		$cols = $col ? implode(',', $col) : '*';
+		return $this->sql_find_one_master("SELECT $cols FROM {$this->tablepre}$table $cond$orderby LIMIT 1");
+	}
 	
-	public function query($sql) {
-		if(!$this->rlink && !$this->connect_slave()) return FALSE;
-		$link = $this->link = $this->rlink;
+	public function query($sql, $link = NULL) {
+		if(!$link) {
+			if(!$this->rlink && !$this->connect_slave()) return FALSE;
+			$link = $this->rlink;
+		}
+		$this->link = $link;
 		$query = $link->query($sql);
 		if($query === FALSE) $this->error();
 		

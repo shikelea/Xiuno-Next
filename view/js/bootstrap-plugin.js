@@ -299,10 +299,12 @@ $.ajax_modal = function(url, title, size, callback, arg) {
 		// 对页面 html 进行解析
 		if(code == -101) {
 			var r = xn.get_title_body_script_css(message);
-			jmodal.find('.modal-body').html(r.body);
+			var jbody = jmodal.find('.modal-body').html(r.body);
+			if(typeof xn_fragment_ready === 'function') xn_fragment_ready(jbody[0]);
 			jmodal.find('.modal-footer').hide();
 		} else {
-			jmodal.find('.modal-body').html(message);
+			var jbody = jmodal.find('.modal-body').html(message);
+			if(typeof xn_fragment_ready === 'function') xn_fragment_ready(jbody[0]);
 			return;
 		}
 		// eval script, css

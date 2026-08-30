@@ -114,32 +114,36 @@ $plugin_qq_html = htmlspecialchars($plugin['qq']);
 				</div>
 				<?php } ?>
 				<p class="text-center">
+					<?php $plugin_state_writable = !$islocal || plugin_state_storage_writable($dir); ?>
+					<?php if(!$plugin_state_writable) { ?>
+					<span class="small text-warning" title="<?php echo htmlspecialchars(lang('plugin_state_storage_readonly', array('file'=>'plugin/'.$dir.'/conf.json')), ENT_QUOTES); ?>"><?php echo lang('plugin_state_storage_readonly_short'); ?></span>
+					<?php } ?>
 					<?php if($download_url && !$islocal) { ?>
 						<a role="button" class="btn btn-primary download" data-method="post" href="<?php echo $download_url; ?>"><?php echo lang('download');?></a>
 					<?php } ?>
 					
 					<?php if($plugin['setting_url']) { ?>
-					<a role="button" class="btn btn-primary setting" href="<?php echo url("plugin-setting-$dir"); ?>"><?php echo lang('setting');?></a>
+					<a role="button" class="btn btn-primary setting" href="<?php echo plugin_url('setting', $dir); ?>"><?php echo lang('setting');?></a>
 					<?php } ?>
 					
-					<?php if($islocal && !$plugin['installed']) { ?>
-					<a role="button" class="btn btn-primary install" data-method="post" href="<?php echo url("plugin-install-$dir"); ?>"><?php echo lang('install');?></a>
+					<?php if($plugin_state_writable && $islocal && !$plugin['installed']) { ?>
+					<a role="button" class="btn btn-primary install" data-method="post" href="<?php echo plugin_url('install', $dir); ?>"><?php echo lang('install');?></a>
 					<?php } ?>
 					
-					<?php if($plugin['installed'] && $plugin['enable']) { ?>
-					<a role="button" class="btn btn-secondary disable" data-method="post" href="<?php echo url("plugin-disable-$dir"); ?>"><?php echo lang('disable');?></a>
+					<?php if($plugin_state_writable && $plugin['installed'] && $plugin['enable']) { ?>
+					<a role="button" class="btn btn-secondary disable" data-method="post" href="<?php echo plugin_url('disable', $dir); ?>"><?php echo lang('disable');?></a>
 					<?php } ?>
 					
-					<?php if($plugin['installed'] && !$plugin['enable']) { ?>
-					<a role="button" class="btn btn-secondary enable" data-method="post" href="<?php echo url("plugin-enable-$dir"); ?>"><?php echo lang('enable');?></a>
+					<?php if($plugin_state_writable && $plugin['installed'] && !$plugin['enable']) { ?>
+					<a role="button" class="btn btn-secondary enable" data-method="post" href="<?php echo plugin_url('enable', $dir); ?>"><?php echo lang('enable');?></a>
 					<?php } ?>
 					
-					<?php if($plugin['installed']) { ?>
-					<a role="button" class="btn btn-danger unstall confirm" data-method="post" data-confirm-text="<?php echo htmlspecialchars(lang('plugin_unstall_confirm_tips', array('name'=>$plugin['name'])), ENT_QUOTES);?>" href="<?php echo url("plugin-unstall-$dir"); ?>"><?php echo lang('unstall');?></a>
+					<?php if($plugin_state_writable && $plugin['installed']) { ?>
+					<a role="button" class="btn btn-danger unstall confirm" data-method="post" data-confirm-text="<?php echo htmlspecialchars(lang('plugin_unstall_confirm_tips', array('name'=>$plugin['name'])), ENT_QUOTES);?>" href="<?php echo plugin_url('unstall', $dir); ?>"><?php echo lang('unstall');?></a>
 					<?php } ?>
 					
 					<?php if($plugin['have_upgrade']) { ?>
-					<a role="button" class="btn btn-primary upgrade" data-method="post" href="<?php echo url("plugin-upgrade-$dir"); ?>"><?php echo lang('update');?></a>
+					<a role="button" class="btn btn-primary upgrade" data-method="post" href="<?php echo plugin_url('upgrade', $dir); ?>"><?php echo lang('update');?></a>
 					<?php } ?>
 					
 				</p>
@@ -159,16 +163,18 @@ $('#nav li.nav-item-plugin').addClass('active');
 <?php if(!empty($plugin['pluginid']) && !empty($url) && !is_dir(APP_PATH."plugin/$dir")) { ?>
 
 // 定时查询 plugin.xiuno.com ，如果支付成功，则跳转到下载。
-var dir = <?php echo xn_json_encode_for_script($dir);?>;
+var boughtUrl = <?php echo xn_json_encode_for_script(plugin_url('is_bought', $dir));?>;
+var downloadUrl = <?php echo xn_json_encode_for_script(plugin_url('download', $dir));?>;
+var readUrl = <?php echo xn_json_encode_for_script(plugin_url('read', $dir));?>;
 	
 var t = setInterval(function() {
-	$.xget(xn.url('plugin-is_bought-'+dir), function(code, message) {
+	$.xget(boughtUrl, function(code, message) {
 		if(code == 0) {
 			// 支付成功，跳转到下载。
 			clearInterval(t);
-			$.xpost(xn.url('plugin-download-'+dir), function(code, message) {
+			$.xpost(downloadUrl, function(code, message) {
 				if(code == 0) {
-					window.location = xn.url('plugin-read-'+dir);
+					window.location = readUrl;
 				} else {
 					alert(message);
 				}

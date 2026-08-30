@@ -48,6 +48,24 @@ if (http_get('file:///etc/passwd') !== FALSE) {
 	$errors[] = 'legacy http_get did not reject unsupported URL scheme';
 }
 
+$_SERVER['HTTP_HOST'] = 'localhost';
+$_SERVER['SERVER_PORT'] = 80;
+unset($_SERVER['HTTPS'], $_SERVER['HTTP_X_FORWARDED_PROTO'], $_SERVER['PHP_SELF'], $_SERVER['HTTP_REFERER'], $_REQUEST['referer']);
+$previousHandler = set_error_handler(function($severity, $message, $file, $line) {
+	throw new ErrorException($message, 0, $severity, $file, $line);
+});
+try {
+	$urlPath = http_url_path();
+	$referer = http_referer();
+	if ($urlPath !== 'http://localhost/' || $referer !== './') {
+		$errors[] = 'HTTP URL helpers returned an unsafe fallback when optional server headers were absent';
+	}
+} catch (Throwable $e) {
+	$errors[] = 'HTTP URL helpers emitted a PHP 8 warning for absent optional headers: ' . $e->getMessage();
+} finally {
+	restore_error_handler();
+}
+
 $_REQUEST['helper_smoke_b64'] = base64_encode('xiuno');
 if (param_base64('helper_smoke_b64') !== 'xiuno') {
 	$errors[] = 'param_base64 did not decode raw base64 safely';

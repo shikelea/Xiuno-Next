@@ -80,10 +80,10 @@ if(empty($action) || $action == 'list') {
 		!is_username($username, $err) AND message('username', $err);
 		!is_password(md5($password), $err) AND message('password', $err);
 
-		$_user = user_read_by_email($email);
+		$_user = user_read_by_email($email, TRUE);
 		$_user AND message('email', lang('email_is_in_use'));
 
-		$_user = user_read_by_username($username);
+		$_user = user_read_by_username($username, TRUE);
 		$_user AND message('username', lang('user_already_exists'));
 
 		$r = user_create(array(
@@ -138,7 +138,7 @@ if(empty($action) || $action == 'list') {
 		
 		// hook admin_user_update_post_start.php
 		
-		$old = user_read($_uid);
+		$old = user_read_primary_proven($_uid);
 		empty($old) AND message('username', lang('uid_not_exists'));
 		
 		empty($email) AND message('email', lang('please_input_email'));
@@ -147,11 +147,11 @@ if(empty($action) || $action == 'list') {
 		!is_email($email, $err) AND message('email', $err);
 		!is_username($username, $err) AND message('username', $err);
 		if($email AND $old['email'] != $email) {
-			$_user = user_read_by_email($email);
+			$_user = user_read_by_email($email, TRUE);
 			$_user AND $_user['uid'] != $_uid AND message('email', lang('email_already_exists'));
 		}
 		if($username AND $old['username'] != $username) {
-			$_user = user_read_by_username($username);
+			$_user = user_read_by_username($username, TRUE);
 			$_user AND $_user['uid'] != $_uid AND message('username', lang('user_already_exists'));
 		}
 		
@@ -171,7 +171,12 @@ if(empty($action) || $action == 'list') {
 		$update = array_diff_value($arr, $old);
 		empty($update) AND message(-1, lang('data_not_changed'));
 
-		$r = user_update($_uid, $update);
+		if(array_key_exists('password', $update)) {
+			$password_hash = $update['password'];
+			$r = user_password_commit($_uid, $password_hash, $update);
+		} else {
+			$r = user_update($_uid, $update);
+		}
 		$r === FALSE AND message(-1, lang('update_failed'));
 		
 		// hook admin_user_update_post_end.php
