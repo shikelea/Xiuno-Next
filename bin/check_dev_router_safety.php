@@ -82,7 +82,7 @@ function dev_router_http_get($url) {
 	return array('status'=>$status, 'body'=>$body, 'headers'=>$headers);
 }
 
-function dev_router_assert_response($base_url, $path, $status, $body_contains = NULL) {
+function dev_router_assert_response($base_url, $path, $status, $body_contains = NULL, $header_contains = NULL) {
 	$response = dev_router_http_get($base_url.$path);
 	if($response['status'] !== $status) {
 		dev_router_fail($path.' expected HTTP '.$status.', got '.$response['status'].'. Body: '.$response['body']);
@@ -90,6 +90,9 @@ function dev_router_assert_response($base_url, $path, $status, $body_contains = 
 	}
 	if($body_contains !== NULL && strpos($response['body'], $body_contains) === FALSE) {
 		dev_router_fail($path.' response did not contain expected marker: '.$body_contains);
+	}
+	if($header_contains !== NULL && strpos(implode("\n", $response['headers']), $header_contains) === FALSE) {
+		dev_router_fail($path.' response did not contain expected header: '.$header_contains);
 	}
 }
 
@@ -213,6 +216,9 @@ PHP;
 	dev_router_write($site_root.'/lang/-invalid/bbs.js', 'window.invalid_start=true;');
 	dev_router_write($site_root.'/lang/Upper/bbs.js', 'window.invalid_uppercase=true;');
 	dev_router_write($site_root.'/lang/custom.locale/bbs.js', 'window.invalid_character=true;');
+	dev_router_write($site_root.'/tmp/runtime.min.js', 'window.runtime_bundle=true;');
+	dev_router_write($site_root.'/tmp/runtime.min.css', 'body{background:#abcdef}');
+	dev_router_write($site_root.'/tmp/nested/private.js', 'window.private_cache=true;');
 	$max_length_locale = '1'.str_repeat('a', 63);
 	dev_router_write($site_root.'/lang/'.$max_length_locale.'/bbs.js', 'window.max_length_locale=true;');
 	$overlong_locale = str_repeat('a', 65);
@@ -287,6 +293,8 @@ PHP;
 	dev_router_assert_response($base_url, '/lang/custom_2-test/bbs.js', 200, 'custom_locale');
 	dev_router_assert_response($base_url, '/lang/'.$max_length_locale.'/bbs.js', 200, 'max_length_locale');
 	dev_router_assert_response($base_url, '/plugin/synthetic/icon.png', 200, 'synthetic-png');
+	dev_router_assert_response($base_url, '/tmp//runtime.min.js', 200, 'runtime_bundle', 'Content-Type: application/javascript');
+	dev_router_assert_response($base_url, '/tmp/runtime.min.css', 200, 'background:#abcdef', 'Content-Type: text/css');
 	foreach(array(
 		'/view/missing.css',
 		'/admin/view/css/missing.css',
@@ -311,6 +319,7 @@ PHP;
 		'/lang/Upper/bbs.js',
 		'/lang/custom.locale/bbs.js',
 		'/lang/'.$overlong_locale.'/bbs.js',
+		'/tmp/nested/private.js',
 		'/view/htm/template.htm',
 		'/view/.hidden/secret.css',
 		'/%2e/view/app.css',

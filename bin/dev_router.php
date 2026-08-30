@@ -51,7 +51,8 @@ function xn_dev_router_request_path() {
 
 	if($path === '' || $path[0] !== '/' || substr($path, 0, 2) === '//') return FALSE;
 	if(preg_match('/[\x00-\x1F\x7F\\\\:]/', $path)) return FALSE;
-	if(strpos($path, '//') !== FALSE) return FALSE;
+	$path = preg_replace('#/{2,}#', '/', $path);
+	if(!is_string($path)) return FALSE;
 
 	foreach(explode('/', $path) as $segment) {
 		if($segment === '') continue;
@@ -71,6 +72,10 @@ function xn_dev_router_sensitive_path($path) {
 	return FALSE;
 }
 
+function xn_dev_router_public_runtime_asset_path($path) {
+	return preg_match('#^/tmp/[A-Za-z0-9][A-Za-z0-9._-]{0,127}\.(?:css|js)$#D', $path) === 1;
+}
+
 function xn_dev_router_public_static_path($path) {
 	if($path === '/robots.txt' || $path === '/favicon.ico') return TRUE;
 	// Language packs may add locales without changing the development router. Keep the public
@@ -86,6 +91,7 @@ function xn_dev_router_public_static_root($root, $path) {
 		'/lang'=>'lang',
 		'/view'=>'view',
 		'/plugin'=>'plugin',
+		'/tmp'=>'tmp',
 		'/upload'=>'upload',
 	);
 	foreach($prefixes as $url_prefix=>$relative_root) {
@@ -146,6 +152,12 @@ if($xn_dev_router_request_path === '/' || $xn_dev_router_request_path === '/inde
 	$xn_dev_router_entry = xn_dev_router_entry($xn_dev_router_root_path, 'admin/index.php', '/admin/index.php', 'admin');
 } elseif($xn_dev_router_request_path === '/install' || $xn_dev_router_request_path === '/install/' || $xn_dev_router_request_path === '/install/index.php') {
 	$xn_dev_router_entry = xn_dev_router_entry($xn_dev_router_root_path, 'install/index.php', '/install/index.php', 'install');
+} elseif(xn_dev_router_public_runtime_asset_path($xn_dev_router_request_path)) {
+	// Some legacy packages compile browser-only bundles into the root of tmp/. Expose only a
+	// single regular CSS/JS file; every other tmp path remains behind the sensitive-path guard.
+	$xn_dev_router_static_file = xn_dev_router_static_file($xn_dev_router_root_path, $xn_dev_router_request_path);
+	if($xn_dev_router_static_file === FALSE) return xn_dev_router_response(404, 'Not Found');
+	return FALSE;
 } elseif(xn_dev_router_php_path($xn_dev_router_request_path) || xn_dev_router_sensitive_path($xn_dev_router_request_path)) {
 	// Never execute package scripts, upload payloads, route fragments, Hook fragments, template
 	// fragments, or any other PHP-like file through the development server.
