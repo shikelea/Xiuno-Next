@@ -326,6 +326,7 @@ $invalid_request_fatal['message'] = 'invalid request id must be ignored';
 plugin_safe_mode_guard_assert(plugin_safe_mode_handle_shutdown_error($invalid_request_fatal, $conf, $app), 'Invalid diagnostic context must not prevent activation.');
 $diagnostic_log = file_get_contents($external.'log/safe_mode.php');
 plugin_safe_mode_guard_assert(strpos($diagnostic_log, str_repeat('z', 32)) === FALSE, 'Forged or malformed Request IDs must never enter safe-mode logs.');
+clearstatcache(TRUE, $external.'log/safe_mode.php');
 $invalid_request_log_size = filesize($external.'log/safe_mode.php');
 plugin_safe_mode_guard_assert(plugin_safe_mode_handle_shutdown_error($invalid_request_fatal, $conf, $app), 'A repeated fatal without a valid Request ID must preserve active safe mode.');
 clearstatcache(TRUE, $external.'log/safe_mode.php');
@@ -497,6 +498,8 @@ plugin_safe_mode_guard_assert($exit_code === 0 && is_file($cli_external.'tmp/saf
 $exit_code = plugin_safe_mode_guard_run_php($cli_script, array('status'), $output);
 plugin_safe_mode_guard_assert($exit_code === 0 && strpos($output, 'Safe mode: active') !== FALSE && strpos($output, $cli_external.'tmp/safe_mode') !== FALSE, 'CLI status must expose the actual active external marker.');
 $exit_code = plugin_safe_mode_guard_run_php($cli_script, array('deactivate'), $output);
+clearstatcache(TRUE, $cli_external.'tmp/safe_mode');
+clearstatcache(TRUE, $cli_external.'tmp/safe_mode.lock');
 plugin_safe_mode_guard_assert($exit_code === 0 && !is_file($cli_external.'tmp/safe_mode') && is_file($cli_external.'tmp/safe_mode.lock'), 'CLI deactivate must clear only the marker and retain its stable lock.');
 $exit_code = plugin_safe_mode_guard_run_php($cli_script, array('deactivate'), $output);
 plugin_safe_mode_guard_assert($exit_code === 0, 'Repeated CLI deactivation must be idempotent.');
@@ -505,6 +508,7 @@ plugin_safe_mode_guard_assert($exit_code === 0, 'Repeated CLI deactivation must 
 $exit_code = plugin_safe_mode_guard_run_php($cli_script, array('activate'), $output);
 plugin_safe_mode_guard_assert($exit_code === 0 && is_file($cli_app.'tmp/safe_mode') && strpos($output, 'using APP tmp/log fallback') !== FALSE, 'Missing configuration must use the documented APP tmp/log recovery fallback.');
 $exit_code = plugin_safe_mode_guard_run_php($cli_script, array('deactivate'), $output);
+clearstatcache(TRUE, $cli_app.'tmp/safe_mode');
 plugin_safe_mode_guard_assert($exit_code === 0 && !is_file($cli_app.'tmp/safe_mode'), 'Fallback CLI activation must remain deactivatable.');
 $exit_code = plugin_safe_mode_guard_run_php($cli_script, array('unknown'), $output);
 plugin_safe_mode_guard_assert($exit_code !== 0 && strpos($output, 'Usage:') !== FALSE, 'Unknown CLI actions must fail with actionable usage text.');
