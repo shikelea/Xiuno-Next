@@ -279,13 +279,13 @@ function xn_html_form_control_names($body) {
 	return $names;
 }
 
-// Insert a visible submitter only into one unambiguous legacy core post form. The returned document
-// otherwise remains byte-for-byte unchanged; callers provide already escaped trusted button HTML.
-function xn_html_inject_post_submit_fallback($html, $route, $route_action, $button_html) {
+// Normalize the browser-side subject limit and insert a visible submitter only for one unambiguous
+// legacy core post form. The returned document otherwise remains byte-for-byte unchanged; callers
+// provide the shared subject limit and already escaped trusted button HTML.
+function xn_html_inject_post_submit_fallback($html, $route, $route_action, $button_html, $subject_maxlength = NULL) {
 	if(!is_string($html) || !is_string($button_html) || $button_html === '') return $html;
 	if(!(($route === 'thread' && $route_action === 'create')
 		|| ($route === 'post' && in_array($route_action, array('create', 'update'), TRUE)))) return $html;
-	if(xn_html_has_active_id($html, 'submit')) return $html;
 
 	$form_tokens = xn_html_scan_tags($html, 'form');
 	$ranges = array();
@@ -334,29 +334,60 @@ function xn_html_inject_post_submit_fallback($html, $route, $route_action, $butt
 		if(!$complete) continue;
 
 		$has_submitter = FALSE;
+		$subject_input = NULL;
 		foreach(xn_html_scan_tags($body) as $control) {
 			if(!empty($control['closing']) || !in_array($control['name'], array('input', 'button'), TRUE)) continue;
 			$form_owner = xn_html_tag_attribute($control['tag'], 'form', $owner_found);
 			if($owner_found && xn_html_attribute_value_decode($form_owner) !== 'form') continue;
+			$name = xn_html_tag_attribute($control['tag'], 'name', $name_found);
+			$name = $name_found ? xn_html_attribute_value_decode($name) : '';
+			if($route === 'thread' && $control['name'] === 'input' && $name === 'subject') {
+				if($subject_input !== NULL) {
+					$subject_input = FALSE;
+					break;
+				}
+				$subject_input = $control;
+			}
 			if(xn_html_tag_is_form_submitter($control['tag'], $control['name'])) {
 				$has_submitter = TRUE;
-				break;
 			}
 		}
-		if($has_submitter) continue;
-		$candidates[] = $range;
+		if($route === 'thread' && !is_array($subject_input)) continue;
+		$candidates[] = array('range'=>$range, 'has_submitter'=>$has_submitter, 'subject_input'=>$subject_input);
 	}
 	if(count($candidates) !== 1) return $html;
 
-	// A submitter outside the form can still own it through form="form".
-	foreach(xn_html_scan_tags($html) as $control) {
-		if(!empty($control['closing']) || !in_array($control['name'], array('input', 'button'), TRUE)) continue;
-		$form_owner = xn_html_tag_attribute($control['tag'], 'form', $owner_found);
-		if(!$owner_found || xn_html_attribute_value_decode($form_owner) !== 'form') continue;
-		if(xn_html_tag_is_form_submitter($control['tag'], $control['name'])) return $html;
+	$candidate = $candidates[0];
+	$needs_submitter = empty($candidate['has_submitter']) && !xn_html_has_active_id($html, 'submit');
+	if($needs_submitter) {
+		// A submitter outside the form can still own it through form="form".
+		foreach(xn_html_scan_tags($html) as $control) {
+			if(!empty($control['closing']) || !in_array($control['name'], array('input', 'button'), TRUE)) continue;
+			$form_owner = xn_html_tag_attribute($control['tag'], 'form', $owner_found);
+			if(!$owner_found || xn_html_attribute_value_decode($form_owner) !== 'form') continue;
+			if(xn_html_tag_is_form_submitter($control['tag'], $control['name'])) {
+				$needs_submitter = FALSE;
+				break;
+			}
+		}
 	}
 
-	$offset = intval($candidates[0]['close']['start']);
+	$offset_delta = 0;
+	if($route === 'thread' && intval($subject_maxlength) > 0) {
+		$subject_tag = $candidate['subject_input']['tag'];
+		xn_html_tag_attribute($subject_tag, 'maxlength', $maxlength_found);
+		if(!$maxlength_found) {
+			$subject_tag_new = preg_replace('~(?=\s*/?>$)~', ' maxlength="'.intval($subject_maxlength).'"', $subject_tag, 1);
+			if(is_string($subject_tag_new) && $subject_tag_new !== $subject_tag) {
+				$subject_offset = intval($candidate['range']['open']['end']) + intval($candidate['subject_input']['start']);
+				$html = substr($html, 0, $subject_offset).$subject_tag_new.substr($html, $subject_offset + strlen($subject_tag));
+				$offset_delta = strlen($subject_tag_new) - strlen($subject_tag);
+			}
+		}
+	}
+
+	if(!$needs_submitter) return $html;
+	$offset = intval($candidate['range']['close']['start']) + $offset_delta;
 	return substr($html, 0, $offset).$button_html.substr($html, $offset);
 }
 
