@@ -366,6 +366,9 @@ if(empty($errors)) {
 					: $key;
 			}
 		}
+		if(!function_exists('thread_subject_maxlength')) {
+			function thread_subject_maxlength() { return 128; }
+		}
 
 		$_SERVER['conf'] = array('view_url'=>'view/', 'static_version'=>'?compat-check');
 		$_SERVER['SCRIPT_NAME'] = '/index.php';
@@ -401,6 +404,7 @@ if(empty($errors)) {
 		$legacy_post_output = xn_compat_inject_output($legacy_post_form);
 		if(substr_count($legacy_post_output, 'data-xn-compat-post-submit="1"') !== 1
 			|| substr_count($legacy_post_output, 'id="submit"') !== 1
+			|| substr_count($legacy_post_output, 'maxlength="128"') !== 1
 			|| strpos($legacy_post_output, 'Create &lt;topic&gt;') === FALSE
 			|| strpos($legacy_post_output, 'Working &gt; now') === FALSE
 			|| strpos($legacy_post_output, 'data-xn-compat-post-submit="1"') > strpos($legacy_post_output, '</form>')
@@ -409,7 +413,8 @@ if(empty($errors)) {
 		}
 		$legacy_post_second_pass = xn_compat_inject_output($legacy_post_output);
 		if(substr_count($legacy_post_second_pass, 'data-xn-compat-post-submit="1"') !== 1
-			|| substr_count($legacy_post_second_pass, 'id="submit"') !== 1) {
+			|| substr_count($legacy_post_second_pass, 'id="submit"') !== 1
+			|| substr_count($legacy_post_second_pass, 'maxlength="128"') !== 1) {
 			$errors[] = 'legacy post submit injection must remain idempotent.';
 		}
 
@@ -421,10 +426,20 @@ if(empty($errors)) {
 		);
 		foreach($existing_submit_shapes as $submit_shape) {
 			$html = str_replace('</form>', $submit_shape.'</form>', $legacy_post_form);
-			if(strpos(xn_compat_inject_output($html), 'data-xn-compat-post-submit="1"') !== FALSE) {
+			$output = xn_compat_inject_output($html);
+			if(strpos($output, 'data-xn-compat-post-submit="1"') !== FALSE) {
 				$errors[] = 'legacy post submit injection must not duplicate native or form-associated submit controls.';
 				break;
 			}
+		}
+		$native_submit_output = xn_compat_inject_output(str_replace('</form>', '<button id="submit">Create</button></form>', $legacy_post_form));
+		if(substr_count($native_submit_output, 'maxlength="128"') !== 1) {
+			$errors[] = 'a trusted legacy thread form with a native submitter must still receive the shared subject limit.';
+		}
+		$existing_limit_form = str_replace('<input name="subject">', '<input name="subject" maxlength="80">', $legacy_post_form);
+		$existing_limit_output = xn_compat_inject_output($existing_limit_form);
+		if(substr_count($existing_limit_output, 'maxlength="80"') !== 1 || strpos($existing_limit_output, 'maxlength="128"') !== FALSE) {
+			$errors[] = 'legacy thread subject compatibility must preserve an explicit package limit.';
 		}
 		$global_submit_id = str_replace('</body>', '<div id="submit"></div></body>', $legacy_post_form);
 		if(strpos(xn_compat_inject_output($global_submit_id), 'data-xn-compat-post-submit="1"') !== FALSE) {

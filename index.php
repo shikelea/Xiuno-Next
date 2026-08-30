@@ -256,7 +256,8 @@ function xn_compat_inject_output($html) {
 			$html,
 			$post_context[0],
 			$post_context[1],
-			xn_compat_post_submit_html($post_context[0], $post_context[1])
+			xn_compat_post_submit_html($post_context[0], $post_context[1]),
+			$post_context[0] === 'thread' && function_exists('thread_subject_maxlength') ? thread_subject_maxlength() : NULL
 		);
 	}
 
