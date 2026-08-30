@@ -203,8 +203,8 @@ include $root.'/model/plugin.func.php';
 plugin_init();
 
 $message_source = file_get_contents($root.'/model/misc.func.php');
-strpos($message_source, 'global $ajax, $header, $conf, $db;') !== FALSE
-	|| fail('message() must expose the shared database object to legacy Hook fragments.');
+strpos($message_source, 'global $ajax, $header, $conf, $db, $starttime;') !== FALSE
+	|| fail('message() must expose shared database and request timing globals to legacy Hook/template fragments.');
 
 xn_count_compat(NULL) === 0 || fail('PHP 7 count compatibility must return zero for null.');
 xn_count_compat(FALSE) === 1 || fail('PHP 7 count compatibility must return one for non-null scalar values.');
