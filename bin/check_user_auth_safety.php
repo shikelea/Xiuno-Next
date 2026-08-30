@@ -524,6 +524,27 @@ $jump_helper = section_between($misc_source, 'function jump($message, $url', 'fu
 strpos($jump_helper, 'xn_json_encode_for_script((string)$url)') !== FALSE
 	&& strpos($jump_helper, '$url_html = xn_html_escape($url);') !== FALSE
 	|| fail('Jump responses must encode return URLs independently for script and HTML attribute contexts.');
+$message_scope = auth_guard_run_php_child(<<<'PHP'
+<?php
+$template = tempnam(sys_get_temp_dir(), 'xn_message_scope_');
+if($template === FALSE) exit(90);
+file_put_contents($template, '<?php echo json_encode(array("starttime"=>isset($starttime) ? $starttime : NULL));');
+register_shutdown_function(function() use ($template) { @unlink($template); });
+define('IN_CMD', FALSE);
+define('MESSAGE_HTM_PATH', $template);
+define('XIUNOPHP_PATH', getcwd().DIRECTORY_SEPARATOR.'xiunophp'.DIRECTORY_SEPARATOR);
+function _include($path) { return $path; }
+$ajax = 0;
+$header = array();
+$conf = array('sitename'=>'scope smoke');
+$db = new stdClass();
+$starttime = 123.25;
+require 'model/misc.func.php';
+message(0, 'scope smoke');
+PHP
+, 'message template scope');
+isset($message_scope['starttime']) && (float)$message_scope['starttime'] === 123.25
+	|| fail('Front message templates must inherit the request start time from the shared request scope.');
 
 $ci_runs_deterministic = strpos($workflow, 'php bin/run_checks.php --profile=deterministic') !== FALSE;
 strpos($workflow, 'php bin/check_user_auth_safety.php') !== FALSE || $ci_runs_deterministic

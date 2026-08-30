@@ -94,8 +94,8 @@ function check_runlevel() {
 		> 0 一般业务逻辑错误，可以定位到具体控件，比如：用户名为空/密码为空
 */
 function message($code, $message, $extra = array()) {
-	// Legacy message Hook fragments may read the shared database query trace.
-	global $ajax, $header, $conf, $db;
+	// Legacy message templates and Hook fragments may read shared request timing and database context.
+	global $ajax, $header, $conf, $db, $starttime;
 	
 	if(function_exists('plugin_compat_inject_csrf_forms')) {
 		$message = plugin_compat_inject_csrf_forms($message);
