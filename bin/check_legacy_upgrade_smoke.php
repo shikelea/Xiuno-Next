@@ -1150,8 +1150,13 @@ function release_upgrade_cache_lock($lock): void
 function assert_upgrade_cache_cleaned(string $root): void
 {
     foreach (upgrade_cache_files($root) as $path) {
-        if (is_file($path)) {
-            throw new RuntimeException('upgrade did not clean legacy cache/safe-mode file: ' . basename($path));
+        clearstatcache(true, $path);
+        $name = basename($path);
+        if ($name === 'model.min.php' && is_file($path)) {
+            throw new RuntimeException('upgrade did not clean regenerable cache file: ' . $name);
+        }
+        if ($name !== 'model.min.php' && !is_file($path)) {
+            throw new RuntimeException('upgrade removed protected or unknown runtime file: ' . $name);
         }
     }
 }

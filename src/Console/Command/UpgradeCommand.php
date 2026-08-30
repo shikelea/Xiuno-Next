@@ -477,6 +477,8 @@ class UpgradeCommand extends Command
         include_once XIUNOPHP_PATH . 'xiunophp.php';
         include_once APP_PATH . 'model/kv.func.php';
 		include_once APP_PATH . 'model/migration.func.php';
+		global $g_plugin_file_index_generation, $g_plugin_enabled_paths_generation, $g_plugin_enabled_paths;
+		global $g_plugin_file_index_built_generation, $g_plugin_file_index, $g_plugin_include_reader_locks, $g_plugin_include_state_lock;
 		include_once APP_PATH . 'model/plugin.func.php';
     }
 
