@@ -382,6 +382,62 @@ function plugin_setting_schema_defaults($schema) {
 	return $defaults;
 }
 
+function plugin_setting_schema_html_fields($schema) {
+	$fields = array();
+	if(!is_array($schema) || empty($schema['panels']) || !is_array($schema['panels'])) return $fields;
+	foreach($schema['panels'] as $panel=>$panel_conf) {
+		if(!is_array($panel_conf) || empty($panel_conf['sections']) || !is_array($panel_conf['sections'])) continue;
+		foreach($panel_conf['sections'] as $section=>$section_conf) {
+			if(!is_array($section_conf) || empty($section_conf['options']) || !is_array($section_conf['options'])) continue;
+			foreach($section_conf['options'] as $option=>$control) {
+				$type = is_array($control) && isset($control['type']) ? strtolower((string)$control['type']) : '';
+				if(!in_array($type, array('text_html', 'textarea_html', 'html'), TRUE)) continue;
+				$request_key = $panel.'/'.$section.'/'.$option;
+				$fields[$request_key] = array($panel, $section, $option);
+			}
+		}
+	}
+	ksort($fields, SORT_STRING);
+	return $fields;
+}
+
+function plugin_setting_html_value_restore_default($value, $default) {
+	if(!is_string($value) || !is_string($default)) return $value;
+	$probe = $value;
+	for($i = 0; $i < 16; $i++) {
+		if($probe === $default) return $default;
+		$decoded = htmlspecialchars_decode($probe, ENT_QUOTES | ENT_HTML5);
+		if($decoded === $probe) break;
+		$probe = $decoded;
+	}
+	return $value;
+}
+
+// Some legacy schema-driven setting frameworks label a control as HTML-capable but still read it
+// through param()'s default escaping. Undo only the exact layer proved by this request and the
+// package's committed value. Historical layers are collapsed only when they resolve exactly to the
+// declared default, so customized content and correctly raw package writes remain byte-for-byte.
+function plugin_setting_normalize_html_post($saved, $defaults, $html_fields, $request) {
+	if(!is_array($saved) || !is_array($defaults) || empty($html_fields) || !is_array($request)) return $saved;
+	foreach($html_fields as $request_key=>$path) {
+		if(!is_array($path) || count($path) !== 3 || !array_key_exists($request_key, $request)) continue;
+		list($panel, $section, $option) = $path;
+		if(!isset($saved[$panel]) || !is_array($saved[$panel])
+			|| !isset($saved[$panel][$section]) || !is_array($saved[$panel][$section])
+			|| !array_key_exists($option, $saved[$panel][$section])) continue;
+		$submitted = $request[$request_key];
+		$stored = $saved[$panel][$section][$option];
+		if(!is_string($submitted) || !is_string($stored) || $stored !== htmlspecialchars($submitted)) continue;
+		$default = isset($defaults[$panel]) && is_array($defaults[$panel])
+			&& isset($defaults[$panel][$section]) && is_array($defaults[$panel][$section])
+			&& array_key_exists($option, $defaults[$panel][$section])
+			? $defaults[$panel][$section][$option]
+			: NULL;
+		$saved[$panel][$section][$option] = plugin_setting_html_value_restore_default($submitted, $default);
+	}
+	return $saved;
+}
+
 function plugin_setting_array_is_list($value) {
 	if(!is_array($value)) return FALSE;
 	$index = 0;
@@ -776,14 +832,20 @@ function plugin_setting_schema_register_key($setting_key, $schema, $owner_dir) {
 	global $g_plugin_setting_schema_defaults, $g_plugin_setting_schema_registry, $g_plugin_setting_schema_candidates_by_dir;
 	if(!plugin_setting_key_is_valid($setting_key) || !plugin_setting_dir_is_valid($owner_dir)) return FALSE;
 	$defaults = plugin_setting_schema_defaults($schema);
+	$html_fields = plugin_setting_schema_html_fields($schema);
 	if(empty($defaults)) return FALSE;
 	$fingerprint = plugin_setting_schema_defaults_fingerprint($defaults);
 	if($fingerprint === FALSE) return FALSE;
 	if(!isset($g_plugin_setting_schema_candidates_by_dir[$owner_dir])) $g_plugin_setting_schema_candidates_by_dir[$owner_dir] = array();
 	if(!isset($g_plugin_setting_schema_candidates_by_dir[$owner_dir][$setting_key])) {
-		$g_plugin_setting_schema_candidates_by_dir[$owner_dir][$setting_key] = array('fingerprints'=>array());
+		$g_plugin_setting_schema_candidates_by_dir[$owner_dir][$setting_key] = array('fingerprints'=>array(), 'html_fields'=>array());
+	}
+	if(isset($g_plugin_setting_schema_candidates_by_dir[$owner_dir][$setting_key]['html_fields'][$fingerprint])
+		&& $g_plugin_setting_schema_candidates_by_dir[$owner_dir][$setting_key]['html_fields'][$fingerprint] !== $html_fields) {
+		$g_plugin_setting_schema_candidates_by_dir[$owner_dir][$setting_key]['html_fields_conflict'] = TRUE;
 	}
 	$g_plugin_setting_schema_candidates_by_dir[$owner_dir][$setting_key]['fingerprints'][$fingerprint] = $defaults;
+	$g_plugin_setting_schema_candidates_by_dir[$owner_dir][$setting_key]['html_fields'][$fingerprint] = $html_fields;
 
 	$sidecar = plugin_setting_schema_sidecar_read();
 	if($sidecar === FALSE) {
@@ -836,7 +898,8 @@ function plugin_setting_schema_persist_key($key, $owner_dir) {
 	global $g_plugin_setting_schema_defaults, $g_plugin_setting_schema_registry, $g_plugin_setting_schema_candidates_by_dir;
 	if(!plugin_setting_key_is_valid($key) || !plugin_setting_dir_is_valid($owner_dir)) return FALSE;
 	$candidate = isset($g_plugin_setting_schema_candidates_by_dir[$owner_dir][$key]) ? $g_plugin_setting_schema_candidates_by_dir[$owner_dir][$key] : NULL;
-	if(empty($candidate['fingerprints']) || !is_array($candidate['fingerprints'])) return FALSE;
+	if(empty($candidate['fingerprints']) || !is_array($candidate['fingerprints']) || !empty($candidate['html_fields_conflict'])) return FALSE;
+	$request = plugin_setting_admin_request_values($owner_dir);
 
 	$lock = plugin_setting_schema_write_lock_start();
 	if($lock === FALSE) return FALSE;
@@ -850,7 +913,7 @@ function plugin_setting_schema_persist_key($key, $owner_dir) {
 		$runtime_entry = NULL;
 		$defaults = NULL;
 		$row_ok = setting_row_update_atomic(function($setting) use (
-			$key, $owner_dir, $candidate, $legacy_sidecar,
+			$key, $owner_dir, $candidate, $legacy_sidecar, $request,
 			&$operation_ok, &$runtime_entry, &$defaults
 		) {
 			$sidecar = plugin_setting_schema_sidecar_from_setting($setting, $legacy_sidecar);
@@ -867,7 +930,12 @@ function plugin_setting_schema_persist_key($key, $owner_dir) {
 			}
 
 			$defaults = reset($candidate['fingerprints']);
+			$fingerprint = key($candidate['fingerprints']);
+			$html_fields = isset($candidate['html_fields'][$fingerprint]) ? $candidate['html_fields'][$fingerprint] : array();
+			$normalize_html = $request !== NULL && !empty($html_fields)
+				&& count($runtime_entry['owners']) === 1 && isset($runtime_entry['owners'][$owner_dir]);
 			$raw = array_key_exists($key, $setting) ? $setting[$key] : NULL;
+			if($normalize_html) $raw = plugin_setting_normalize_html_post($raw, $defaults, $html_fields, $request);
 			$setting[$key] = plugin_setting_merge_defaults($defaults, $raw);
 			$operation_ok = TRUE;
 			return $setting;
@@ -1000,12 +1068,21 @@ function plugin_compat_setting_route_context_end($context) {
 
 function plugin_setting_admin_request_start($dir) {
 	global $g_plugin_setting_admin_request, $method;
+	$is_post = isset($method) && strtoupper((string)$method) === 'POST';
 	$g_plugin_setting_admin_request = array(
 		'dir'=>$dir,
-		'is_post'=>isset($method) && strtoupper((string)$method) === 'POST',
+		'is_post'=>$is_post,
+		'request'=>$is_post && isset($_REQUEST) && is_array($_REQUEST) ? $_REQUEST : array(),
 		'message_seen'=>FALSE,
 		'message_success'=>FALSE,
 	);
+}
+
+function plugin_setting_admin_request_values($dir) {
+	global $g_plugin_setting_admin_request;
+	$guard = $g_plugin_setting_admin_request;
+	if(empty($guard) || !is_array($guard) || empty($guard['is_post']) || $guard['dir'] !== $dir) return NULL;
+	return isset($guard['request']) && is_array($guard['request']) ? $guard['request'] : array();
 }
 
 function plugin_setting_admin_request_capture_message($code, $message = NULL, $extra = array()) {

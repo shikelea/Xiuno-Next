@@ -349,6 +349,41 @@ count($g_plugin_setting_schema_registry['shared_schema_key']['fingerprints']) ==
 plugin_setting_schema_persist_plugin('shared-owner-a') || fail('an identical shared schema must remain persistable');
 setting_get_raw('shared_schema_key') === $merged || fail('identical shared defaults must normalize the saved value');
 
+$html_shared_schema = $shared_schema;
+$html_shared_schema['panels']['ui']['sections']['color']['options']['body']['type'] = 'textarea_html';
+$text_shared_schema = $shared_schema;
+$text_shared_schema['panels']['ui']['sections']['color']['options']['body']['type'] = 'textarea';
+$shared_html = '<b>shared setting text</b>';
+$shared_html_saved = $saved;
+$shared_html_saved['ui']['color']['body'] = htmlspecialchars($shared_html);
+reset_setting_runtime(array('shared_schema_key'=>$shared_html_saved));
+reset_plugin_setting_compat();
+plugin_setting_schema_bind_plugin('legacy-shared-a', $text_shared_schema, array()) === 'shared_schema_key'
+	|| fail('first legacy shared owner must bind');
+plugin_setting_schema_persist_plugin('legacy-shared-a') || fail('first legacy shared owner must persist');
+reset_request_runtime_preserving_db();
+plugin_setting_schema_bind_plugin('legacy-shared-b', $text_shared_schema, array()) === 'shared_schema_key'
+	|| fail('second legacy shared owner must bind');
+plugin_setting_schema_persist_plugin('legacy-shared-b') || fail('second legacy shared owner must persist');
+
+$request_before_shared_html = $_REQUEST;
+$_REQUEST = array('ui/color/body'=>$shared_html);
+$method = 'POST';
+reset_request_runtime_preserving_db();
+plugin_setting_admin_request_start('legacy-shared-a');
+plugin_setting_schema_bind_plugin('legacy-shared-a', $html_shared_schema, array()) === 'shared_schema_key'
+	|| fail('an existing shared owner may expose its current HTML schema without inventing a conflict');
+plugin_setting_schema_persist_plugin('legacy-shared-a')
+	|| fail('legacy multi-owner HTML metadata refresh must remain recoverable');
+plugin_setting_admin_request_clear();
+$legacy_shared_saved = setting_get_raw('shared_schema_key');
+$legacy_shared_saved['ui']['color']['body'] === htmlspecialchars($shared_html)
+	|| fail('HTML normalization must remain inert for a legacy multi-owner setting key');
+$legacy_shared_sidecar = plugin_setting_schema_sidecar_normalize(sidecar_value());
+empty($legacy_shared_sidecar['keys']['shared_schema_key']['conflict'])
+	|| fail('a legacy multi-owner key must not be placed into a migration conflict');
+$_REQUEST = $request_before_shared_html;
+
 $conflicting_schema = $shared_schema;
 $conflicting_schema['panels']['ui']['sections']['color']['options']['body']['default'] = '#ff0000';
 reset_setting_runtime(array('shared_schema_key'=>$saved));
@@ -862,6 +897,66 @@ try {
 setting_get_raw($fixture_key) === $saved || fail('real POST wrapper must not normalize an exception path');
 db_write_count_for(plugin_setting_schema_sidecar_kv_key()) === 0 || fail('exception POST must not register persistent schema metadata');
 $fixture_throw = FALSE;
+
+// A schema-declared HTML field may come from a legacy framework that still routes it through
+// param() escaping. Repair that proved layer, including an exact repeatedly encoded default, while
+// leaving a package that already saved raw HTML and an ordinary text control untouched.
+$html_default = '&copy; 2026 <a href="?about.htm">About</a>';
+$html_historical = $html_default;
+for($i = 0; $i < 5; $i++) $html_historical = htmlspecialchars($html_historical);
+$html_custom = '<em data-note="&copy;">Custom</em>';
+$html_plain = '<b>Literal text</b>';
+$fixture_key = 'html_wrapper_key';
+$fixture_schema = array(
+	'setting_key'=>$fixture_key,
+	'panels'=>array(
+		'content'=>array(
+			'sections'=>array(
+				'footer'=>array(
+					'options'=>array(
+						'legacy'=>array('type'=>'textarea_html', 'default'=>$html_default),
+						'raw'=>array('type'=>'html', 'default'=>''),
+						'plain'=>array('type'=>'textarea', 'default'=>''),
+					),
+				),
+			),
+		),
+	),
+);
+$fixture_saved = array('content'=>array('footer'=>array(
+	'legacy'=>htmlspecialchars($html_historical),
+	'raw'=>$html_custom,
+	'plain'=>htmlspecialchars($html_plain),
+)));
+$request_before_html = $_REQUEST;
+$_REQUEST = array(
+	'content/footer/legacy'=>$html_historical,
+	'content/footer/raw'=>$html_custom,
+	'content/footer/plain'=>$html_plain,
+);
+$method = 'POST';
+$fixture_message_code = 0;
+reset_setting_runtime(array($fixture_key=>array()));
+reset_plugin_setting_compat();
+plugin_compat_include_setting($fixture_file, 'html-wrapper-demo');
+$html_saved = setting_get_raw($fixture_key);
+$html_saved['content']['footer']['legacy'] === $html_default
+	|| fail('an exact repeatedly encoded HTML default must be restored after the proved legacy escape');
+$html_saved['content']['footer']['raw'] === $html_custom
+	|| fail('a package that already saved raw HTML must remain byte-for-byte unchanged');
+$html_saved['content']['footer']['plain'] === htmlspecialchars($html_plain)
+	|| fail('ordinary text controls must not receive HTML-field normalization');
+
+$_REQUEST['content/footer/legacy'] = $html_default;
+$fixture_saved['content']['footer']['legacy'] = htmlspecialchars($html_default);
+reset_request_runtime_preserving_db();
+plugin_compat_include_setting($fixture_file, 'html-wrapper-demo');
+setting_get_raw($fixture_key) === $html_saved
+	|| fail('a second successful HTML settings save must remain byte-stable');
+$_REQUEST = $request_before_html;
+$fixture_schema = $schema;
+$fixture_saved = $saved;
+$fixture_key = 'wrapper_schema_key';
 
 // Request-local include_once contract: a schema registered by an earlier wrapped include remains
 // usable later in that request. A conf.php loaded before every wrapper is intentionally not adopted
