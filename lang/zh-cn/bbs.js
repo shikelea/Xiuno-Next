@@ -20,5 +20,12 @@ var lang = {
 	'update_proxy_available': '可用',
 	'update_proxy_unavailable': '不可用',
 	'update_proxy_save_ok': '代理设置已保存',
+	'ajax_empty_response': '服务器返回了空响应，请稍后重试。',
+	'ajax_invalid_response': '服务器响应格式异常，请稍后重试。',
+	'ajax_request_timeout': '请求超时，请稍后重试。',
+	'ajax_request_forbidden': '请求已被拒绝（HTTP 403），请刷新页面后重试。',
+	'ajax_request_http_error': '请求失败（HTTP {status}），请稍后重试。',
+	'ajax_request_network_error': '网络请求失败，请检查连接后重试。',
+	'ajax_request_id': '请求标识：{id}',
 	// hook lang_zh_cn_bbs_js.htm
 };

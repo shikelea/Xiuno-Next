@@ -2,10 +2,11 @@
 
 $root = dirname(__DIR__) . '/';
 $pluginFunc = file_get_contents($root . 'model/plugin.func.php');
+$modelInc = file_get_contents($root . 'model.inc.php');
 $errors = array();
 
-if($pluginFunc === FALSE) {
-	$errors[] = 'failed to read model/plugin.func.php';
+if($pluginFunc === FALSE || $modelInc === FALSE) {
+	$errors[] = 'failed to read model/plugin.func.php or model.inc.php';
 } else {
 	if(!preg_match('#function\s+_include\s*\(\s*\$srcfile\s*\)(.*?)(?=^function\s+\w|\z)#ms', $pluginFunc, $m)) {
 		$errors[] = '_include() must exist.';
@@ -35,8 +36,9 @@ if($pluginFunc === FALSE) {
 		if(strpos($include, '$tmp_mtime = $tmp_isfile ? filemtime($tmpfile) : 0;') === FALSE) {
 			$errors[] = '_include() cache must record compiled tmp file mtime.';
 		}
-		if(strpos($include, 'if(!$tmp_isfile || ($src_mtime && $src_mtime > $tmp_mtime) || DEBUG > 1)') === FALSE) {
-			$errors[] = '_include() cache must rebuild when tmp cache is missing, debug is enabled, or source is newer than tmp cache.';
+		if(strpos($include, '$legacy_unlocked_cache = $tmp_isfile && !is_file($tmpfile.\'.lock\');') === FALSE
+			|| strpos($include, 'if(!$tmp_isfile || $legacy_unlocked_cache || ($src_mtime && $src_mtime > $tmp_mtime) || DEBUG > 1)') === FALSE) {
+			$errors[] = '_include() cache must rebuild when tmp cache is missing, predates the stable lock protocol, debug is enabled, or source is newer.';
 		}
 	}
 	if(!preg_match('#function\s+plugin_include_src_mtime\s*\(\s*\$srcfile\s*\)(.*?)(?=^function\s+\w|\z)#ms', $pluginFunc, $m)) {
@@ -55,9 +57,23 @@ if($pluginFunc === FALSE) {
 		if(strpos($helper, "preg_match_all('#(?:<!--\\{hook\\s+(.*?)}-->|//\\s*hook\\s+(\\S+))#is', \$s, \$m);") === FALSE) {
 			$errors[] = 'plugin_include_src_mtime() must discover template and PHP hook markers.';
 		}
-		if(strpos($helper, 'foreach(plugin_paths_enabled() as $path=>$pconf)') === FALSE || strpos($helper, 'filemtime($hookfile)') === FALSE) {
-			$errors[] = 'plugin_include_src_mtime() must include enabled plugin hook file mtimes.';
+		if(strpos($helper, '$file_index = plugin_file_index();') === FALSE
+			|| strpos($helper, '$hookkey = plugin_file_index_hook_key($hookname);') === FALSE
+			|| strpos($helper, "['hook_mtimes'][\$hookkey]") === FALSE) {
+			$errors[] = 'plugin_include_src_mtime() must reuse indexed enabled-plugin Hook mtimes.';
 		}
+		if(strpos($helper, 'plugin_paths_enabled()') !== FALSE || preg_match('~plugin/.+?/hook/.+?hookname~s', $helper)) {
+			$errors[] = 'plugin_include_src_mtime() must not reconstruct a missing Hook candidate for every enabled package.';
+		}
+	}
+	$leasePos = strpos($modelInc, 'plugin_include_cache_reader_hold($model_min_file)');
+	$includePos = strpos($modelInc, 'include $model_min_file;', $leasePos === FALSE ? 0 : $leasePos);
+	$releasePos = strpos($modelInc, 'plugin_include_cache_reader_release($model_min_file);', $includePos === FALSE ? 0 : $includePos);
+	if($leasePos === FALSE || $includePos === FALSE || $releasePos === FALSE || !($leasePos < $includePos && $includePos < $releasePos)) {
+		$errors[] = 'The aggregated model cache must hold the same publish reader lease from before include through completion.';
+	}
+	if(strpos($modelInc, 'try {', $leasePos === FALSE ? 0 : $leasePos) === FALSE || strpos($modelInc, '} finally {', $includePos === FALSE ? 0 : $includePos) === FALSE) {
+		$errors[] = 'The aggregated model cache reader lease must be released through a finally boundary.';
 	}
 }
 

@@ -9,16 +9,16 @@
 				<form action="<?php echo url('user-resetpw_complete');?>" method="post" id="form">
 					<div class="input-group mb-3">
 						<span class="input-group-text"><i class="icon icon-envelope icon-fw"></i></span>
-						<input type="text" class="form-control" placeholder="<?php echo lang('email');?>" name="email" id="email" value="<?php echo $email;?>" disabled>
+						<input type="text" class="form-control" placeholder="<?php echo lang('email');?>" name="email" id="email" value="<?php echo xn_html_escape($email);?>" autocomplete="email" disabled>
 					</div>
 					<div class="input-group mb-3">
 						<span class="input-group-text"><i class="icon icon-lock icon-fw"></i></span>
-						<input type="password" class="form-control" placeholder="<?php echo lang('password_new');?>" id="password" name="password">
+					<input type="password" class="form-control" placeholder="<?php echo lang('password_new');?>" id="password" name="password" autocomplete="new-password" required>
 					</div>
 					<!--{hook user_resetpw_password_after.htm}-->
 					<div class="input-group mb-3">
 						<span class="input-group-text"><i class="icon icon-lock icon-fw"></i></span>
-						<input type="password" class="form-control" placeholder="<?php echo lang('password_new_repeat');?>" id="password2">
+					<input type="password" class="form-control" placeholder="<?php echo lang('password_new_repeat');?>" id="password2" autocomplete="new-password" required>
 					</div>
 					<p>
 						<button type="submit" class="btn btn-primary w-100" id="submit" data-loading-text="<?php echo lang('submiting');?>..." <?php if(!$conf['user_resetpw_on']) { ?>disabled<?php } ?>><?php echo lang('next_step');?></button>

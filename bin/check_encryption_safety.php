@@ -14,6 +14,19 @@ $conf['auth_key'] = 'encryption-safety-auth-key';
 $conf['cache']['enable'] = FALSE;
 include XIUNOPHP_PATH.'xiunophp.min.php';
 
+// Keep this cryptographic guard independent from a developer database while satisfying the
+// primary-read credential contract used by persistent-token validation.
+class EncryptionSafetyDb {
+	public $errno = 0;
+	public $errstr = '';
+	public function find_one_master($table, $cond = array(), $orderby = array(), $col = array()) {
+		return $table === 'user' && isset($cond['uid']) && intval($cond['uid']) === 42
+			? array('uid'=>42, 'auth_epoch'=>0)
+			: array();
+	}
+}
+$_SERVER['db'] = new EncryptionSafetyDb();
+
 function encryption_fail($message) {
 	fwrite(STDERR, "[FAIL] $message\n");
 	exit(1);

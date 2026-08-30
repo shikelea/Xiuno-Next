@@ -45,6 +45,7 @@ return array(
 	
 	'admin_login'=>'เข้าสู่ระบบแอดมิน',
 	'save_conf_failed'=>'บันทึกข้อมูลไปยังไฟล์ {file} ล้มเหลว กรุณาตรวจสอบสิทธิ์การเขียนไฟล์',
+	'locale_unavailable'=>'ภาษาที่เลือกไม่พร้อมใช้งานหรือไฟล์ภาษาที่จำเป็นไม่ครบถ้วน',
 	'user_already_exists'=>'มีผู้ใช้นี้แล้ว',
 	'email_already_exists'=>'มีอีเมลนี้แล้ว',
 	'uid_not_exists'=>'ไม่พบ UID ที่ระบุไว้',
@@ -148,6 +149,7 @@ return array(
 	
 	// Plugin
 	'plugin_dir'=>'โฟลเดอร์ปลั๊กอิน',
+	'plugin_dir_invalid'=>'ชื่อโฟลเดอร์ปลั๊กอินไม่ถูกต้อง ใช้อักษร ตัวเลข ขีดล่าง หรือขีดกลาง 1-64 ตัว โดยห้ามขึ้นต้นด้วยขีดกลาง',
 	'plugin_bbs_version'=>'เวอร์ชั่น BBS ที่ต้องการ',
 	'price'=>'ราคา',
 	'installs'=>'ติดตั้ง',
@@ -165,6 +167,10 @@ return array(
 	'plugin_detail'=>'ข้อมูลปลั๊กอิน',
 	'plugin_brief_url'=>'URL ของปลั๊กอิน',
 	'plugin_not_exists'=>'ไม่พบปลั๊กอิน',
+	'plugin_not_installed'=>'ยังไม่ได้ติดตั้งปลั๊กอิน',
+	'plugin_setting_path_invalid'=>'พาธหน้าตั้งค่าปลั๊กอินไม่ถูกต้อง',
+	'plugin_package_path_invalid'=>'พาธแพ็กเกจปลั๊กอินไม่พร้อมใช้งานหรือไม่ปลอดภัย โปรดตรวจสอบว่าเป็นไดเรกทอรีภายในเครื่องที่อ่านได้และไม่ใช่ลิงก์สัญลักษณ์',
+	'plugin_setting_no_output'=>'หน้าตั้งค่าปลั๊กอินไม่มีเนื้อหา ปลั๊กอินอาจไม่มีตัวเลือกให้ตั้งค่าหรือส่วนตั้งค่าอาจไม่เข้ากัน',
 	'plugin_versio_not_match'=>'ปลั๊กอินนี้ต้องการ Xiuno BBS เวอร์ชัน {bbs_version} เป็นอย่างต่ำ เวอร์ชันปัจจุบันคือ: {version}',
 	'plugin_download_sucessfully'=>'ดาวน์โหลดปลั๊กอิน ({dir}) เรียบร้อยแล้ว กรุณาคลิกเพื่อติดตั้ง',
 	'plugin_install_sucessfully'=>'ติดตั้งปลั๊กอิน ( {name} ) เรียบร้อยแล้ว',
@@ -191,6 +197,15 @@ return array(
 	'plugin_not_bought'=>'ไม่ได้ซื้อ',
 	'plugin_wechat_qrcode_pay'=>'Wechat SCAN เพื่อชำระเงิน',
 	'plugin_service_qq'=>'ปลั๊กอินจาก QQ',
+	'plugin_safe_mode'=>'โหมดปลอดภัยของปลั๊กอินแอปพลิเคชัน',
+	'plugin_safe_mode_marker_path'=>'พาธไฟล์เครื่องหมาย',
+	'plugin_safe_mode_log_path'=>'พาธบันทึกโหมดปลอดภัย',
+	'plugin_safe_mode_latest_error'=>'ข้อผิดพลาดล่าสุดของปลั๊กอินหรือโค้ดรันไทม์ที่คอมไพล์แล้ว',
+	'plugin_safe_mode_exit'=>'ออกจากโหมดปลอดภัยของปลั๊กอิน',
+	'plugin_safe_mode_exit_success'=>'ล้างเครื่องหมายโหมดปลอดภัยแล้ว การโหลดปลั๊กอินตามปกติจะกลับมาในคำขอถัดไป',
+	'plugin_safe_mode_exit_locked'=>'มีการดำเนินการโหมดปลอดภัยอื่นอยู่ กรุณาลองใหม่ภายหลัง',
+	'plugin_safe_mode_exit_clear_failed'=>'ไม่สามารถล้างเครื่องหมายโหมดปลอดภัยบางรายการได้ กรุณาตรวจสอบพาธและสิทธิ์ของระบบไฟล์ ปลั๊กอินจะยังคงถูกปิดใช้งาน',
+	'plugin_safe_mode_exit_unlock_failed'=>'ล้างเครื่องหมายแล้ว แต่ไม่สามารถปลดล็อกการดำเนินการได้ กรุณารีเฟรชและตรวจสอบสถานะ',
 	
 	// hook lang_th_th_bbs_admin.php
 	

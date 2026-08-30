@@ -17,6 +17,7 @@ class cache_mysql {
 	public $link = NULL;
 	public $table = 'cache';
 	public $cachepre = '';
+	public $max_key_length = 32;
 	public $errno = 0;
 	public $errstr = '';
 	
@@ -58,8 +59,16 @@ class cache_mysql {
                 return $r !== FALSE;
         }
         public function get($k) {
+		return $this->get_do($k, FALSE);
+	}
+	public function get_master($k) {
+		return $this->get_do($k, TRUE);
+	}
+	private function get_do($k, $primary) {
                 $time = time();
-                $arr = db_find_one($this->table, array('k'=>$k), array(), array(), $this->db);
+		$arr = $primary
+			? db_find_one_master($this->table, array('k'=>$k), array(), array(), $this->db)
+			: db_find_one($this->table, array('k'=>$k), array(), array(), $this->db);
                 // 如果表不存在，则建立表 pre_cache
                 if($arr === FALSE) {
                 	$this->errno = $this->db->errno;

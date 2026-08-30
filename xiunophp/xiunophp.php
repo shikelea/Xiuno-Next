@@ -25,8 +25,11 @@ $get_magic_quotes_gpc = 0;
 $starttime = microtime(1);
 $time = time();
 
-// 头部，判断是否运行在命令行下
-define('IN_CMD', !empty($_SERVER['SHELL']) || empty($_SERVER['REMOTE_ADDR']));
+// 头部，判断是否运行在命令行下。php -S 使用 cli-server SAPI，但仍是 Web 请求；
+// 不能根据继承的 SHELL 环境变量把它误判为 CLI。
+include_once XIUNOPHP_PATH.'request.func.php';
+define('IN_CMD', xn_runtime_is_command());
+xn_request_id_init();
 if(IN_CMD) {
 	!isset($_SERVER['REMOTE_ADDR']) AND $_SERVER['REMOTE_ADDR'] = '';
 	!isset($_SERVER['REQUEST_URI']) AND $_SERVER['REQUEST_URI'] = '';

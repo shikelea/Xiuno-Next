@@ -55,10 +55,19 @@ include $root.'model/plugin.func.php';
 $plugins = array(
 	'missing_icon' => array('name'=>'Missing icon', 'installed'=>1, 'enable'=>1),
 	'with_icon' => array('name'=>'Existing icon', 'installed'=>1, 'enable'=>1),
+	'official_with_local_icon' => array('name'=>'Official local icon', 'installed'=>1, 'enable'=>1),
 );
 $official_plugins = array(
 	'official_icon' => array('pluginid'=>42, 'name'=>'Official icon'),
+	'official_with_local_icon' => array('pluginid'=>43, 'name'=>'Official local icon'),
 );
+
+if(!mkdir($fixture_root.'plugin/official_with_local_icon', 0777, TRUE) && !is_dir($fixture_root.'plugin/official_with_local_icon')) {
+	fail('failed to create official local-icon fixture');
+}
+if(!copy($root.'view/img/logo.png', $fixture_root.'plugin/official_with_local_icon/icon.png')) {
+	fail('failed to create official local-icon asset');
+}
 
 $missing = plugin_read_by_dir('missing_icon');
 $missing['icon_url'] === '../view/img/logo.png' || fail('local plugin without icon.png must use the core fallback asset');
@@ -68,5 +77,8 @@ $existing['icon_url'] === '../plugin/with_icon/icon.png' || fail('local plugin w
 
 $official = plugin_read_by_dir('official_icon', FALSE);
 $official['icon_url'] === 'http://plugin.xiuno.com/upload/plugin/42/icon.png' || fail('official plugin must keep its remote icon URL');
+
+$officialWithLocalIcon = plugin_read_by_dir('official_with_local_icon');
+$officialWithLocalIcon['icon_url'] === '../plugin/official_with_local_icon/icon.png' || fail('downloaded official plugin must prefer its readable local icon before the remote market URL');
 
 echo "OK: plugin icon fallback checks passed\n";

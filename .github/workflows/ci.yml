@@ -22,7 +22,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: pdo, pdo_mysql, json, zip, gd
+          extensions: json, openssl, pdo, pdo_mysql, pdo_sqlite, mbstring, gd, zip
           coverage: none
 
       - name: Validate Composer metadata
@@ -31,143 +31,18 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
-      - name: Check release version consistency
-        run: php bin/check_version.php
+      - name: Run deterministic check suite
+        run: php bin/run_checks.php --profile=deterministic --fail-on-skip
 
-      - name: Check repository hygiene
-        run: php bin/check_repository_hygiene.php
-
-      - name: Smoke test lightweight helpers
-        run: php bin/check_lightweight_helpers.php
-
-      - name: Smoke test API routes
-        run: php bin/check_api_routes.php
-
-      - name: Smoke test API login rate limiting
-        run: php bin/check_api_login_rate_limit.php
-
-      - name: Smoke test HTMX security defaults
-        run: php bin/check_htmx_security.php
-
-      - name: Smoke test frontend security guards
-        run: php bin/check_frontend_security.php
-
-      - name: Smoke test HTML sanitizer URI safety
-        run: php bin/check_html_sanitizer_safety.php
-
-      - name: Smoke test authenticated encryption
-        run: php bin/check_encryption_safety.php
-
-      - name: Smoke test CSRF session safety
-        run: php bin/check_csrf_session_safety.php
-
-      - name: Smoke test session rotation safety
-        run: php bin/check_session_rotation_safety.php
-
-      - name: Smoke test model cache safety
-        run: php bin/check_model_cache_safety.php
-
-      - name: Smoke test plugin cache atomicity
-        run: php bin/check_plugin_cache_atomicity.php
-
-      - name: Smoke test include cache safety
-        run: php bin/check_include_cache_safety.php
-
-      - name: Smoke test BS4 compatibility layer
-        run: php bin/check_bs4_compat_layer.php
-
-      - name: Smoke test theme API safety
-        run: php bin/check_theme_api_safety.php
-
-      - name: Smoke test theme overwrite compilation
-        run: php bin/check_plugin_theme_overwrite_compile_smoke.php
-
-      - name: Smoke test hook context compilation
-        run: php bin/check_plugin_hook_context_compile_smoke.php
-
-      - name: Smoke test online member compatibility
-        run: php bin/check_online_members_compat.php
-
-      - name: Smoke test plugin icon fallback
-        run: php bin/check_plugin_icon_fallback.php
-
-      - name: Smoke test admin config safety
-        run: php bin/check_admin_config_safety.php
-
-      - name: Smoke test admin user safety
-        run: php bin/check_admin_user_safety.php
-
-      - name: Smoke test admin list delete safety
-        run: php bin/check_admin_list_delete_safety.php
-
-      - name: Smoke test admin thread queue safety
-        run: php bin/check_admin_thread_queue_safety.php
-
-      - name: Smoke test admin auth safety
-        run: php bin/check_admin_auth_safety.php
-
-      - name: Smoke test user auth safety
-        run: php bin/check_user_auth_safety.php
-
-      - name: Smoke test plugin task safety
-        run: php bin/check_plugin_task_safety.php
-
-      - name: Smoke test plugin dependency status
-        run: php bin/check_plugin_dependency_status.php
-
-      - name: Smoke test plugin dependency flow
-        run: php bin/check_plugin_dependency_flow_smoke.php
-
-      - name: Smoke test ecosystem dependency families
-        run: php bin/check_ecosystem_dependency_family_smoke.php
-
-      - name: Smoke test same-type dependency rollback
-        run: php bin/check_plugin_same_type_dependency_smoke.php
-
-      - name: Smoke test plugin PHP syntax guard
-        run: php bin/check_plugin_syntax_guard.php
-
-      - name: Smoke test plugin lifecycle safety
-        run: php bin/check_plugin_lifecycle_safety.php
-
-      - name: Smoke test plugin lifecycle exit rollback
-        run: php bin/check_plugin_lifecycle_exit_smoke.php
-
-      - name: Smoke test plugin upgrade lifecycle rollback
-        run: php bin/check_plugin_upgrade_lifecycle_smoke.php
-
-      - name: Smoke test plugin SQL compatibility
-        run: php bin/check_plugin_sql_compat.php
-
-      - name: Smoke test plugin package rollback
-        run: php bin/check_plugin_package_rollback.php
-
-      - name: Smoke test update task safety
-        run: php bin/check_update_task_safety.php
-
-      - name: Smoke test install safety
-        run: php bin/check_install_safety.php
-
-      - name: Smoke test CLI and upgrade safety
-        run: php bin/check_cli_upgrade_safety.php
-
-      - name: Check legacy converter safety
-        run: php bin/check_legacy_converter_safety.php
-
-      - name: Check MySQL 8 SQL compatibility
-        run: php bin/check_mysql8_compat.php
-
-      - name: Smoke test route method safety
-        run: php bin/check_route_method_safety.php
-
-      - name: Check generated frontend assets
-        run: php bin/build_frontend_assets.php --check
+      - name: Run BS4 compatibility behavior fixture in Chromium
+        if: matrix.php-version == '8.2'
+        run: php bin/run_checks.php --profile=browser --fail-on-skip
 
       - name: Check generated XiunoPHP bundle
         shell: bash
         run: |
           (cd tool && php merge.php)
-          git diff --exit-code -- xiunophp/xiunophp.min.php
+          git diff --exit-code -- xiunophp/xiunophp.php xiunophp/xiunophp.min.php
 
       - name: Smoke test CLI commands
         shell: bash
@@ -178,18 +53,6 @@ jobs:
           php bin/xiuno help upgrade
           php bin/xiuno migrate --check
           php bin/xiuno upgrade --check
-
-      - name: Smoke test plugin scaffold
-        shell: bash
-        run: |
-          rm -rf plugin/smoke_plugin
-          php bin/xiuno make:plugin smoke_plugin
-          test -f plugin/smoke_plugin/conf.json
-          test -f plugin/smoke_plugin/hook/index_inc_start.php
-          test -f plugin/smoke_plugin/install.php
-          test -f plugin/smoke_plugin/unstall.php
-          test -f plugin/smoke_plugin/upgrade.php
-          rm -rf plugin/smoke_plugin
 
       - name: Lint core PHP files
         shell: bash
@@ -235,13 +98,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: pdo, pdo_mysql
+          extensions: json, openssl, pdo, pdo_mysql, mbstring, gd, zip
           coverage: none
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
-      - name: Smoke test install schema
+      - name: Run database smoke profile
         env:
           XIUNO_DB_HOST: 127.0.0.1
           XIUNO_DB_PORT: 3306
@@ -249,9 +112,10 @@ jobs:
           XIUNO_DB_USER: root
           XIUNO_DB_PASSWORD: root
           XIUNO_EXPECT_MYSQL_MAJOR: 8
-        run: php bin/check_install_schema.php
+          XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
+        run: php bin/run_checks.php --profile=db --fail-on-skip
 
-      - name: Smoke test install schema under strict SQL mode
+      - name: Run database smoke profile under strict SQL mode
         env:
           XIUNO_DB_HOST: 127.0.0.1
           XIUNO_DB_PORT: 3306
@@ -260,53 +124,12 @@ jobs:
           XIUNO_DB_PASSWORD: root
           XIUNO_EXPECT_MYSQL_MAJOR: 8
           XIUNO_SQL_MODE: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION
-        run: php bin/check_install_schema.php
-
-      - name: Smoke test old-version upgrade and migrations
-        env:
-          XIUNO_DB_HOST: 127.0.0.1
-          XIUNO_DB_PORT: 3306
-          XIUNO_DB_NAME: xiuno_test
-          XIUNO_DB_USER: root
-          XIUNO_DB_PASSWORD: root
           XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
-        run: php bin/check_legacy_upgrade_smoke.php
-
-      - name: Smoke test old-version upgrade and migrations under strict SQL mode
-        env:
-          XIUNO_DB_HOST: 127.0.0.1
-          XIUNO_DB_PORT: 3306
-          XIUNO_DB_NAME: xiuno_test_strict
-          XIUNO_DB_USER: root
-          XIUNO_DB_PASSWORD: root
-          XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
-          XIUNO_SQL_MODE: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION
-        run: php bin/check_legacy_upgrade_smoke.php
-
-      - name: Smoke test plugin install SQL samples
-        env:
-          XIUNO_DB_HOST: 127.0.0.1
-          XIUNO_DB_PORT: 3306
-          XIUNO_DB_NAME: xiuno_test
-          XIUNO_DB_USER: root
-          XIUNO_DB_PASSWORD: root
-          XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
-        run: php bin/check_plugin_install_sql_smoke.php
-
-      - name: Smoke test plugin install SQL samples under strict SQL mode
-        env:
-          XIUNO_DB_HOST: 127.0.0.1
-          XIUNO_DB_PORT: 3306
-          XIUNO_DB_NAME: xiuno_test_strict
-          XIUNO_DB_USER: root
-          XIUNO_DB_PASSWORD: root
-          XIUNO_ALLOW_DESTRUCTIVE_SMOKE: 1
-          XIUNO_SQL_MODE: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION
-        run: php bin/check_plugin_install_sql_smoke.php
+        run: php bin/run_checks.php --profile=db --fail-on-skip
 
   docker-http-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -316,10 +139,11 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          extensions: json, openssl, pdo, pdo_mysql, mbstring, gd, zip
           coverage: none
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
       - name: Smoke test Docker Nginx and HTTP workflows
-        run: bash bin/check_docker_http_smoke.sh
+        run: php bin/run_checks.php --profile=docker --fail-on-skip

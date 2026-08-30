@@ -21,6 +21,10 @@ function cache_get($key) {
 	return array_key_exists($key, $cache) ? $cache[$key] : NULL;
 }
 
+function cache_get_primary($key) {
+	return cache_get($key);
+}
+
 function cache_set($key, $value, $life = 0) {
 	global $cache, $cache_life, $cache_set_should_fail;
 	if(!empty($cache_set_should_fail)) return FALSE;

@@ -103,7 +103,7 @@ if($action == 'list') {
 	api_login_required();
 	
 	$fid = param('fid', 0);
-	$subject = param('subject');
+	$subject = thread_subject_normalize(param('subject', '', FALSE));
 	$message = param('message');
 	$doctype = param('doctype', 0);
 	
@@ -120,7 +120,7 @@ if($action == 'list') {
 	}
 	
 	// 长度校验
-	if(mb_strlen($subject, 'UTF-8') > 128) api_output(-1, lang('subject_too_long'));
+	if(thread_subject_is_too_long($subject)) api_output(-1, lang('subject_too_long'));
 	if(mb_strlen($message, 'UTF-8') > 2028000) api_output(-1, lang('message_too_long'));
 	
 	$thread = array(

@@ -50,6 +50,8 @@ if($action == 'create') {
 		
 		$doctype = param('doctype', 0);
 		xn_strlen($message) > 2028000 AND message('message', lang('message_too_long'));
+		$attach_draft = param('attach_draft', '', FALSE);
+		!attach_draft_exists($attach_draft) AND message('attach_draft', lang('data_malformation'));
 		
 		$thread['top'] > 0 AND thread_top_cache_delete();
 		
@@ -67,7 +69,7 @@ if($action == 'create') {
 			'quotepid'=>$quotepid,
 			'message'=>$message,
 		);
-		$pid = post_create($post, $fid, $gid);
+		$pid = post_create($post, $fid, $gid, $attach_draft);
 		empty($pid) AND message(-1, lang('create_post_failed'));
 		
 		// thread_top_create($fid, $tid);
@@ -102,15 +104,15 @@ if($action == 'create') {
 
 	$pid = param(2);
 	$post = post_read($pid);
-	empty($post) AND message(-1, lang('post_not_exists:'));
+	empty($post) AND message(-1, lang('post_not_exists'));
 	
 	$tid = $post['tid'];
 	$thread = thread_read($tid);
-	empty($thread) AND message(-1, lang('thread_not_exists:'));
+	empty($thread) AND message(-1, lang('thread_not_exists'));
 	
 	$fid = $thread['fid'];
 	$forum = forum_read($fid);
-	empty($forum) AND message(-1, lang('forum_not_exists:'));
+	empty($forum) AND message(-1, lang('forum_not_exists'));
 	
 	$isfirst = $post['isfirst'];
 	
@@ -143,9 +145,11 @@ if($action == 'create') {
 		
 	} elseif($method == 'POST') {
 		
-		$subject = htmlspecialchars(param('subject', '', FALSE));
+		$subject = thread_subject_normalize(param('subject', '', FALSE));
 		$message = param('message', '', FALSE);
 		$doctype = param('doctype', 0);
+		$attach_draft = param('attach_draft', '', FALSE);
+		!attach_draft_exists($attach_draft) AND message('attach_draft', lang('data_malformation'));
 		
 		// hook post_update_post_start.php
 		
@@ -154,22 +158,24 @@ if($action == 'create') {
 		
 		$arr = array();
 		if($isfirst) {
+			empty($subject) AND message('subject', lang('please_input_subject'));
+			$subject_maxlength = thread_subject_maxlength();
+			thread_subject_is_too_long($subject) AND message('subject', lang('subject_max_length', array('max'=>$subject_maxlength)));
 			$newfid = param('fid');
 			$forum = forum_read($newfid);
 			empty($forum) AND message('fid', lang('forum_not_exists'));
 			
 			if($fid != $newfid) {
-				!forum_access_user($fid, $gid, 'allowthread') AND message(-1, lang('user_group_insufficient_privilege'));
+				!forum_access_user($newfid, $gid, 'allowthread') AND message(-1, lang('user_group_insufficient_privilege'));
 				$post['uid'] != $uid AND !forum_access_mod($fid, $gid, 'allowupdate') AND message(-1, lang('user_group_insufficient_privilege'));
 				$arr['fid'] = $newfid;
 			}
-			if($subject != $thread['subject']) {
-				mb_strlen($subject, 'UTF-8') > 80 AND message('subject', lang('subject_max_length', array('max'=>80)));
+			if($subject != thread_subject_normalize($thread['subject'])) {
 				$arr['subject'] = $subject;
 			}
 			$arr AND thread_update($tid, $arr) === FALSE AND message(-1, lang('update_thread_failed'));
 		}
-		$r = post_update($pid, array('doctype'=>$doctype, 'message'=>$message));
+		$r = post_update($pid, array('doctype'=>$doctype, 'message'=>$message), 0, $attach_draft);
 		$r === FALSE AND message(-1, lang('update_post_failed'));
 		
 		// hook post_update_post_end.php
@@ -186,12 +192,26 @@ if($action == 'create') {
 	
 	if($method != 'POST') message(-1, lang('method_error'));
 	
-	$post = post_read($pid);
-	empty($post) AND message(-1, lang('post_not_exists'));
-	
-	$tid = $post['tid'];
-	$thread = thread_read($tid);
-	empty($thread) AND message(-1, lang('thread_not_exists'));
+	$post = post_read($pid, TRUE);
+	$post === FALSE AND message(-1, lang('delete_failed'));
+	if(empty($post)) {
+		$thread = thread_read_by_firstpid_primary($pid);
+		$thread === FALSE AND message(-1, lang('delete_failed'));
+		empty($thread) AND message(-1, lang('post_not_exists'));
+		$tid = $thread['tid'];
+		$post = array(
+			'pid'=>$pid,
+			'tid'=>$tid,
+			'uid'=>isset($thread['uid']) ? $thread['uid'] : 0,
+			'isfirst'=>1,
+			'allowdelete'=>isset($thread['uid']) && intval($thread['uid']) === intval($uid),
+		);
+	} else {
+		$tid = $post['tid'];
+		$thread = thread_read($tid, TRUE);
+		$thread === FALSE AND message(-1, lang('delete_failed'));
+		empty($thread) AND message(-1, lang('thread_not_exists'));
+	}
 	
 	$fid = $thread['fid'];
 	$forum = forum_read($fid);
@@ -207,11 +227,12 @@ if($action == 'create') {
 	// hook post_delete_middle.php
 
 	if($isfirst) {
-		thread_delete($tid);
+		$r = thread_delete($tid);
 	} else {
-		post_delete($pid);
+		$r = post_delete($pid);
 		//post_list_cache_delete($tid);
 	}
+	$r === FALSE AND message(-1, lang('delete_failed'));
 	
 	// hook post_delete_end.php
 	

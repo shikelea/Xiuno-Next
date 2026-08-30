@@ -124,10 +124,10 @@ $output = run_child($root, $app, 'app', 'install');
 if(is_file($app.'tmp/lock_plugin_task.lock')) {
 	fail('plugin_task lock must be released after dependency install failure.');
 }
-if(strpos($output, 'plugin-read-downloaded') === FALSE) {
+if(strpos($output, '?plugin-read.htm&amp;dir=downloaded') === FALSE) {
 	fail("Downloaded dependency should render a detail link.\n$output");
 }
-if(strpos($output, 'plugin-read-missing') !== FALSE) {
+if(strpos($output, '?plugin-read.htm&amp;dir=missing') !== FALSE) {
 	fail("Missing remote dependency must not render a dead detail link.\n$output");
 }
 if(strpos($output, 'not downloaded') === FALSE || strpos($output, 'downloaded, not installed') === FALSE || strpos($output, 'installed, disabled') === FALSE || strpos($output, 'version too low') === FALSE) {
@@ -140,7 +140,7 @@ $output = run_child($root, $app, 'shared', 'unstall');
 if(is_file($app.'tmp/lock_plugin_task.lock')) {
 	fail('plugin_task lock must be released after reverse dependency failure.');
 }
-if(strpos($output, 'plugin-read-uses_shared') === FALSE) {
+if(strpos($output, '?plugin-read.htm&amp;dir=uses_shared') === FALSE) {
 	fail('Reverse dependency should render a local detail link.');
 }
 

@@ -90,7 +90,7 @@
 				<div class="card-title">
 					<div class="d-flex justify-content-between">
 						<div>
-							<b><?php echo lang('new_post');?></b> (<span class="posts"><?php echo $thread['posts'];?></span>)
+							<b><?php echo lang('new_post');?></b> (<span class="posts" data-xn-thread-post-count><?php echo $thread['posts'];?></span>)
 						</div>
 						<!--{hook thread_post_list_title_middle.htm}-->
 						<div>
@@ -216,9 +216,21 @@ jform.on('submit', function() {
 	var postdata = jform.serialize();
 	$.xpost(jform.attr('action'), postdata, function(code, message) {
 		if(code == 0) {
-			var s = '<ul>'+message+'</ul>';
-			var jli = $(s).find('li');
-			jli.insertBefore($('.postlist > .post').last());
+			var jresponse = $('<ul>').html(message);
+			var jli = jresponse.children('li');
+			var janchor = $('.postlist > .post').last();
+			// A legacy theme may overwrite the return_html fragment with another shape. The
+			// post already exists server-side, so fail over to a full reload instead of
+			// clearing the editor and inventing local floor/count state.
+			if(!jli.length || !janchor.length) {
+				jsubmit.button('reset');
+				window.location.reload();
+				return;
+			}
+			jli.insertBefore(janchor);
+			if(typeof xn_fragment_ready === 'function') {
+				jli.each(function() { xn_fragment_ready(this); });
+			}
 			jsubmit.button('reset');
 			$('#message').val('');
 			
@@ -227,8 +239,12 @@ jform.on('submit', function() {
 			jfloor.html(xn.intval(jfloor.html()) + 1);
 			
 			// 回复数+1
-			var jposts = $('.posts');
-			jposts.html(xn.intval(jposts.html()) + 1);
+			if(typeof xn_thread_post_count_update === 'function') {
+				xn_thread_post_count_update(1);
+			} else {
+				var jposts = $('[data-xn-thread-post-count], .card-postlist .posts').first();
+				jposts.length && jposts.text(Math.max(0, xn.intval(jposts.text()) + 1));
+			}
 			
 		} else if(code < 0) {
 			$.alert(message);

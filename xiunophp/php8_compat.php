@@ -20,6 +20,45 @@ if (!function_exists('xn_count_compat')) {
     }
 }
 
+/**
+ * Keep legacy Hook code running when an optional query result is not an array.
+ * PHP 8 turns array_column(NULL, ...) into a terminal TypeError; old packages
+ * commonly treated that missing result as an empty list and continued.
+ */
+if (!function_exists('xn_array_column_compat')) {
+    function xn_array_column_compat($array, $column_key, $index_key = NULL) {
+        if (!is_array($array)) return array();
+        return array_column($array, $column_key, $index_key);
+    }
+}
+
+/**
+ * Preserve the common three-argument legacy array_multisort() form without
+ * losing its two by-reference arrays. The compiler only targets calls whose
+ * first and third arguments are simple variables and the middle argument is
+ * an explicit SORT_ASC/SORT_DESC constant. All other call shapes stay native
+ * rather than being guessed through a variadic wrapper.
+ */
+if (!function_exists('xn_array_multisort_compat')) {
+    function xn_array_multisort_compat(&$array, $sort_order, &$array2) {
+        if (!is_array($array) || !in_array($sort_order, array(SORT_ASC, SORT_DESC), TRUE)) return FALSE;
+        if (is_array($array2)) {
+            if (count($array) !== count($array2)) return FALSE;
+            return array_multisort($array, $sort_order, $array2);
+        }
+        if (!is_int($array2)) return FALSE;
+
+        $sort_types = array(SORT_REGULAR, SORT_NUMERIC, SORT_STRING, SORT_LOCALE_STRING);
+        defined('SORT_NATURAL') AND $sort_types[] = SORT_NATURAL;
+        if (defined('SORT_FLAG_CASE')) {
+            $sort_types[] = SORT_STRING | SORT_FLAG_CASE;
+            defined('SORT_NATURAL') AND $sort_types[] = SORT_NATURAL | SORT_FLAG_CASE;
+        }
+        if (!in_array($array2, $sort_types, TRUE)) return FALSE;
+        return array_multisort($array, $sort_order, $array2);
+    }
+}
+
 if (!function_exists('xn_php8_compat_is_ajax')) {
     function xn_php8_compat_is_ajax() {
         if (!empty($_SERVER['ajax'])) return TRUE;
@@ -36,6 +75,8 @@ if (!function_exists('xn_php8_compat_is_ajax')) {
  *  - 对 null 进行数组访问 → TypeError
  *  - implode() 参数顺序错误 → TypeError
  *  - count() 传入非 Countable → TypeError
+ *  - array_column() 的数据源为 null → TypeError
+ *  - array_multisort() 的关联数据源为 null → TypeError
  */
 $_php8_compat_prev_handler = set_exception_handler(function ($e) {
     global $_php8_compat_prev_handler;
@@ -45,6 +86,10 @@ $_php8_compat_prev_handler = set_exception_handler(function ($e) {
         $msg = $e->getMessage();
         $file = $e->getFile();
         $line = $e->getLine();
+		if(function_exists('plugin_safe_mode_handle_throwable') && defined('APP_PATH')) {
+			$safe_mode_conf = isset($GLOBALS['conf']) && is_array($GLOBALS['conf']) ? $GLOBALS['conf'] : array();
+			plugin_safe_mode_handle_throwable($e, $safe_mode_conf, APP_PATH);
+		}
 
         // Exception handlers cannot resume the failed statement. Record the
         // terminal failure and return an explicit response instead of a 200

@@ -2,6 +2,20 @@
 .idea/
 .vscode/
 /.codegraph/
+
+# Local agent, skill, browser automation, and OCR state
+/.agents/
+/.codex/
+/.skills/
+/skills/
+/.playwright-cli/
+/.ocr/
+/.ocr.*
+/.open-code-review/
+/ocr.local.*
+/open-code-review.local.*
+/\.env.test.local
+
 /docs/
 *.log
 /vendor/

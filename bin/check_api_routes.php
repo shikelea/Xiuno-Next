@@ -111,8 +111,8 @@ if(strpos($userRoute, 'api_method_required(\'POST\');') === FALSE) {
 	$errors[] = 'user login API must require POST through api_method_required()';
 }
 $rateLimitPos = strpos($userLoginRoute, 'user_login_rate_limited($email)');
-$emailLookupPos = strpos($userLoginRoute, 'user_read_by_email($email)');
-$usernameLookupPos = strpos($userLoginRoute, 'user_read_by_username($email)');
+$emailLookupPos = strpos($userLoginRoute, 'user_read_by_email($email, TRUE)');
+$usernameLookupPos = strpos($userLoginRoute, 'user_read_by_username($email, TRUE)');
 $lookupPositions = array_filter(array($emailLookupPos, $usernameLookupPos), function($pos) { return $pos !== FALSE; });
 $firstLookupPos = empty($lookupPositions) ? FALSE : min($lookupPositions);
 if($firstLookupPos === FALSE) {
@@ -161,6 +161,68 @@ if(strpos($miscModel, 'function api_page_params') === FALSE) {
 }
 if(strpos($miscModel, 'function api_csrf_check') === FALSE || strpos($miscModel, 'api_request_token() === \'\'') === FALSE) {
 	$errors[] = 'API session-backed POST requests must require CSRF when no API token is present';
+}
+if(strpos($miscModel, '$_user = user_read_primary_proven($_uid);') === FALSE) {
+	$errors[] = 'API token authorization must load permission fields from the primary database';
+}
+
+// Run the real api_auth_uid() function in an isolated process with a deliberately stale replica.
+// The token is valid, but authorization must use the downgraded primary gid instead of replica gid 1.
+$authChild = "<?php\ndefine('DEBUG', 1);\ndefine('APP_PATH', ".var_export(APP_PATH, TRUE).");\ndefine('XIUNOPHP_PATH', APP_PATH.'xiunophp/');\n".<<<'PHP'
+$masterUser = array('uid'=>77, 'gid'=>0);
+$replicaUser = array('uid'=>77, 'gid'=>1);
+$primaryFlags = array();
+function param($key, $default = NULL, $htmlspecialchars = TRUE, $addslashes = FALSE) {
+	return isset($_REQUEST[$key]) ? $_REQUEST[$key] : $default;
+}
+function user_token_get_do(&$auth_epoch = NULL) {
+	$auth_epoch = 4;
+	return 77;
+}
+function user_read($uid, $primary = FALSE) {
+	global $masterUser, $replicaUser, $primaryFlags;
+	$primaryFlags[] = $primary;
+	return $primary ? $masterUser : $replicaUser;
+}
+function user_read_primary_proven($uid) { return user_read($uid, TRUE); }
+function group_list_cache() {
+	return array(0=>array('allowpost'=>0), 1=>array('allowpost'=>1));
+}
+function lang($key, $args = array()) { return $key; }
+$_REQUEST = array('token'=>'valid-token');
+$_SERVER = array();
+$uid = 0;
+$user = array();
+$gid = 0;
+$group = array();
+$grouplist = group_list_cache();
+require APP_PATH.'model/misc.func.php';
+$result = api_auth_uid(TRUE);
+if($result !== 77 || $uid !== 77 || $gid !== 0 || $primaryFlags !== array(TRUE)) {
+	fwrite(STDERR, 'stale replica authorization was accepted');
+	exit(1);
+}
+echo 'OK';
+PHP;
+$authDescriptors = array(
+	0=>array('pipe', 'r'),
+	1=>array('pipe', 'w'),
+	2=>array('pipe', 'w'),
+);
+$authProcess = proc_open(array(PHP_BINARY), $authDescriptors, $authPipes, APP_PATH);
+if(!is_resource($authProcess)) {
+	$errors[] = 'failed to start API primary-authorization behavior child';
+} else {
+	fwrite($authPipes[0], $authChild);
+	fclose($authPipes[0]);
+	$authStdout = stream_get_contents($authPipes[1]);
+	$authStderr = stream_get_contents($authPipes[2]);
+	fclose($authPipes[1]);
+	fclose($authPipes[2]);
+	$authExit = proc_close($authProcess);
+	if($authExit !== 0 || trim($authStdout) !== 'OK') {
+		$errors[] = 'API primary-authorization behavior failed: '.trim($authStderr.' '.$authStdout);
+	}
 }
 
 $forumRoute = api_route_source('route/api/forum.php');

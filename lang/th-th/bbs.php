@@ -84,6 +84,7 @@ return array(
 	'thread_create_date'=>'วันที่สร้างโพสต์',
 	'post_create_date'=>'วันที่เขียนความคิดเห็น',
 	'uploaded_attach'=>'แนบไฟล์อัปโหลด',
+	'attach_upload_in_progress'=>'กำลังอัปโหลดไฟล์แนบ โปรดรอให้เสร็จก่อนส่ง',
 	
 	// user
 	'group_0'=>'กลุ่มผู้ใช้',
@@ -110,6 +111,7 @@ return array(
 	'user_send_sucessfully'=>'ส่งเรียบร้อยแล้ว',
 	'user_create'=>'สร้างผู้ใช้',
 	'user_create_sucessfully'=>'สร้างผู้ใช้เรียบร้อยแล้ว',
+	'user_create_login_failed'=>'สร้างบัญชีแล้ว แต่ไม่สามารถสร้างสถานะการเข้าสู่ระบบได้ โปรดเข้าสู่ระบบจากหน้าล็อกอิน',
 	'user_login'=>'เข้าสู่ระบบผู้ใช้',
 	'user_profile'=>'โปรไฟล์ผู้ใช้',
 	'user_resetpw'=>'รีเซ็ตรหัสผ่าน',
@@ -179,6 +181,8 @@ return array(
 	'filesize_too_large' => 'ขนาดไฟล์ใหญ่เกินไป ขนาดไฟล์สูงสุดคือ {maxsize} ไฟล์ปัจจุบัน: {size}',
 	'directory_create_failed' => 'สร้างโฟลเดอร์ล้มเหลว',
 	'write_to_file_failed' => 'เขียนโฟลเดอร์ล้มเหลว',
+	'attach_filename_invalid' => 'ชื่อไฟล์แนบไม่ถูกต้อง โปรดลบเครื่องหมายคั่นพาธและอักขระควบคุมแล้วลองอีกครั้ง',
+	'attach_filename_too_long' => 'ชื่อไฟล์แนบต้องไม่เกิน {max} อักขระ',
 	'user_group_insufficient_privilege' => 'กลุ่มของคุณไม่มีสิทธิ์พอที่จะดำเนินการ',
 	
 	
@@ -233,6 +237,9 @@ return array(
 	'view_thread_message' => 'ดูเนื้อหา',
 	'last_reply' => 'ความคิดเห็นล่าสุด',
 	'attach_not_exists' => 'ไม่พบไฟล์แนบ',
+	'attach_upload_forbidden' => 'กลุ่มผู้ใช้ของคุณไม่มีสิทธิ์อัปโหลดไฟล์แนบ',
+	'attach_filetype_not_allowed' => 'ไม่อนุญาตให้อัปโหลดไฟล์ประเภทนี้',
+	'attach_draft_limit_reached' => 'เซสชันนี้เปิดหน้าสร้างโพสต์มากเกินไป โปรดส่งหรือปิดหนึ่งหน้าแล้วลองอีกครั้ง',
 	'insufficient_privilege_to_download' => 'สิทธิ์กลุ่มของคุณไม่มีสิทธิ์ที่จะดาวน์โหลดไฟล์แนบนี้',
 	'insufficient_privilege' => 'Insufficient privilege',
 	'advanced_reply' => 'แสดงความคิดเห็นขั้นสูง',

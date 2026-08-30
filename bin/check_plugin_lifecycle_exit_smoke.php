@@ -112,11 +112,25 @@ PHP;
 	file_put_contents($app.'plugin/'.$dir.'/install.php', $source);
 }
 
+function write_lock_probe_plugin($app, $dir) {
+	write_plain_plugin($app, $dir, 0, 0);
+	$probe = $app.'plugin/'.$dir.'/lock_probe';
+	$source = "<?php\nfile_put_contents(".var_export($probe, TRUE).", is_file(\$conf['tmp_path'].'lock_plugin_task.lock') ? 'present' : 'missing');\nreturn TRUE;\n";
+	file_put_contents($app.'plugin/'.$dir.'/install.php', $source);
+}
+
 function package_conf($app, $dir) {
 	$json = file_get_contents($app.'plugin/'.$dir.'/conf.json');
 	$arr = json_decode($json, TRUE);
 	if(!is_array($arr)) fail("$dir conf.json did not decode");
 	return $arr;
+}
+
+function set_plugin_exclusive_group($app, $dir, $group) {
+	$path = $app.'plugin/'.$dir.'/conf.json';
+	$conf = package_conf($app, $dir);
+	$conf['exclusive_group'] = $group;
+	file_put_contents($path, json_encode($conf, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 }
 
 function child_response($out, $label) {
@@ -165,7 +179,7 @@ $_SERVER['lang'] = array('plugin_task_locked'=>'plugin task locked');
 $_SERVER['time'] = time();
 $_SERVER['ajax'] = 0;
 $_SERVER['HTTP_HOST'] = 'localhost';
-$_SERVER['conf'] = array('tmp_path'=>$app.'tmp/', 'url_rewrite_on'=>0, 'sitename'=>'Lifecycle Smoke');
+$_SERVER['conf'] = array('tmp_path'=>$app.'tmp/', 'log_path'=>$app.'log/', 'url_rewrite_on'=>0, 'sitename'=>'Lifecycle Smoke');
 $_REQUEST = array(1=>'__noop');
 $method = 'POST';
 $time = $_SERVER['time'];
@@ -173,6 +187,7 @@ $conf = $_SERVER['conf'];
 $ajax = 1;
 include $root.'/xiunophp/array.func.php';
 include $root.'/xiunophp/misc.func.php';
+include $root.'/xiunophp/logger.func.php';
 include $root.'/model/misc.func.php';
 include $root.'/model/plugin.func.php';
 ob_start();
@@ -208,7 +223,7 @@ $_SERVER['lang'] = array('plugin_task_locked'=>'plugin task locked');
 $_SERVER['time'] = time();
 $_SERVER['ajax'] = 1;
 $_SERVER['HTTP_HOST'] = 'localhost';
-$_SERVER['conf'] = array('tmp_path'=>$app.'tmp/', 'url_rewrite_on'=>0, 'sitename'=>'Lifecycle Smoke');
+$_SERVER['conf'] = array('tmp_path'=>$app.'tmp/', 'log_path'=>$app.'log/', 'url_rewrite_on'=>0, 'sitename'=>'Lifecycle Smoke');
 $_REQUEST = array(1=>$route_action, 2=>$dir);
 $method = 'POST';
 $time = $_SERVER['time'];
@@ -217,9 +232,16 @@ $ajax = 1;
 $header = array();
 include $root.'/xiunophp/array.func.php';
 include $root.'/xiunophp/misc.func.php';
+include $root.'/xiunophp/logger.func.php';
 include $root.'/model/misc.func.php';
 include $root.'/model/check.func.php';
 include $root.'/model/plugin.func.php';
+function kv__get($key) { return NULL; }
+function kv_set($key, $value) { return TRUE; }
+function setting_row_update_atomic($mutator) {
+	$next = $mutator(array());
+	return $next === FALSE ? FALSE : TRUE;
+}
 include $root.'/admin/route/plugin.php';
 PHP;
 	$code = sprintf($code, var_export($root, TRUE), var_export($app, TRUE), var_export($dir, TRUE), var_export($action, TRUE));
@@ -238,24 +260,26 @@ defined('XIUNOPHP_PATH') || define('XIUNOPHP_PATH', $root.'/xiunophp/');
 $_SERVER['lang'] = array('plugin_task_locked'=>'plugin task locked');
 $_SERVER['time'] = time();
 $_SERVER['ajax'] = 0;
-$_SERVER['conf'] = array('tmp_path'=>$app.'tmp/', 'url_rewrite_on'=>0, 'sitename'=>'Lifecycle Smoke');
+$_SERVER['conf'] = array('tmp_path'=>$app.'tmp/', 'log_path'=>$app.'log/', 'url_rewrite_on'=>0, 'sitename'=>'Lifecycle Smoke');
 $_REQUEST = array(1=>'__noop');
 $method = 'POST';
 $time = $_SERVER['time'];
 $conf = $_SERVER['conf'];
 include $root.'/xiunophp/array.func.php';
 include $root.'/xiunophp/misc.func.php';
+include $root.'/xiunophp/logger.func.php';
 include $root.'/model/misc.func.php';
 include $root.'/model/plugin.func.php';
 ob_start();
 include $root.'/admin/route/plugin.php';
 ob_end_clean();
 plugin_lock_start();
+$replacement_dirs = plugin_require_auto_unstall_contract($dir);
+plugin_check_auto_unstall_dependencies($dir, $replacement_dirs);
 $snapshot = plugin_state_snapshot($dir);
 plugin_require_state_write(plugin_install($dir), $dir, $snapshot);
 plugin_run_lifecycle($dir, 'install', $snapshot);
-plugin_check_auto_unstall_dependencies($dir);
-plugin_auto_unstall_same_type($dir, $snapshot);
+plugin_auto_unstall_same_type($dir, $snapshot, $replacement_dirs);
 plugin_lock_end();
 PHP;
 	$code = sprintf($code, var_export($root, TRUE), var_export($app, TRUE), var_export($dir, TRUE));
@@ -266,6 +290,7 @@ rm_dir($app);
 mkdir($app.'plugin/', 0777, TRUE);
 mkdir($app.'tmp/', 0777, TRUE);
 mkdir($app.'admin/', 0777, TRUE);
+mkdir($app.'log/', 0777, TRUE);
 
 write_plugin($app, 'exit_install', 0, 0, 'install');
 run_child($root, $app, 'exit_install', 'install');
@@ -350,6 +375,14 @@ if((string)$deferred_response['code'] !== '0' || strpos($deferred_response['mess
 }
 if(is_file($app.'tmp/lock_plugin_task.lock')) {
 	fail('plugin_task lock must be released after deferred install message.');
+}
+
+write_message_plugin($app, 'message_encoded_method_install', 0, 0, 0, '<form method="p&#111;st" action="./?plugin-install-message_encoded_method_install.htm"></form>');
+$encoded_method_response = child_response(run_child($root, $app, 'message_encoded_method_install', 'install'), 'encoded-method deferred install message');
+assert_csrf_form($encoded_method_response['message'], 'encoded-method deferred install message');
+$conf = package_conf($app, 'message_encoded_method_install');
+if(!empty($conf['installed']) || !empty($conf['enable'])) {
+	fail('HTML-decoded POST method must keep an install wizard deferred and restore the original state.');
 }
 
 $literal_token_form = '<form method="post" action="./?plugin-install-message_literal_token_install.htm"><input type="hidden" name="_token" value="<?php echo csrf_token(); ?>"><p>中文安装向导</p></form>';
@@ -454,6 +487,14 @@ if(!empty($conf['installed']) || !empty($conf['enable'])) {
 	fail('The exact current lifecycle route must remain deferred when it has query arguments.');
 }
 assert_csrf_form($query_args_response['message'], 'query-args install form');
+
+write_message_plugin($app, 'message_path_query_args_install', 0, 0, 0, '<form method="post" action="plugin-install-message_path_query_args_install.htm?step=2"></form>');
+$path_query_args_response = child_response(run_child($root, $app, 'message_path_query_args_install', 'install'), 'path-query-args install form');
+$conf = package_conf($app, 'message_path_query_args_install');
+if(!empty($conf['installed']) || !empty($conf['enable'])) {
+	fail('A path-rewrite lifecycle route must remain deferred when ordinary query arguments are present.');
+}
+assert_csrf_form($path_query_args_response['message'], 'path-query-args install form');
 
 write_message_plugin($app, 'message_success_install', 0, 0, 0, 'Install complete', 'install', array('marker'=>'install-success'));
 $success_out = run_child($root, $app, 'message_success_install', 'install');
@@ -560,6 +601,8 @@ if(is_file($app.'tmp/lock_plugin_task.lock')) {
 
 write_plain_plugin($app, 'old_theme_route', 1, 1);
 write_message_plugin($app, 'new_theme_route', 0, 0, 0, 'Route install complete', 'install', array('marker'=>'route-install-success'));
+set_plugin_exclusive_group($app, 'old_theme_route', 'theme.route');
+set_plugin_exclusive_group($app, 'new_theme_route', 'theme.route');
 $route_install_response = child_response(run_route_child($root, $app, 'new_theme_route', 'install'), 'route install success message');
 $new_route_conf = package_conf($app, 'new_theme_route');
 $old_route_conf = package_conf($app, 'old_theme_route');
@@ -582,19 +625,108 @@ if(!empty($route_unstall_conf['installed']) || !empty($route_unstall_conf['enabl
 
 write_message_plugin($app, 'old_theme_nested_message', 1, 1, 0, 'Old theme stopped replacement', 'unstall', array('marker'=>'nested-unstall-message'));
 write_plain_plugin($app, 'new_theme_nested_message', 0, 0);
+set_plugin_exclusive_group($app, 'old_theme_nested_message', 'theme.route');
+set_plugin_exclusive_group($app, 'new_theme_nested_message', 'theme.route');
 $nested_message_response = child_response(run_route_child($root, $app, 'new_theme_nested_message', 'install'), 'same-type nested unstall message');
 $new_nested_conf = package_conf($app, 'new_theme_nested_message');
 $old_nested_conf = package_conf($app, 'old_theme_nested_message');
 $previous_theme_conf = package_conf($app, 'new_theme_route');
-if(!empty($new_nested_conf['installed']) || !empty($new_nested_conf['enable']) || empty($old_nested_conf['installed']) || empty($old_nested_conf['enable']) || empty($previous_theme_conf['installed']) || empty($previous_theme_conf['enable'])) {
-	fail('A controlled message from nested same-type unstall must restore every replacement state.');
+if(empty($new_nested_conf['installed']) || empty($new_nested_conf['enable']) || !empty($old_nested_conf['installed']) || !empty($old_nested_conf['enable']) || !empty($previous_theme_conf['installed']) || !empty($previous_theme_conf['enable'])) {
+	fail('A completed message(0) from nested same-type unstall must commit the replacement state.');
 }
-if($nested_message_response['message'] !== 'Old theme stopped replacement' || $nested_message_response['marker'] !== 'nested-unstall-message') {
-	fail('Nested same-type unstall must preserve and emit its controlled response.');
+if((string)$nested_message_response['code'] !== '0' || strpos($nested_message_response['message'], 'plugin_install_sucessfully') === FALSE || isset($nested_message_response['marker'])) {
+	fail('Nested same-type unstall success must continue to the outer install completion response.');
+}
+
+// 锁存续断言：plugin_install() 的缓存清理不得删除自己持有的任务锁，生命周期脚本执行期间锁必须始终存在
+write_lock_probe_plugin($app, 'lock_probe_install');
+run_child($root, $app, 'lock_probe_install', 'install');
+$lock_probe = @file_get_contents($app.'plugin/lock_probe_install/lock_probe');
+if($lock_probe !== 'present') {
+	fail('plugin_task lock must persist while install.php executes; cache cleanup must not delete the active lock.');
+}
+if(is_file($app.'tmp/lock_plugin_task.lock')) {
+	fail('plugin_task lock must still be released after the lock persistence probe.');
+}
+
+// 缓存清理 allowlist 断言：只删除有明确 ownership 的编译缓存；锁、快照、更新数据、
+// 图片 helper 临时文件和未知文件/目录全部保留。
+$clear_tmp_code = <<<'PHP'
+$root = %s;
+$app = %s;
+defined('DEBUG') || define('DEBUG', 0);
+defined('APP_PATH') || define('APP_PATH', $app);
+defined('XIUNOPHP_PATH') || define('XIUNOPHP_PATH', $root.'/xiunophp/');
+$_SERVER['time'] = time();
+$_SERVER['conf'] = array('tmp_path'=>$app.'tmp/', 'log_path'=>$app.'log/', 'url_rewrite_on'=>0);
+$time = $_SERVER['time'];
+$conf = $_SERVER['conf'];
+include $root.'/xiunophp/array.func.php';
+include $root.'/xiunophp/misc.func.php';
+include $root.'/model/misc.func.php';
+include $root.'/model/plugin.func.php';
+$tmp = $conf['tmp_path'];
+xn_lock_start('plugin_task', 300) || exit(1);
+xn_lock_start('foo-bar', 300) || exit(1);
+file_put_contents($tmp.'lock_update_task.lock', $time."\nother-owner");
+mkdir($tmp.'plugin_backup_demo_1/', 0777, TRUE);
+file_put_contents($tmp.'plugin_backup_demo_1/conf.json', '{}');
+mkdir($tmp.'update_backup_20260101_000000/conf/', 0777, TRUE);
+file_put_contents($tmp.'update_backup_20260101_000000/conf/conf.php', '<?php');
+mkdir($tmp.'plugin_backup_stale_9/', 0777, TRUE);
+file_put_contents($tmp.'plugin_backup_stale_9/conf.json', '{}');
+touch($tmp.'plugin_backup_stale_9/conf.json', $time - 200000);
+touch($tmp.'plugin_backup_stale_9', $time - 200000);
+file_put_contents($tmp.'model.min.php', '<?php // cache');
+file_put_contents($tmp.'model_misc.func.php', '<?php // cache');
+file_put_contents($tmp.'model_misc.func.php.lock', '');
+file_put_contents($tmp.'unknown.php', '<?php // locally owned helper');
+file_put_contents($tmp.'image-active.tmp', 'image helper bytes');
+mkdir($tmp.'compiled_dir/', 0777, TRUE);
+file_put_contents($tmp.'compiled_dir/cache.php', '<?php // cache');
+plugin_clear_tmp_dir();
+echo json_encode(array(
+	'plugin_lock'=>is_file($tmp.'lock_plugin_task.lock'),
+	'hyphen_lock'=>is_file($tmp.'lock_foo-bar.lock'),
+	'other_lock'=>is_file($tmp.'lock_update_task.lock'),
+	'plugin_backup'=>is_file($tmp.'plugin_backup_demo_1/conf.json'),
+	'update_backup'=>is_file($tmp.'update_backup_20260101_000000/conf/conf.php'),
+	'stale_backup'=>is_dir($tmp.'plugin_backup_stale_9'),
+	'model_cache'=>is_file($tmp.'model.min.php'),
+	'include_cache'=>is_file($tmp.'model_misc.func.php'),
+	'unknown_php'=>is_file($tmp.'unknown.php'),
+	'image_tmp'=>is_file($tmp.'image-active.tmp'),
+	'compiled_dir'=>is_dir($tmp.'compiled_dir'),
+));
+xn_unlink($tmp.'lock_update_task.lock');
+xn_lock_end('foo-bar');
+xn_lock_end('plugin_task');
+PHP;
+$clear_tmp_code = sprintf($clear_tmp_code, var_export($root, TRUE), var_export($app, TRUE));
+$clear_tmp_result = child_response(run_php_child($app, 'clear_tmp_guard', $clear_tmp_code, 'clear-tmp protection child'), 'clear-tmp protection child');
+$clear_tmp_expect = array(
+	'plugin_lock'=>TRUE, 'hyphen_lock'=>TRUE, 'other_lock'=>TRUE, 'plugin_backup'=>TRUE, 'update_backup'=>TRUE,
+	'stale_backup'=>TRUE, 'model_cache'=>FALSE, 'include_cache'=>FALSE,
+	'unknown_php'=>TRUE, 'image_tmp'=>TRUE, 'compiled_dir'=>TRUE,
+);
+foreach($clear_tmp_expect as $key=>$expected) {
+	$actual = isset($clear_tmp_result[$key]) ? $clear_tmp_result[$key] : NULL;
+	if($actual !== $expected) {
+		fail("plugin_clear_tmp_dir() protection contract failed: $key expected ".var_export($expected, TRUE).", got ".var_export($actual, TRUE).'.');
+	}
+}
+
+// Keep the explicit-group rollback fixture isolated from the earlier route replacement family.
+// Their legacy-looking names intentionally collide while their explicit groups differ, so a real
+// administrator flow would require disabling or removing that active family before continuing.
+foreach(array('old_theme_route', 'new_theme_route', 'old_theme_nested_message', 'new_theme_nested_message') as $fixture_dir) {
+	rm_dir($app.'plugin/'.$fixture_dir);
 }
 
 write_plain_plugin($app, 'new_theme_demo', 0, 0);
 write_plugin($app, 'old_theme_demo', 1, 1, 'unstall');
+set_plugin_exclusive_group($app, 'new_theme_demo', 'theme.demo');
+set_plugin_exclusive_group($app, 'old_theme_demo', 'theme.demo');
 run_same_type_child($root, $app, 'new_theme_demo');
 $new_conf = package_conf($app, 'new_theme_demo');
 $old_conf = package_conf($app, 'old_theme_demo');
@@ -606,6 +738,25 @@ if(empty($old_conf['installed']) || empty($old_conf['enable'])) {
 }
 if(is_file($app.'tmp/lock_plugin_task.lock')) {
 	fail('plugin_task lock must be released after same-type replacement exit.');
+}
+
+rm_dir($app.'plugin/new_theme_demo');
+rm_dir($app.'plugin/old_theme_demo');
+write_plain_plugin($app, 'new_theme_demo', 0, 0);
+write_message_plugin($app, 'old_theme_demo', 1, 1, 0, 'Old theme removed', 'unstall');
+set_plugin_exclusive_group($app, 'new_theme_demo', 'theme.demo');
+set_plugin_exclusive_group($app, 'old_theme_demo', 'theme.demo');
+run_same_type_child($root, $app, 'new_theme_demo');
+$new_conf = package_conf($app, 'new_theme_demo');
+$old_conf = package_conf($app, 'old_theme_demo');
+if(empty($new_conf['installed']) || empty($new_conf['enable'])) {
+	fail('same-type replacement must commit the new theme after an old unstall message(0).');
+}
+if(!empty($old_conf['installed']) || !empty($old_conf['enable'])) {
+	fail('same-type replacement must keep the old theme uninstalled after its completed message(0).');
+}
+if(is_file($app.'tmp/lock_plugin_task.lock')) {
+	fail('plugin_task lock must be released after a successful same-type replacement message.');
 }
 
 rm_dir($app);

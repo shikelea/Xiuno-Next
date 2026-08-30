@@ -15,14 +15,18 @@ if(empty($action) || $action == 'create') {
 	$width = param('width', 0);
 	$height = param('height', 0);
 	$is_image = param('is_image', 0);
-	$name = param('name');
+	$name = param('name', '', FALSE);
+	$name_error = attach_orgfilename_error($name);
+	$name_error !== '' AND message('name', lang($name_error, array('max'=>120)));
+	$attach_draft = param('attach_draft', '', FALSE);
+	!attach_draft_exists($attach_draft) AND message('attach_draft', lang('data_malformation'));
 
 	// 🔒 安全修复：先检查原始 POST 数据大小，防止 base64 解码前内存溢出
 	// base64 编码会使数据增大约 33%，需要在解码前检查原始大小
 	$raw_data = param('data', '', FALSE, FALSE);
 	$raw_size = strlen($raw_data);
 	// 限制原始数据 30MB（解码后约 22.5MB），避免超大数据消耗内存
-	$raw_size > 31457280 AND message(-1, 'Raw data size too large (max 30MB base64)');
+	$raw_size > 31457280 AND message(-1, lang('filesize_too_large', array('maxsize'=>'30M', 'size'=>$raw_size)));
 
 	$data = param_base64('data');
 
@@ -32,7 +36,7 @@ if(empty($action) || $action == 'create') {
 	//$types = include _include(APP_PATH.'conf/attach.conf.php');
 	//$allowtypes = $types['all'];
 
-	empty($group['allowattach']) AND $gid != 1 AND message(-1, '您无权上传');
+	empty($group['allowattach']) AND $gid != 1 AND message(-1, lang('attach_upload_forbidden'));
 
 	empty($data) AND message(-1, lang('data_is_empty'));
 	//$data = base64_decode_file_data($data);
@@ -44,7 +48,7 @@ if(empty($action) || $action == 'create') {
 	// 修复后：直接拒绝非白名单文件类型
 	$ext = file_ext($name, 7);
 	$filetypes = include APP_PATH.'conf/attach.conf.php';
-	!in_array($ext, $filetypes['all']) AND message(-1, '文件类型不允许上传');
+	!in_array($ext, $filetypes['all']) AND message(-1, lang('attach_filetype_not_allowed'));
 
 	$tmpanme = $uid.'_'.xn_rand(15).'.'.$ext;
 	$tmpfile = $conf['upload_path'].'tmp/'.$tmpanme;
@@ -54,7 +58,8 @@ if(empty($action) || $action == 'create') {
 
 	// hook attach_create_save_before.php
 
-	file_put_contents($tmpfile, $data) OR message(-1, lang('write_to_file_failed'));
+	$filesize = attach_tmp_file_write($tmpfile, $data);
+	$filesize === FALSE AND message(-1, lang('write_to_file_failed'));
 
 	// 保存到 session，发帖成功以后，关联到帖子。
 	// save attach information to session, associate to post after create thread.
@@ -64,9 +69,6 @@ if(empty($action) || $action == 'create') {
 	// 解决方案：直接使用当前 session，利用 PHP session 自动锁机制保证并发安全
 	// sess_restart(); // 已移除，避免竞态条件
 
-	empty($_SESSION['tmp_files']) AND $_SESSION['tmp_files'] = array();
-	$n = count($_SESSION['tmp_files']);
-	$filesize = filesize($tmpfile);
 	$attach = array(
 		'url'=>$tmpurl,
 		'path'=>$tmpfile,
@@ -76,10 +78,14 @@ if(empty($action) || $action == 'create') {
 		'width'=>$width,
 		'height'=>$height,
 		'isimage'=>$is_image,
-		'downloads'=>0,
-		'aid'=>'_'.$n
+		'downloads'=>0
 	);
-	$_SESSION['tmp_files'][$n] = $attach;
+	$n = attach_draft_store($attach_draft, $attach);
+	if($n === FALSE) {
+		@unlink($tmpfile);
+		message('attach_draft', lang('data_malformation'));
+	}
+	$attach['aid'] = '_'.$n;
 
 	unset($attach['path']);
 	
@@ -94,18 +100,19 @@ if(empty($action) || $action == 'create') {
 	$method != 'POST' AND message(-1, lang('method_error'));
 
 	$aid = param(2);
+	$attach_draft = param('attach_draft', '', FALSE);
+	!attach_draft_exists($attach_draft) AND message('attach_draft', lang('data_malformation'));
 	
 	// hook attach_delete_start.php
 	
 	// 临时的文件 id / temp attach id : _0 _1 _2 _3 ...
 	if(substr($aid, 0, 1) == '_') {
 		$key = intval(substr($aid, 1));
-		$tmp_files = _SESSION('tmp_files');
-		!isset($tmp_files[$key]) AND message(-1, lang('item_not_exists', array('item'=>$key)));
-		$attach = $tmp_files[$key];
+		$attach = attach_draft_file($attach_draft, $key);
+		$attach === FALSE AND message(-1, lang('item_not_exists', array('item'=>$key)));
 		!is_file($attach['path']) AND message(-1, lang('file_not_exists'));
-		unlink($attach['path']);
-		unset($_SESSION['tmp_files'][$key]);
+		!@unlink($attach['path']) && is_file($attach['path']) AND message(-1, lang('delete_failed'));
+		attach_draft_remove($attach_draft, $key) === FALSE AND message(-1, lang('delete_failed'));
 	} else {
 		$aid = intval($aid);
 		$attach = attach_read($aid);
@@ -124,7 +131,7 @@ if(empty($action) || $action == 'create') {
 	
 	// hook attach_delete_end.php
 	
-	message(0, 'delete_successfully');
+	message(0, lang('delete_successfully'));
 	
 } elseif($action == 'download') {
 	
@@ -144,16 +151,6 @@ if(empty($action) || $action == 'create') {
 	$attachpath = attach_path($attach);
 	$attachurl = $conf['upload_url'].'attach/'.$attach['filename'];
 	(empty($attachpath) || !is_file($attachpath)) AND message(-1, lang('attach_not_exists'));
-
-	// 🔒 安全修复：防止路径遍历攻击，确保下载的文件在 upload_path/attach/ 目录内
-	// 验证附件路径必须在合法的上传目录内，防止读取任意文件（如 conf/conf.php）
-	$real_path = realpath($attachpath);
-	$safe_dir = realpath($conf['upload_path'].'attach/');
-
-	// 如果路径不存在或不在安全目录内，拒绝访问
-	if (!$real_path || strpos($real_path, $safe_dir) !== 0) {
-		message(-1, lang('attach_not_exists'));
-	}
 
 	$type = 'php';
 	

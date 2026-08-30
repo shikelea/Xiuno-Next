@@ -8,6 +8,10 @@ defined('APP_PATH') || define('APP_PATH', $root.'/');
 defined('ADMIN_PATH') || define('ADMIN_PATH', $root.'/admin/');
 defined('XIUNOPHP_PATH') || define('XIUNOPHP_PATH', $root.'/xiunophp/');
 
+function url($route, $extra = array()) {
+	return $route.'.htm'.(empty($extra) ? '' : '?'.http_build_query($extra));
+}
+
 include $root.'/model/plugin.func.php';
 
 function fail($message) {
@@ -43,7 +47,8 @@ $plugins = array(
 			'badmeta'=>'1.0.0',
 			'cycle'=>'1.0.0',
 			'ok'=>'1.0.0',
-			'bad-dir'=>'1.0.0',
+			'bad/dir'=>'1.0.0',
+			'hyphen-dep'=>'1.0.0',
 		),
 	),
 	'downloaded'=>array(
@@ -88,6 +93,13 @@ $plugins = array(
 		'enable'=>1,
 		'dependencies'=>array(),
 	),
+	'hyphen-dep'=>array(
+		'name'=>'Hyphen dependency',
+		'version'=>'1.0.0',
+		'installed'=>1,
+		'enable'=>1,
+		'dependencies'=>array(),
+	),
 );
 
 $details = plugin_dependency_details('app');
@@ -98,17 +110,31 @@ assert_status($details, 'old', 'version_low');
 assert_status($details, 'badmeta', 'metadata_error');
 assert_status($details, 'cycle', 'cycle');
 assert_status($details, 'ok', 'ok');
-assert_status($details, 'bad-dir', 'invalid_dir');
+assert_status($details, 'bad/dir', 'invalid_dir');
+assert_status($details, 'hyphen-dep', 'ok');
 
 $blocked = plugin_dependencies('app');
-foreach(array('missing', 'downloaded', 'disabled', 'old', 'badmeta', 'cycle', 'bad-dir') as $dir) {
+foreach(array('missing', 'downloaded', 'disabled', 'old', 'badmeta', 'cycle', 'bad/dir') as $dir) {
 	if(!isset($blocked[$dir])) fail("Expected $dir to block install/enable");
 }
 isset($blocked['ok']) && fail('Satisfied dependency must not block install/enable');
 
 plugin_dependency_status_text($blocked['old']) !== '' || fail('Dependency status text must describe structured dependency details.');
-plugin_dependency_status_text($blocked['bad-dir']) === 'invalid dependency name' || fail('Invalid dependency names must have an explicit status text.');
+plugin_dependency_status_text($blocked['bad/dir']) === 'invalid dependency name' || fail('Invalid dependency names must have an explicit status text.');
 function_exists('plugin_dependency_dir_valid') || fail('Dependency dir validator helper is missing.');
+plugin_dir_is_valid('theme-modern')
+	&& plugin_dir_is_valid(str_repeat('a', 64))
+	&& !plugin_dir_is_valid('-theme')
+	&& !plugin_dir_is_valid(str_repeat('a', 65))
+	&& !plugin_dir_is_valid("theme\n")
+	|| fail('Plugin directory identifiers must share one strict, lossless 1-64 character contract.');
+$hyphen_url = plugin_url('setting', 'theme-modern');
+strpos($hyphen_url, 'plugin-setting.htm?') === 0 && strpos($hyphen_url, 'dir=theme-modern') !== FALSE
+	|| fail('Plugin URLs must carry package identifiers in a named query argument without stripping hyphens.');
+strpos($plugin_route, 'function plugin_route_dir($position = 2)') !== FALSE
+	&& strpos($plugin_route, "param('dir', '', FALSE)") !== FALSE
+	&& strpos($plugin_route, 'param_word(2)') === FALSE
+	|| fail('Plugin routes must prefer the lossless named directory argument and never silently sanitize or truncate it.');
 
 $dependency_guard = section_between($plugin_route, 'function plugin_check_dependency', 'function plugin_reload_local');
 strpos($dependency_guard, '$check_self_metadata = TRUE') !== FALSE
@@ -131,8 +157,8 @@ strpos($dependency_links, 'plugin_official_read($dir)') !== FALSE
 	|| fail('Dependency detail links must allow officially listed packages.');
 strpos($dependency_links, '<span class="text-muted">') !== FALSE
 	|| fail('Missing dependency without a detail page must render as text instead of a dead link.');
-strpos($dependency_links, 'htmlspecialchars(url("plugin-read-$dir"), ENT_QUOTES)') !== FALSE
-	|| fail('Dependency detail link URLs must be escaped for HTML attributes.');
+strpos($dependency_links, "htmlspecialchars(plugin_url('read', \$dir), ENT_QUOTES)") !== FALSE
+	|| fail('Dependency detail links must use the lossless named-directory URL helper and escape the result.');
 
 $upgrade_flow = section_between($plugin_route, "} elseif(\$action == 'upgrade')", "} elseif(\$action == 'setting')");
 strpos($upgrade_flow, "plugin_check_dependency(\$dir, 'install', NULL, NULL, FALSE);") !== FALSE

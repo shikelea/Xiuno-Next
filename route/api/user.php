@@ -19,9 +19,9 @@ if($action == 'login') {
 	// API 客户端发送原始密码（无浏览器端 JS MD5），服务端需对齐浏览器行为
 	$password = md5($password);
 
-	$user = user_read_by_email($email);
+	$user = user_read_by_email($email, TRUE);
 	if(empty($user)) {
-		$user = user_read_by_username($email);
+		$user = user_read_by_username($email, TRUE);
 	}
 
 	if(empty($user)) {
@@ -34,10 +34,13 @@ if($action == 'login') {
 		api_output(-1, 'Email or password is incorrect');
 	}
 
+	$user = user_login_credentials_refresh($user['uid'], $password);
+	empty($user) AND api_output(-1, 'Account credentials changed during sign-in; please retry');
+	user_format($user);
 	user_login_rate_clear($email);
-	user_password_needs_upgrade($user) AND user_upgrade_password($user['uid'], $password);
 
-	$token = user_token_gen($user['uid']);
+	$token = user_token_gen($user['uid'], user_auth_epoch($user));
+	$token === FALSE AND api_output(-1, 'Unable to issue login token');
 
 	user_update($user['uid'], array(
 		'login_ip' => $longip,

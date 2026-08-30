@@ -12,16 +12,16 @@
 
 ## 🚀 项目介绍
 
-**Xiuno Next** 是对经典论坛引擎 Xiuno BBS 4.0 的现代化重构版本。我们致力于在保留其**极速、轻量、高并发**核心优势的同时，引入现代 PHP 生态和开发标准，使其能够稳定运行在 PHP 8.0+ 环境中。
+**Xiuno Next** 是对经典论坛引擎 Xiuno BBS 4.0 的现代化重构版本。项目在保留过程式轻量核心的同时，引入 PHP 8 兼容、安全守卫和可复现测试；当前仍处于开发与生态兼容验证阶段。
 
 ### ✨ 核心特性
 
-- **⚡️ 极速响应**：继承 Xiuno 的高性能基因，基于过程式编程和静态编译 Hook，性能远超同类产品。
-- **�️ 插件容错**：插件错误隔离 + 安全模式，单个插件出错不会导致整站白屏，管理员可快速恢复。
-- **�🐘 PHP 8 兼容**：完全修复了在 PHP 8.0+ 下的 Fatal Errors，并为旧插件提供了兼容层。
+- **⚡️ 轻量架构**：保留过程式核心和静态编译 Hook；复杂插件/主题组合仍需按实际环境进行性能验证。
+- **🧯 故障恢复**：提供插件安全模式、生命周期状态恢复和专项守卫；第三方脚本的数据库及外部副作用不保证自动回滚。
+- **🐘 PHP 8 兼容**：核心面向 PHP 8.0+ 维护，并通过通用兼容层逐步覆盖旧插件；未验证的第三方包不承诺直接可用。
 - **🎨 现代 UI**：默认主题全面升级至 Bootstrap 5，移动端优先设计，体验更佳。
-- **🐳 Docker Ready**：内置标准的 Docker 开发环境，一键启动，开箱即用。
-- **🔌 RESTful API**：内置标准 API 接口，支持前后端分离开发。
+- **🐳 Docker 开发环境**：提供 Compose 配置和 HTTP smoke；生产部署仍需按实际存储、权限和反向代理环境验证。
+- **🔌 基础 RESTful API**：已覆盖登录、帖子列表和发帖等基础场景；并非完整的无头论坛接口。
 
 ## 📦 快速开始
 
@@ -35,34 +35,58 @@
    cd Xiuno-Next
    ```
 
-2. **启动服务**
+2. **准备可写运行目录（Linux bind mount）**
    ```bash
-   docker-compose up -d
+   mkdir -p conf log tmp upload
+   ```
+   只把这四个目录授权给容器内 PHP worker 对应的宿主 UID/GID 或 ACL；不要给整个项目或其他用户开放写权限。Docker Desktop for Windows/macOS 通常无需额外改权限，若安装器提示不可写，再按 `docker compose exec app id www-data` 显示的身份配置目录所有者或 ACL。
+
+3. **启动服务并安装 CLI 依赖**
+   ```bash
+   docker compose up -d
+   docker compose exec app composer install --no-interaction --prefer-dist
    ```
 
-3. **开始安装**
+4. **开始安装**
    访问 `http://localhost:8080`，进入安装向导。
    - 数据库主机：`db`
    - 数据库名：`xiunobbs`
    - 用户名：`xiuno`
    - 密码：`xiuno_password_changeme`
+   - Compose 会自动预填前三个非敏感连接项；数据库密码不会写入未认证的安装页面，仍需手动输入。
+   - 标准 Compose 将源码（包括 `plugin/`）挂载为只读，适合核心开发和不可变部署；后台安装、启用、禁用或卸载第三方包需改用有备份的可写隔离环境，不能直接在此配置中执行。
    - 生产环境安装完成后请删除或在 Web 服务器层封禁 `install/`。
 
 ### 方式二：传统部署
 
-1. 确保服务器环境满足：PHP 8.0+ (需安装 PDO_MySQL, GD, Zip 扩展), MySQL 5.7+ / 8.0+.
+1. 确保服务器环境满足：PHP 8.0+（需安装 JSON、OpenSSL、PDO、PDO_MySQL、Mbstring、GD 和 Zip 扩展），MySQL 5.7+ / 8.0+。
 2. 将代码上传至 Web 目录。
-3. 设置 `conf/`, `log/`, `tmp/`, `upload/` 目录为可写权限 (777)。
-4. 访问网站首页进行安装。
-5. 生产环境安装完成后删除或在 Nginx/Apache 中封禁 `install/`，避免配置文件异常时重新开放安装入口。
+3. 只让 Web/PHP 进程对 `conf/`、`log/`、`tmp/`、`upload/` 具有所需的最小写权限；应用代码、`plugin/` 和其他目录保持只读，禁止使用站点全局 `0777`/Everyone。
+4. 准备空的目标数据库；安装器检测到现有 Xiuno 核心表时会中止，不会覆盖已有 schema。旧站请备份后使用下方升级流程。
+5. 访问网站首页进行安装。
+6. 生产环境安装完成后删除或在 Nginx/Apache 中封禁 `install/`，避免配置文件异常时重新开放安装入口。
+
+生产 Web 服务器还必须拒绝外部访问 `conf/`、`log/`、`tmp/`、`data/`、`bin/` 和 `install/`。建议把 `tmp_path`、`log_path` 配到文档根目录之外；若因旧部署必须放在站点内，不能只依赖 PHP 文件中的 `exit` 作为服务器访问控制。
+
+### 方式三：PHP 内置服务器（仅本地功能调试）
+
+已经安装本机 PHP 与所需扩展时，可在仓库根目录启动安全开发路由：
+
+```bash
+php -S 127.0.0.1:8081 -t . bin/dev_router.php
+```
+
+随后访问 `http://127.0.0.1:8081/`；未安装站点会进入安装向导，已有 `conf/conf.php` 的测试站点会直接启动。不要省略 `bin/dev_router.php`：它会让缺失的 CSS、JS、图片等资源返回真实 404，并阻止隐藏文件、路径穿越、上传 PHP、插件生命周期/设置/Hook/overwrite PHP 及其他任意 PHP 文件被直接执行。
+
+该服务器只绑定回环地址，适合页面和兼容层功能调试，不用于生产、并发或性能结论。为保持安全默认，本地路由不支持旧插件直接访问自己的 PHP 公共端点；确需验证此类端点时，应使用有备份的隔离 Nginx/PHP-FPM 环境，并继续保持第三方包源码不变。
 
 ## 🛡️ 安全特性 (Security)
 
-- **🔐 密码安全**：渐进式密码哈希迁移（MD5+salt → bcrypt），用户登录时自动升级，无需重置密码。
-- **🛡️ CSRF 防护**：全局 CSRF Token 机制，自动保护所有表单提交和 AJAX 请求。
-- **🔍 XSS 防护**：全面审计模板输出，确保用户输入经过 `htmlspecialchars` 处理。
+- **🔐 密码安全**：渐进式密码哈希迁移（MD5+salt → bcrypt）；Session 与长期登录 token 绑定用户凭证代际，改密后旧凭证失效，密码找回授权为短时一次性使用。
+- **🛡️ CSRF 防护**：核心表单和同源 AJAX 使用 CSRF Token；第三方主题及插件仍需经过兼容性与对抗测试。
+- **🔍 XSS 防护**：持续审计核心模板输出，并为新代码提供统一转义/净化约束。
 - **🧱 安装器防护**：安装完成后以 `conf/conf.php` 作为硬阻断，防止历史重装类漏洞回归。
-- **💉 SQL 注入防护**：修复参数拼接，强制类型转换和参数化查询。
+- **💉 SQL 安全演进**：新代码要求参数化查询，遗留字符串拼接路径仍按风险持续迁移，不能视为已全量消除。
 - **🚦 安全响应头**：`X-Content-Type-Options`、`X-Frame-Options`、`Referrer-Policy` 等标准安全头。
 - **📊 数据库迁移系统**：基于版本号的轻量 Migration 机制，安全升级数据库结构。
 
@@ -84,6 +108,8 @@
 - [x] **v4.5.0 (Modernization, 主线完成 / 发行版)**: 轻量现代化主线已完成：轻量 Helper、前端资源审计、HTMX 只读分页试点、CLI/CI 最小闭环、前端安全守卫和生态样本兼容审计结论。API 扩展、发布包签名和兼容矩阵沉淀继续作为 v4.5.x / 阶段六前置项推进。
 - [ ] **v4.5.1 (Hardening, 发布候选)**: 修复 GitHub #6 用户名登录回归、Docker 安装入口、密码修改校验和在线更新代理信任边界；清理版本漂移、CI 守卫和仓库文档边界。
 - [ ] **v5.0.0 (Next)**: 全新的插件市场和主题引擎。
+
+> 路线图中的已完成项记录对应版本当时的交付。当前服务端插件市场/在线更新入口仍为 fail-closed，恢复前不能把历史条目视为可用的生产能力；Theme API 也仍需更多真实生态采用和回归证据。
 
 ## 💻 命令行工具 (CLI)
 
@@ -137,25 +163,64 @@ php bin/xiuno upgrade
 - **密码渐进升级**：用户下次登录时，密码自动从 MD5+salt 升级为 bcrypt，无需重置
 - **缓存清理**：清理编译缓存、插件 Hook 缓存和安全模式标记
 
-## 性能测试 (Benchmark)
+## 开发与回归测试
 
-项目内置了性能压测脚本，用于采集基线数据和检测性能退化。
+默认测试入口只运行不需要外部数据库、浏览器或 Docker 的确定性守卫：
 
 ```bash
-# Linux（需要 Apache Benchmark）
+composer test
+```
+
+需要扩展环境时可显式选择 `composer test:browser`、`composer test:db`、
+`composer test:docker` 或 `composer test:full`。统一入口会分别汇总 PASS、SKIP 和
+FAIL；DB/full 配置默认启用 `--fail-on-skip`，没有真实执行的数据库测试不能被当成通过。
+可用 `php bin/run_checks.php --profile=full --list` 查看当前完整检查清单。
+
+数据库 smoke 不会读取应用的生产配置，也不会自动加载环境文件。复制 `.env.test.example`
+为已忽略的 `.env.test.local`，填写名称含 `test` 的专用可销毁数据库；确认备份与目标后把
+`XIUNO_ALLOW_DESTRUCTIVE_SMOKE` 改为 `1`，再运行：
+
+```bash
+php bin/run_checks.php --profile=db --env-file=.env.test.local --fail-on-skip
+```
+
+runner 只接受字面量 `XIUNO_* KEY=VALUE`，不会去引号、变量展开或执行命令，因此同一文件可在 PowerShell、CMD 和 Bash 使用。
+
+## 性能测试 (Benchmark)
+
+项目内置跨平台共享的性能契约入口，需要 PHP CLI、curl 和 ApacheBench (`ab`)。目标地址、
+版块/主题样本以及数据、插件、缓存标签都必须显式提供；脚本不会再用默认地址或假定
+`fid=1` / `tid=1`。
+
+```bash
+# Linux：先安装 ApacheBench
 sudo apt install apache2-utils   # Ubuntu/Debian
 sudo yum install httpd-tools     # CentOS/RHEL
 
-chmod +x bin/benchmark.sh
-bash bin/benchmark.sh http://你的域名或IP/
+bash bin/benchmark.sh \
+  --url=http://127.0.0.1:8081/ --fid=2 --tid=37 \
+  --dataset=seed-2026-08 --plugin-set=core-only --cache-state=warm
 
-# Windows
-bin\benchmark.bat
+# Windows（PowerShell 或 CMD，同一参数契约）
+bin\benchmark.bat --url=http://127.0.0.1:8081/ --fid=2 --tid=37 --dataset=seed-2026-08 --plugin-set=core-only --cache-state=warm
 ```
 
-脚本会自动压测 3 个核心页面（首页、帖子列表、帖子详情），输出 QPS 和 TTFB 汇总，结果保存在 `tmp/bench_*.txt`。
+运行前会对首页、版块页和主题页逐一验证：请求必须直接返回 HTTP 200（不跟随跳转）、
+`text/html`、唯一有效的 `X-Request-ID`，并通过页面语义和互异性检查。这样安装页、登录页、
+不存在的 fid/tid 或三个地址返回同一页面时不会生成“有效”性能数据。默认语义适用于核心页面；
+非默认主题可用唯一的 `--home-marker`、`--forum-marker`、`--thread-marker` 显式声明页面标记。
 
-当前 4H8G / PHP 8.2 / MySQL 8.0 本机基线为 220+ QPS，核心页面 TTFB 不高于 220ms；影响全局路由或渲染的改动应将退化控制在 15% 以内。
+每次运行写入新的 `tmp/benchmark-*/`，其中 `benchmark-manifest.json` 记录 commit、dirty 状态、
+操作系统/PHP/工具版本、数据集、插件集、缓存状态、每页最终 HTTP 状态、Request ID、HTML
+SHA-256、AB 指标和经过同一契约复验的 TTFB 样本；`bench_*.txt` 保留原始 AB 报告。可用
+`--requests`、`--detail-requests`、`--concurrency`、`--ttfb-samples` 调整样本，完整帮助见
+`php bin/benchmark.php --help`。
+
+4H8G / PHP 8.2 / MySQL 8.0 下曾测得 220+ QPS、核心页面平均请求延迟不高于 220ms。该数值只作为当时机器、文件系统、数据量和插件集的历史参考，不代表所有 Docker/WSL/网络挂载环境；性能改动应在同一环境记录冷/热缓存前后数据，并将退化控制在 15% 以内。
+
+`cache-state` 是必须如实填写的比较标签。脚本的 HTTP 预检本身会访问三个页面，因此普通吞吐
+对比应标记为 `warm`；真正的冷缓存单请求需在每次采样前由外部可审计流程重置缓存，不能把
+本脚本预检后的 AB 结果声明为纯冷缓存结果。
 
 ## API 文档
 

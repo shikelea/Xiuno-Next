@@ -26,6 +26,10 @@ if (!preg_match('/(^|_)test($|_)/i', $baseName)) {
     exit(1);
 }
 
+$pdo = null;
+$ownedDatabase = '';
+$failure = null;
+
 try {
     $pdo = new PDO("mysql:host=$host;port=$port;charset=utf8mb4", $user, $password, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -34,8 +38,8 @@ try {
 
     apply_sql_mode($pdo, $sqlMode);
 
-    $dbname = safe_database_name($baseName . '_plugin_sql');
-    reset_database($pdo, $dbname);
+    $ownedDatabase = smoke_database_name($baseName, 'plugin_sql');
+    create_database($pdo, $ownedDatabase);
     install_core_schema($pdo, $root);
     seed_thread_table($pdo);
     seed_post_table($pdo);
@@ -48,11 +52,24 @@ try {
     smoke_tt_offer_forum_sql($pdo);
     smoke_sa_shop_sql($pdo);
 
-    echo "OK: plugin install SQL smoke passed\n";
 } catch (Throwable $e) {
-    fwrite(STDERR, "FAIL: " . $e->getMessage() . "\n");
+    $failure = $e;
+} finally {
+    if ($pdo instanceof PDO && $ownedDatabase !== '') {
+        try {
+            $pdo->exec('DROP DATABASE IF EXISTS ' . quote_identifier($ownedDatabase));
+        } catch (Throwable $cleanupError) {
+            $failure = $failure ?: $cleanupError;
+        }
+    }
+}
+
+if ($failure instanceof Throwable) {
+    fwrite(STDERR, "FAIL: " . $failure->getMessage() . "\n");
     exit(1);
 }
+
+echo "OK: plugin install SQL smoke passed\n";
 
 function apply_sql_mode(PDO $pdo, string $sqlMode): void
 {
@@ -66,20 +83,26 @@ function apply_sql_mode(PDO $pdo, string $sqlMode): void
     $pdo->exec("SET SESSION sql_mode = '$sqlMode'");
 }
 
-function safe_database_name(string $name): string
+function smoke_database_name(string $base, string $purpose): string
 {
-    $name = preg_replace('/[^A-Za-z0-9_]/', '_', $name);
-    $name = substr($name, 0, 48);
-    if ($name === '' || !preg_match('/^[A-Za-z0-9_]+$/', $name)) {
-        throw new RuntimeException('Unsafe smoke database name.');
+    if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $base)) {
+        throw new RuntimeException("Unsafe MySQL database name: $base");
     }
-    return $name;
+    if (!preg_match('/^[A-Za-z0-9_]{1,24}$/', $purpose)) {
+        throw new RuntimeException('Unsafe smoke database purpose.');
+    }
+    $suffix = '_test_' . $purpose . '_' . substr(bin2hex(random_bytes(8)), 0, 12);
+    $prefix = substr($base, 0, 64 - strlen($suffix));
+    $derived = $prefix . $suffix;
+    if ($derived === $base || !preg_match('/^[A-Za-z0-9_]{1,64}$/', $derived)) {
+        throw new RuntimeException('Unable to derive an isolated smoke database name.');
+    }
+    return $derived;
 }
 
-function reset_database(PDO $pdo, string $dbname): void
+function create_database(PDO $pdo, string $dbname): void
 {
     $quoted = quote_identifier($dbname);
-    $pdo->exec("DROP DATABASE IF EXISTS $quoted");
     $pdo->exec("CREATE DATABASE $quoted CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     $pdo->exec("USE $quoted");
 }

@@ -1,4 +1,3 @@
-DROP TABLE IF EXISTS `bbs_user`;
 CREATE TABLE `bbs_user` (
   uid int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '用户编号',
   gid smallint(6) unsigned NOT NULL DEFAULT '0' COMMENT '用户组编号',
@@ -7,6 +6,7 @@ CREATE TABLE `bbs_user` (
   realname char(16) NOT NULL DEFAULT '' COMMENT '真实姓名',
   idnumber char(19) NOT NULL DEFAULT '' COMMENT '身份证',
   `password` varchar(255) NOT NULL DEFAULT '' COMMENT '密码',
+  auth_epoch int(11) unsigned NOT NULL DEFAULT '0' COMMENT '凭证撤销代际',
   `password_sms` char(16) NOT NULL DEFAULT '' COMMENT '手机验证码',
   salt char(16) NOT NULL DEFAULT '' COMMENT '密码混杂',
   mobile char(11) NOT NULL DEFAULT '' COMMENT '手机号',
@@ -29,7 +29,6 @@ CREATE TABLE `bbs_user` (
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 INSERT INTO `bbs_user` SET uid=1, gid=1, email='admin@admin.com', username='admin',`password`='',salt='';
 
-DROP TABLE IF EXISTS `bbs_group`;
 CREATE TABLE `bbs_group` (
   gid smallint(6) unsigned NOT NULL,
   name char(20) NOT NULL default '',
@@ -62,7 +61,6 @@ INSERT INTO `bbs_group` SET gid='103', name="三级用户组", creditsfrom='200'
 INSERT INTO `bbs_group` SET gid='104', name="四级用户组", creditsfrom='1000', creditsto='10000', allowread='1', allowthread='1', allowpost='1', allowattach='1', allowdown='1', allowtop='0', allowupdate='0', allowdelete='0', allowmove='0', allowbanuser='0', allowdeleteuser='0', allowviewip='0';
 INSERT INTO `bbs_group` SET gid='105', name="五级用户组", creditsfrom='10000', creditsto='10000000', allowread='1', allowthread='1', allowpost='1', allowattach='1', allowdown='1', allowtop='0', allowupdate='0', allowdelete='0', allowmove='0', allowbanuser='0', allowdeleteuser='0', allowviewip='0';
 
-DROP TABLE IF EXISTS bbs_forum;
 CREATE TABLE bbs_forum (
   fid int(11) unsigned NOT NULL auto_increment,
   `name` char(16) NOT NULL default '',
@@ -83,7 +81,6 @@ CREATE TABLE bbs_forum (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 INSERT INTO bbs_forum SET fid='1', name='默认版块', brief='默认版块介绍', announcement='';
 
-DROP TABLE IF EXISTS bbs_forum_access;
 CREATE TABLE bbs_forum_access (
   fid int(11) unsigned NOT NULL default '0',
   gid int(11) unsigned NOT NULL default '0',
@@ -95,7 +92,6 @@ CREATE TABLE bbs_forum_access (
   PRIMARY KEY (fid, gid)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_thread;
 CREATE TABLE bbs_thread (
   fid smallint(6) NOT NULL default '0',
   tid int(11) unsigned NOT NULL auto_increment,
@@ -120,7 +116,6 @@ CREATE TABLE bbs_thread (
   KEY (fid, lastpid)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_thread_top;
 CREATE TABLE bbs_thread_top (
   fid smallint(6) NOT NULL default '0',
   tid int(11) unsigned NOT NULL default '0',
@@ -130,7 +125,6 @@ CREATE TABLE bbs_thread_top (
   KEY (fid, top)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_post;
 CREATE TABLE bbs_post (
   tid int(11) unsigned NOT NULL default '0',
   pid int(11) unsigned NOT NULL auto_increment,
@@ -149,7 +143,6 @@ CREATE TABLE bbs_post (
   KEY (uid)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_attach;
 CREATE TABLE bbs_attach (
   aid int(11) unsigned NOT NULL auto_increment ,
   tid int(11) NOT NULL default '0',
@@ -173,14 +166,12 @@ CREATE TABLE bbs_attach (
   KEY uid (uid)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_mythread;
 CREATE TABLE bbs_mythread (
   uid int(11) unsigned NOT NULL default '0',
   tid int(11) unsigned NOT NULL default '0',
   PRIMARY KEY (uid, tid)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_mypost;
 CREATE TABLE bbs_mypost (
   uid int(11) unsigned NOT NULL default '0',
   tid int(11) unsigned NOT NULL default '0',
@@ -189,7 +180,6 @@ CREATE TABLE bbs_mypost (
   PRIMARY KEY (uid, pid)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_session;
 CREATE TABLE bbs_session (
   sid char(32) NOT NULL default '0',
   uid int(11) unsigned NOT NULL default '0',
@@ -206,7 +196,6 @@ CREATE TABLE bbs_session (
   KEY uid_last_date (uid, last_date)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_session_data;
 CREATE TABLE bbs_session_data (
   sid char(32) NOT NULL default '0',
   last_date int(11) unsigned NOT NULL default '0',
@@ -214,7 +203,6 @@ CREATE TABLE bbs_session_data (
   PRIMARY KEY (sid)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_modlog;
 CREATE TABLE bbs_modlog (
   logid int(11) unsigned NOT NULL auto_increment,
   uid int(11) unsigned NOT NULL default '0',
@@ -230,7 +218,6 @@ CREATE TABLE bbs_modlog (
   KEY (tid)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_kv;
 CREATE TABLE bbs_kv (
   k char(32) NOT NULL default '',
   v mediumtext NOT NULL,
@@ -238,7 +225,6 @@ CREATE TABLE bbs_kv (
   PRIMARY KEY(k)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_cache;
 CREATE TABLE bbs_cache (
   k char(32) NOT NULL default '',
   v mediumtext NOT NULL,
@@ -246,7 +232,6 @@ CREATE TABLE bbs_cache (
   PRIMARY KEY(k)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS bbs_queue;
 CREATE TABLE bbs_queue (
   queueid int(11) unsigned NOT NULL default '0',
   v int(11) NOT NULL default '0',
@@ -255,7 +240,6 @@ CREATE TABLE bbs_queue (
   KEY(expiry)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-DROP TABLE IF EXISTS `bbs_table_day`;
 CREATE TABLE `bbs_table_day` (
   `year` smallint(11) unsigned NOT NULL DEFAULT '0' COMMENT '年',
   `month` tinyint(11) unsigned NOT NULL DEFAULT '0' COMMENT '月',

@@ -68,7 +68,8 @@ strpos($admin_index, "xn_setcookie('bbs_sid', '', \$time - 86400)") !== FALSE
 strpos($install, "xn_setcookie('lang', \$_lang, 0, '', TRUE)") !== FALSE
 	|| fail('Installer language cookie must use the hardened cookie helper.');
 
-strpos($workflow, 'php bin/check_admin_auth_safety.php') !== FALSE
+$ci_runs_deterministic = strpos($workflow, 'php bin/run_checks.php --profile=deterministic') !== FALSE;
+strpos($workflow, 'php bin/check_admin_auth_safety.php') !== FALSE || $ci_runs_deterministic
 	|| fail('CI must run the admin auth safety guard.');
 
 echo "OK: admin auth safety checks passed\n";

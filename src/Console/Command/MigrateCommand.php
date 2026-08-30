@@ -33,6 +33,36 @@ class MigrateCommand extends Command
         }
 
         $this->bootstrap($appPath);
+		$capability = migration_capability();
+		if (empty($capability['ok'])) {
+			$io->error($capability['error']);
+			return Command::FAILURE;
+		}
+		$lock = migration_advisory_lock_start();
+		if (empty($lock['ok'])) {
+			$io->error($lock['error']);
+			return Command::FAILURE;
+		}
+
+		$status = Command::FAILURE;
+		$released = false;
+		try {
+			$status = $this->runMigrationsLocked($io, $appPath);
+		} catch (\Throwable $e) {
+			$io->error('迁移执行失败: ' . $e->getMessage());
+			$status = Command::FAILURE;
+		} finally {
+			$released = migration_advisory_lock_end();
+		}
+		if (!$released) {
+			$io->error('数据库迁移锁未能确认释放；当前进程退出后连接关闭会释放 MySQL advisory lock。');
+			return Command::FAILURE;
+		}
+		return $status;
+	}
+
+	private function runMigrationsLocked(SymfonyStyle $io, string $appPath): int
+	{
 
         $migrationsPath = $appPath . 'database/migrations';
         if (!is_dir($migrationsPath)) {
@@ -47,11 +77,16 @@ class MigrateCommand extends Command
         }
         sort($files);
 
-        $executed = $this->getExecutedMigrations();
+        try {
+            $executed = $this->getExecutedMigrations();
+        } catch (\Throwable $e) {
+            $io->error('读取迁移记录失败: ' . $e->getMessage());
+            return Command::FAILURE;
+        }
         $pending = [];
         foreach ($files as $file) {
             $name = basename($file, '.php');
-            if (!in_array($name, $executed)) {
+            if (!in_array($name, $executed, true)) {
                 $pending[$name] = $file;
             }
         }
@@ -73,7 +108,7 @@ class MigrateCommand extends Command
                 }
                 $tablepre = $this->getTablepre();
                 $migration->up($tablepre);
-                if (!$this->recordMigration($name)) {
+                if (!$this->recordMigration($name, $executed)) {
                     $io->error("Migration $name finished but could not be recorded.");
                     return Command::FAILURE;
                 }
@@ -153,30 +188,21 @@ class MigrateCommand extends Command
 
         include_once XIUNOPHP_PATH . 'xiunophp.php';
         include_once APP_PATH . 'model/kv.func.php';
+		include_once APP_PATH . 'model/migration.func.php';
     }
 
     private function getExecutedMigrations(): array
     {
-        $val = kv_get('xn_migrations');
-        return is_array($val) ? $val : [];
+		return migration_record_read_primary();
     }
 
     private function getTablepre(): string
     {
-        $tablepre = $_SERVER['db']->tablepre ?? 'bbs_';
-        if (!preg_match('/^[A-Za-z0-9_]{0,32}$/', $tablepre)) {
-            throw new \RuntimeException('Invalid table prefix in database configuration.');
-        }
-        return $tablepre;
+		return migration_table_prefix();
     }
 
-    private function recordMigration(string $name): bool
+    private function recordMigration(string $name, array &$executed): bool
     {
-        $executed = $this->getExecutedMigrations();
-        if (in_array($name, $executed, true)) {
-            return true;
-        }
-        $executed[] = $name;
-        return kv_set('xn_migrations', $executed) !== false;
+		return migration_record_append_locked($name, $executed);
     }
 }

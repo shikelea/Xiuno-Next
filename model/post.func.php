@@ -24,23 +24,31 @@ function post__update($pid, $arr) {
 	return $r;
 }
 
-function post__read($pid) {
+function post__read($pid, $primary = FALSE) {
+	$primary_requested = (bool)$primary;
 	// hook model_post__read_start.php
-	$post = db_find_one('post', array('pid'=>$pid));
+	$post = $primary_requested
+		? db_find_one_master('post', array('pid'=>$pid))
+		: db_find_one('post', array('pid'=>$pid));
 	// hook model_post__read_end.php
 	return $post;
 }
 
-function post__delete($pid) {
+function post__delete($pid, &$db_result = NULL) {
 	// hook model_post__delete_start.php
 	$r = db_delete('post', array('pid'=>$pid));
+	$core_db_result = $r;
 	// hook model_post__delete_end.php
+	$db_result = $core_db_result;
 	return $r;
 }
 
-function post__find($cond = array(), $orderby = array(), $page = 1, $pagesize = 20) {
+function post__find($cond = array(), $orderby = array(), $page = 1, $pagesize = 20, $primary = FALSE) {
+	$primary_requested = (bool)$primary;
 	// hook model_post__find_start.php
-	$postlist = db_find('post', $cond, $orderby, $page, $pagesize, 'pid');
+	$postlist = $primary_requested
+		? db_find_master('post', $cond, $orderby, $page, $pagesize, 'pid')
+		: db_find('post', $cond, $orderby, $page, $pagesize, 'pid');
 	// hook model_post__find_end.php
 	return $postlist;
 }
@@ -48,13 +56,17 @@ function post__find($cond = array(), $orderby = array(), $page = 1, $pagesize = 
 // ------------> 关联 CURD，主要是强相关的数据，比如缓存。弱相关的大量数据需要另外处理。
 
 // 回帖
-function post_create($arr, $fid, $gid) {
+function post_create($arr, $fid, $gid, $attach_draft = '') {
 	global $conf, $time;
 	
 	// hook model_post_create_start.php
 	
 	$pid = post__create($arr, $gid);
 	if(!$pid) return $pid;
+	if(!attach_assoc_post($pid, $attach_draft)) {
+		post__delete($pid);
+		return FALSE;
+	}
 	
 	$tid = $arr['tid'];
 	$uid = $arr['uid'];
@@ -76,10 +88,6 @@ function post_create($arr, $fid, $gid) {
 	// 更新板块信息。
 	forum_list_cache_delete();
 	
-	// 关联附件
-	$message = $arr['message'];
-	attach_assoc_post($pid);
-	
 	// 更新用户的用户组
 	user_update_group($uid);
 	
@@ -89,7 +97,7 @@ function post_create($arr, $fid, $gid) {
 }
 
 // 编辑回帖
-function post_update($pid, $arr, $tid = 0) {
+function post_update($pid, $arr, $tid = 0, $attach_draft = '') {
 	global $conf, $user, $gid;
 
 	$post = post__read($pid);
@@ -105,17 +113,27 @@ function post_update($pid, $arr, $tid = 0) {
 	
 	// hook model_post_create_post__create_before.php
 	
+	$rollback = array();
+	foreach($arr as $key=>$value) {
+		if(array_key_exists($key, $post)) $rollback[$key] = $post[$key];
+	}
 	$r = post__update($pid, $arr);
+	if($r === FALSE) return FALSE;
 	
-	attach_assoc_post($pid);
+	if(!attach_assoc_post($pid, $attach_draft)) {
+		!empty($rollback) && post__update($pid, $rollback) === FALSE
+			AND xn_log("post update rollback failed, pid:$pid, tid:$tid", 'php_error');
+		return FALSE;
+	}
 	
 	// hook model_post_update_end.php
 	return $r;
 }
 
-function post_read($pid) {
+function post_read($pid, $primary = FALSE) {
+	$primary_requested = (bool)$primary;
 	// hook model_post_read_start.php
-	$post = post__read($pid);
+	$post = post__read($pid, $primary_requested);
 	post_format($post);
 	// hook model_post_read_end.php
 	return $post;
@@ -134,46 +152,120 @@ function post_read_cache($pid) {
 // $tid 用来清理缓存
 function post_delete($pid) {
 	global $conf;
-	$post = post_read_cache($pid);
+	$post = post_read($pid, TRUE);
+	if($post === FALSE) return FALSE;
 	if(empty($post)) return TRUE; // 已经不存在了。
 	
 	$tid = $post['tid'];
 	$uid = $post['uid'];
-	$thread = thread_read_cache($tid);
+	$thread = thread_read($tid, TRUE);
+	if($thread === FALSE || empty($thread)) return FALSE;
 	$fid = $thread['fid'];
 	
 	// hook model_post_delete_start.php
-	
-	if(!$post['isfirst']) {
-		thread__update($tid, array('posts-'=>1));
-		$uid AND user__update($uid, array('posts-'=>1));
-		runtime_set('posts-', 1);
-	} else {
-		//post_list_cache_delete($tid);
+
+	$db_result = NULL;
+	$r = post__delete($pid, $db_result);
+	if($db_result !== FALSE && intval($db_result) > 0) {
+		if(!$post['isfirst']) {
+			thread__update($tid, array('posts-'=>1));
+			$uid AND user__update($uid, array('posts-'=>1));
+			runtime_set('posts-', 1);
+		} else {
+			//post_list_cache_delete($tid);
+		}
+
+		($post['images'] || $post['files']) AND attach_delete_by_pid($pid);
 	}
-	
-	($post['images'] || $post['files']) AND attach_delete_by_pid($pid);
-	
-	$r = post__delete($pid);
 
 	// 更新最后的 lastpid
-	if($r && !$post['isfirst'] && $pid == $thread['lastpid']) {
+	if($db_result !== FALSE && intval($db_result) > 0 && !$post['isfirst'] && $pid == $thread['lastpid']) {
 		thread_update_last($tid);
 	}
 	
 	// hook model_post_delete_end.php
-	return $r;
+	return $db_result === FALSE || $r === FALSE ? FALSE : $r;
 }
 
 // 此处有可能会超时
-function post_delete_by_tid($tid) {
+function post_delete_by_tid($tid, $firstpid = 0) {
+	$pagesize = 50;
+	$deleted_count = 0;
+	$previous_batch = array();
+	$delete_failed = FALSE;
+	$postlist = array();
+
 	// hook model_post_delete_by_tid_start.php
-	$postlist = post_find_by_tid($tid);
-	foreach($postlist as $post) {
-		post_delete($post['pid']);
+	$tid = intval($tid);
+	$firstpid = intval($firstpid);
+	if($tid <= 0) {
+		$delete_failed = TRUE;
+	} elseif($firstpid <= 0) {
+		$parent = function_exists('thread__read') ? thread__read($tid, TRUE) : FALSE;
+		if(!is_array($parent) || empty($parent) || empty($parent['firstpid'])) $delete_failed = TRUE;
+		else $firstpid = intval($parent['firstpid']);
+	}
+
+	while(!$delete_failed) {
+		// Always read page one from the write connection: successful deletes shift the next
+		// batch forward, while replica lag must never decide that a destructive scan is complete.
+		$batch = post_find_by_tid($tid, 1, $pagesize, TRUE);
+		if(!is_array($batch)) {
+			$postlist = $batch;
+			$delete_failed = TRUE;
+			break;
+		}
+		if(empty($batch)) break;
+		$postlist = $batch;
+
+		$batch_pids = array();
+		foreach($batch as $post) {
+			$pid = is_array($post) && isset($post['pid']) ? intval($post['pid']) : 0;
+			if($pid <= 0) {
+				$delete_failed = TRUE;
+				break;
+			}
+			// Keep the authoritative first post as the user's retry handle until every reply is gone.
+			if($pid === $firstpid) continue;
+			if(isset($previous_batch[$pid]) || isset($batch_pids[$pid])) {
+				$delete_failed = TRUE;
+				break;
+			}
+			$batch_pids[$pid] = TRUE;
+			$delete_result = post_delete($pid);
+			if($delete_result === FALSE) {
+				$delete_failed = TRUE;
+				break;
+			}
+			$deleted_count++;
+		}
+		if($delete_failed) break;
+		// A page containing only firstpid proves that all replies have been removed.
+		if(empty($batch_pids)) break;
+		$previous_batch = $batch_pids;
+	}
+
+	if(!$delete_failed) {
+		$first_post = post_read($firstpid, TRUE);
+		if($first_post === FALSE) {
+			$delete_failed = TRUE;
+		} elseif(!empty($first_post)) {
+			if(intval($first_post['tid']) !== $tid || empty($first_post['isfirst'])) {
+				$delete_failed = TRUE;
+			} else {
+				$first_delete_result = post_delete($firstpid);
+				if($first_delete_result === FALSE) $delete_failed = TRUE;
+				else $deleted_count++;
+			}
+		}
+	}
+
+	if(!$delete_failed) {
+		$remaining = post_find_by_tid($tid, 1, 1, TRUE);
+		if(!is_array($remaining) || !empty($remaining)) $delete_failed = TRUE;
 	}
 	// hook model_post_delete_by_tid_end.php
-	return count($postlist);
+	return $delete_failed ? FALSE : $deleted_count;
 }
 
 // 此处有可能会超时，并且导致统计不准确，需要重建统计数
@@ -197,12 +289,13 @@ function post_find($cond = array(), $orderby = array(), $page = 1, $pagesize = 2
 }
 
 // 此处有缓存，是否有必要？
-function post_find_by_tid($tid, $page = 1, $pagesize = 50) {
+function post_find_by_tid($tid, $page = 1, $pagesize = 50, $primary = FALSE) {
 	global $conf;
+	$primary_requested = (bool)$primary;
 	
 	// hook model_post_find_by_tid_start.php
 	
-	$postlist = post__find(array('tid'=>$tid), array('pid'=>1), $page, $pagesize);
+	$postlist = post__find(array('tid'=>$tid), array('pid'=>1), $page, $pagesize, $primary_requested);
 	
 	if($postlist) {
 		$floor = ($page - 1)* $pagesize + 1;

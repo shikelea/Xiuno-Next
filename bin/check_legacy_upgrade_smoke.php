@@ -59,6 +59,8 @@ $cacheBackup = [];
 $cacheLock = acquire_upgrade_cache_lock($root);
 $exitCode = 0;
 $mainSucceeded = false;
+$pdo = null;
+$ownedDatabases = [];
 
 try {
     $pdo = new PDO("mysql:host=$host;port=$port;charset=utf8mb4", $user, $password, [
@@ -70,24 +72,30 @@ try {
 
     assert_missing_conf_fails($root, $confFile);
 
-    $migrateDb = safe_database_name($baseName . '_migrate');
-    reset_old_database($pdo, $migrateDb);
+    $migrateDb = smoke_database_name($baseName, 'migrate');
+    $ownedDatabases[] = $migrateDb;
+    create_old_database($pdo, $migrateDb);
     write_cli_conf($confFile, $host, $port, $migrateDb, $user, $password, '4.5.1', $sqlMode);
     run_cli($root, ['migrate', '--no-interaction']);
     assert_column_type($pdo, $migrateDb, 'bbs_user', 'password', 'varchar(255)');
+    assert_column_type($pdo, $migrateDb, 'bbs_user', 'auth_epoch', 'int unsigned');
     assert_legacy_user_preserved($pdo, $migrateDb);
     assert_legacy_content_preserved($pdo, $migrateDb);
     assert_migration_recorded($pdo, $migrateDb, '0001_alter_user_password_field');
+    assert_migration_recorded($pdo, $migrateDb, '0002_add_user_auth_epoch');
 
-    $upgradeDb = safe_database_name($baseName . '_upgrade');
-    reset_old_database($pdo, $upgradeDb);
+    $upgradeDb = smoke_database_name($baseName, 'upgrade');
+    $ownedDatabases[] = $upgradeDb;
+    create_old_database($pdo, $upgradeDb);
     write_cli_conf($confFile, $host, $port, $upgradeDb, $user, $password, '4.0.7', $sqlMode);
     $cacheBackup = seed_upgrade_cache_files($root);
     run_cli($root, ['upgrade'], "yes\n");
     assert_column_type($pdo, $upgradeDb, 'bbs_user', 'password', 'varchar(255)');
+    assert_column_type($pdo, $upgradeDb, 'bbs_user', 'auth_epoch', 'int unsigned');
     assert_legacy_user_preserved($pdo, $upgradeDb);
     assert_legacy_content_preserved($pdo, $upgradeDb);
     assert_migration_recorded($pdo, $upgradeDb, '0001_alter_user_password_field');
+    assert_migration_recorded($pdo, $upgradeDb, '0002_add_user_auth_epoch');
     assert_kv_exists($pdo, $upgradeDb, 'xn_upgraded_from');
     assert_kv_exists($pdo, $upgradeDb, 'xn_upgraded_date');
     assert_conf_upgraded($confFile);
@@ -114,6 +122,15 @@ try {
         restore_upgrade_cache_files($cacheBackup);
     } catch (Throwable $cleanupError) {
         $cleanupErrors[] = $cleanupError->getMessage();
+    }
+    if ($pdo instanceof PDO) {
+        foreach (array_reverse($ownedDatabases) as $ownedDatabase) {
+            try {
+                $pdo->exec('DROP DATABASE IF EXISTS ' . quote_identifier($ownedDatabase));
+            } catch (Throwable $cleanupError) {
+                $cleanupErrors[] = $cleanupError->getMessage();
+            }
+        }
     }
     release_upgrade_cache_lock($cacheLock);
 
@@ -162,20 +179,26 @@ function assert_missing_conf_fails(string $root, string $confFile): void
     }
 }
 
-function safe_database_name(string $name): string
+function smoke_database_name(string $base, string $purpose): string
 {
-    $name = preg_replace('/[^A-Za-z0-9_]/', '_', $name);
-    $name = substr($name, 0, 48);
-    if ($name === '' || !preg_match('/^[A-Za-z0-9_]+$/', $name)) {
-        throw new RuntimeException('Unsafe smoke database name.');
+    if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $base)) {
+        throw new RuntimeException("Unsafe MySQL database name: $base");
     }
-    return $name;
+    if (!preg_match('/^[A-Za-z0-9_]{1,24}$/', $purpose)) {
+        throw new RuntimeException('Unsafe smoke database purpose.');
+    }
+    $suffix = '_test_' . $purpose . '_' . substr(bin2hex(random_bytes(8)), 0, 12);
+    $prefix = substr($base, 0, 64 - strlen($suffix));
+    $derived = $prefix . $suffix;
+    if ($derived === $base || !preg_match('/^[A-Za-z0-9_]{1,64}$/', $derived)) {
+        throw new RuntimeException('Unable to derive an isolated smoke database name.');
+    }
+    return $derived;
 }
 
-function reset_old_database(PDO $pdo, string $dbname): void
+function create_old_database(PDO $pdo, string $dbname): void
 {
     $quoted = quote_identifier($dbname);
-    $pdo->exec("DROP DATABASE IF EXISTS $quoted");
     $pdo->exec("CREATE DATABASE $quoted CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     $pdo->exec("USE $quoted");
     $pdo->exec("
@@ -662,7 +685,7 @@ function assert_column_type(PDO $pdo, string $dbname, string $table, string $col
 function assert_legacy_user_preserved(PDO $pdo, string $dbname): void
 {
     $pdo->exec('USE ' . quote_identifier($dbname));
-    $stmt = $pdo->prepare('SELECT uid, username, salt, `password`, digests FROM bbs_user WHERE uid IN (?, ?) ORDER BY uid');
+    $stmt = $pdo->prepare('SELECT uid, username, salt, `password`, auth_epoch, digests FROM bbs_user WHERE uid IN (?, ?) ORDER BY uid');
     $stmt->execute([7, 8]);
     $rows = $stmt->fetchAll();
     if (count($rows) !== 2) {
@@ -683,6 +706,9 @@ function assert_legacy_user_preserved(PDO $pdo, string $dbname): void
         }
         if ($row['password'] !== $expected[$uid]['password']) {
             throw new RuntimeException('Legacy md5 password hash changed before login-time upgrade.');
+        }
+        if ((int) $row['auth_epoch'] !== 0) {
+            throw new RuntimeException('Legacy users must start at credential epoch zero.');
         }
         if ((int) $row['digests'] !== $expected[$uid]['digests']) {
             throw new RuntimeException('Legacy user digest counter changed after migration.');
@@ -1065,7 +1091,10 @@ function assert_conf_upgraded(string $confFile): void
     if (($conf['version'] ?? '') !== '4.5.1') {
         throw new RuntimeException('upgrade did not write target version to conf.php.');
     }
-    foreach (['csrf_on', 'disabled_plugin', 'admin_bind_ip', 'static_version'] as $key) {
+    if (($conf['static_version'] ?? '') !== '?v=4.5.1') {
+        throw new RuntimeException('upgrade did not write target static_version to conf.php.');
+    }
+    foreach (['csrf_on', 'disabled_plugin', 'admin_bind_ip'] as $key) {
         if (!array_key_exists($key, $conf)) {
             throw new RuntimeException("upgrade did not backfill config key: $key");
         }
@@ -1189,10 +1218,12 @@ function restore_smoke_conf(string $confFile, ?string $confBackup, ?int $confBac
         if (!chmod($tmpFile, $mode)) {
             $metadataErrors[] = 'Unable to restore conf/conf.php permissions.';
         }
-        if ($confBackupOwner !== null && function_exists('chown') && !chown($tmpFile, $confBackupOwner)) {
+        // PHP exposes chown()/chgrp() on Windows, but the platform cannot restore POSIX uid/gid
+        // metadata. The replacement stays owned by the current Windows account after rename.
+        if (DIRECTORY_SEPARATOR !== '\\' && $confBackupOwner !== null && function_exists('chown') && !chown($tmpFile, $confBackupOwner)) {
             $metadataErrors[] = 'Unable to restore conf/conf.php owner.';
         }
-        if ($confBackupGroup !== null && function_exists('chgrp') && !chgrp($tmpFile, $confBackupGroup)) {
+        if (DIRECTORY_SEPARATOR !== '\\' && $confBackupGroup !== null && function_exists('chgrp') && !chgrp($tmpFile, $confBackupGroup)) {
             $metadataErrors[] = 'Unable to restore conf/conf.php group.';
         }
         if (is_link($confFile)) {

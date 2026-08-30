@@ -23,7 +23,13 @@ if($action == 'base') {
 		$input['user_create_on'] = form_radio_yes_no('user_create_on', $conf['user_create_on']);
 		$input['user_create_email_on'] = form_radio_yes_no('user_create_email_on', $conf['user_create_email_on']);
 		$input['user_resetpw_on'] = form_radio_yes_no('user_resetpw_on', $conf['user_resetpw_on']);
-		$input['lang'] = form_select('lang', array('zh-cn'=>lang('lang_zh_cn'), 'zh-tw'=>lang('lang_zh_tw'), 'en-us'=>lang('lang_en_us'), 'ru-ru'=>lang('lang_ru_ru'), 'th-th'=>lang('lang_th_th')), $conf['lang']);
+		$lang_options = array();
+		foreach(locale_list_available(APP_PATH.'lang') as $locale) {
+			$lang_key = 'lang_'.str_replace('-', '_', $locale);
+			$lang_label = lang($lang_key);
+			$lang_options[$locale] = $lang_label === 'lang['.$lang_key.']' ? $locale : $lang_label;
+		}
+		$input['lang'] = form_select('lang', $lang_options, $conf['lang']);
 		
 		$header['title'] = lang('admin_site_setting');
 		$header['mobile_title'] =lang('admin_site_setting');
@@ -47,6 +53,8 @@ if($action == 'base') {
 		// hook admin_setting_base_post_start.php
 		
 		empty($sitename) AND message('sitename', lang('data_is_empty'));
+		locale_is_available($_lang, APP_PATH.'lang')
+			OR message('lang', lang('locale_unavailable'));
 
 		$replace = array();
 		$replace['sitename'] = $sitename;
@@ -103,8 +111,8 @@ if($action == 'base') {
 				'pass'=>$pass[$k],
 			);
 		}
-		$r = file_put_contents_try(APP_PATH.'conf/smtp.conf.php', "<?php\r\nreturn ".var_export($smtplist,true).";\r\n?>");
-		!$r AND message(-1, lang('conf/smtp.conf.php', array('file'=>'conf/smtp.conf.php')));
+		$r = smtp_save();
+		$r === FALSE AND message(-1, lang('save_conf_failed', array('file'=>'conf/smtp.conf.php')));
 		
 		// hook admin_setting_smtp_post_end.php
 		

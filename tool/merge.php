@@ -43,6 +43,16 @@ foreach($files as $file) {
 }
 
 $xiunophp = file_get_contents($dir.'xiunophp.php');
+$request_bootstrap_include = "include_once XIUNOPHP_PATH.'request.func.php';";
+if(substr_count($xiunophp, $request_bootstrap_include) !== 1) {
+	throw new RuntimeException('Unable to locate the XiunoPHP request bootstrap include.');
+}
+$request_bootstrap = xiuno_strip_file($dir.'request.func.php');
+// index.php must initialize the Request ID before install-state/database failures, while the
+// generated bundle must remain usable by standalone CLI/tool consumers. Keep both contracts:
+// inline the bootstrap only when the early entry point has not already loaded it.
+$request_bootstrap = "if(!function_exists('xn_runtime_is_command')) {\n".$request_bootstrap."\n}";
+$xiunophp = str_replace($request_bootstrap_include, $request_bootstrap, $xiunophp);
 $before = '// hook xiunophp_include_before.php';
 $after = '// hook xiunophp_include_after.php';
 $pre = substr($xiunophp, 0, strpos($xiunophp, $before) + 1 + strlen($before));
