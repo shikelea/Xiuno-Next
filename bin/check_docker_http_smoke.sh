@@ -46,6 +46,17 @@ fail() {
 	return 1
 }
 
+report_unhandled_error() {
+	local status=$1
+	local line=$2
+	echo "FAIL: unhandled shell exit $status at bin/check_docker_http_smoke.sh:$line." >&2
+	if [[ "${GITHUB_ACTIONS:-}" == 'true' ]]; then
+		printf '::error file=bin/check_docker_http_smoke.sh,line=%s,title=Docker HTTP smoke::Unhandled shell exit %s.\n' "$line" "$status" >&2
+	fi
+	return "$status"
+}
+trap 'report_unhandled_error "$?" "$LINENO"' ERR
+
 [[ "$RUN_ID" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$ ]] \
 	|| fail 'XIUNO_HTTP_SMOKE_RUN_ID must contain 1-64 ASCII letters, digits, underscores, or non-leading hyphens.'
 
