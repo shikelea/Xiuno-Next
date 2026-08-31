@@ -40,6 +40,9 @@ PLUGIN_MANIFEST_BEFORE=""
 
 fail() {
 	echo "FAIL: $*" >&2
+	if [[ "${GITHUB_ACTIONS:-}" == 'true' ]]; then
+		printf '::error title=Docker HTTP smoke::%s\n' "$*" >&2
+	fi
 	return 1
 }
 
