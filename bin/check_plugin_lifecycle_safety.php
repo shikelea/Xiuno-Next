@@ -99,7 +99,7 @@ strpos($lifecycle, 'plugin_lifecycle_guard_clear();') !== FALSE
 	|| fail('Plugin lifecycle execution must clear the shutdown rollback guard after normal return or catch.');
 strpos($lifecycle, 'catch(Throwable $e)') !== FALSE
 	|| fail('Plugin lifecycle files must be wrapped in a Throwable catch.');
-strpos($lifecycle, 'plugin_compat_include_lifecycle($file, $dir)') !== FALSE
+strpos($lifecycle, 'plugin_compat_include_lifecycle($file, $dir, $action)') !== FALSE
 	|| fail('Plugin lifecycle execution must preserve the legacy global include scope.');
 $compat_include = section_between($plugin_model, 'function plugin_compat_include_lifecycle(', 'function plugin_compat_form_action_is_local');
 strpos($compat_include, 'extract($GLOBALS, EXTR_REFS | EXTR_SKIP);') !== FALSE
