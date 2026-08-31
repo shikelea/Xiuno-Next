@@ -51,7 +51,8 @@ defined('XIUNOPHP_PATH') || define('XIUNOPHP_PATH', $root.'/xiunophp/');
 $_SERVER['lang'] = array(
 	'plugin_task_locked'=>'plugin task locked',
 	'plugin_dependency_following'=>'{name}: {s}',
-	'plugin_being_dependent_cant_delete'=>'{name}: {s}',
+	'plugin_being_dependent_cant_delete'=>'DELETE {name}: {s}',
+	'plugin_being_dependent_cant_disable'=>'DISABLE {name}: {s}',
 );
 $_SERVER['time'] = time();
 $_SERVER['ajax'] = 0;
@@ -142,6 +143,17 @@ if(is_file($app.'tmp/lock_plugin_task.lock')) {
 }
 if(strpos($output, '?plugin-read.htm&amp;dir=uses_shared') === FALSE) {
 	fail('Reverse dependency should render a local detail link.');
+}
+if(strpos($output, 'DELETE shared:') === FALSE || strpos($output, 'DISABLE shared:') !== FALSE) {
+	fail("Uninstall dependency failure should retain delete semantics.\n$output");
+}
+
+$output = run_child($root, $app, 'shared', 'disable');
+if(is_file($app.'tmp/lock_plugin_task.lock')) {
+	fail('plugin_task lock must be released after disable dependency failure.');
+}
+if(strpos($output, 'DISABLE shared:') === FALSE || strpos($output, 'DELETE shared:') !== FALSE) {
+	fail("Disable dependency failure should use disable semantics.\n$output");
 }
 
 rm_dir($app);

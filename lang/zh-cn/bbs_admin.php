@@ -189,6 +189,7 @@ return array(
 	'plugin_set_relatied_dir_writable'=>'在安装插件目录期间，请设置：{dir} 和文件为可写',
 	'plugin_dependency_following'=>'依赖以下插件：{s}，请先安装依赖的插件',
 	'plugin_being_dependent_cant_delete'=>'不能删除 {name}，以下插件依赖它：{s}',
+	'plugin_being_dependent_cant_disable'=>'不能禁用 {name}，以下插件依赖它：{s}',
 	'server_response_empty'=>'服务器返回数据为空',
 	'server_response_error'=>'服务器返回数据有错',
 	'zip_data_error'=>'压缩包数据有误',
