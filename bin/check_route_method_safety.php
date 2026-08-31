@@ -114,8 +114,19 @@ strpos($thread_operation, "in_array(\$op, array('delete', 'close', 'open'), TRUE
 )
 	|| fail('Admin thread batch operation should destroy the queue after it is exhausted.');
 
-strpos($admin_route_index, "\$method != 'POST' AND message(-1, 'Method Not Allowed');") !== FALSE
-	|| fail('Admin logout must require POST.');
+$admin_logout = section_between($admin_route_index, "} elseif (\$action == 'logout')", "} elseif (\$action == 'safe_mode_exit')");
+strpos($admin_logout, "if(\$method == 'GET')") !== FALSE
+	&& strpos($admin_logout, "include _include(ADMIN_PATH.'view/htm/index_logout.htm')") !== FALSE
+	&& strpos($admin_logout, "elseif(\$method == 'POST')") !== FALSE
+	&& strpos($admin_logout, 'admin_token_clean();') > strpos($admin_logout, "elseif(\$method == 'POST')")
+	|| fail('Admin logout must keep GET read-only and clear the admin token only after POST.');
+
+$admin_logout_template = file_get_contents($root.'/admin/view/htm/index_logout.htm');
+is_string($admin_logout_template)
+	&& strpos($admin_logout_template, 'method="post"') !== FALSE
+	&& strpos($admin_logout_template, 'name="_token"') !== FALSE
+	&& strpos($admin_logout_template, 'csrf_token()') !== FALSE
+	|| fail('Admin logout confirmation must submit a CSRF-protected POST.');
 
 strpos($admin_header, 'data-method="post"') !== FALSE && strpos($admin_header, "index-logout") !== FALSE
 	|| fail('Admin logout link must submit via POST.');
