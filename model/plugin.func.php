@@ -83,6 +83,11 @@ function plugin_cache_write_atomic($file, $s, $source = '') {
 		}
 		if($current === $s) {
 			xn_unlink($tmpfile);
+			// The bytes are valid for the current compiler generation. Promote their mtime while the
+			// exclusive publish lock still proves that the compared target has not changed; otherwise
+			// every later request will rebuild the same stale cache forever.
+			if(!@touch($file)) return FALSE;
+			clearstatcache(TRUE, $file);
 			return $written;
 		}
 		if(@rename($tmpfile, $file)) {
