@@ -306,8 +306,7 @@ strpos($shared_http, 'xn_http_curl_protocols') !== FALSE
 	|| fail('Update HTTP GET must restrict cURL protocols.');
 strpos($shared_http, "'verify_peer_name' => true") !== FALSE
 	|| fail('Update HTTP GET stream fallback must explicitly verify TLS host names.');
-strpos($shared_http, 'update_url_public_https_allowed($url)') !== FALSE
-	|| strpos($shared_http, 'update_url_public_https_allowed($current, $resolved_ips)') !== FALSE
+strpos($shared_http, 'update_url_public_https_allowed($current, $resolved_ips, $error)') !== FALSE
 	|| fail('Update HTTP GET must enforce public HTTPS URL boundaries.');
 strpos($shared_http, "'cURL is required for safe online updates'") !== FALSE
 	|| fail('Update HTTP GET must require cURL for DNS pinning.');
@@ -323,8 +322,7 @@ strpos($shared_http, 'xn_http_curl_protocols') !== FALSE
 	|| fail('Update binary download must restrict cURL protocols.');
 strpos($shared_http, "'verify_peer_name' => true") !== FALSE
 	|| fail('Update binary stream fallback must explicitly verify TLS host names.');
-strpos($shared_http, 'update_url_public_https_allowed($url)') !== FALSE
-	|| strpos($shared_http, 'update_url_public_https_allowed($current, $resolved_ips)') !== FALSE
+strpos($shared_http, 'update_url_public_https_allowed($current, $resolved_ips, $error)') !== FALSE
 	|| fail('Update binary download must enforce public HTTPS URL boundaries.');
 
 $conf_setting = section_between($update_route, 'function update_conf_setting', "\n}\n\n?>");

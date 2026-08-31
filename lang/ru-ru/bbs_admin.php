@@ -210,6 +210,17 @@ return array(
 	'plugin_safe_mode_exit_locked'=>'Другая операция безопасного режима уже выполняется. Повторите попытку позже.',
 	'plugin_safe_mode_exit_clear_failed'=>'Не удалось удалить один или несколько маркеров. Проверьте указанный путь и права файловой системы; плагины остаются отключёнными.',
 	'plugin_safe_mode_exit_unlock_failed'=>'Маркеры удалены, но блокировку операции снять не удалось. Обновите страницу и проверьте состояние.',
+
+	// Online update network errors
+	'update_network_ca'=>'TLS certificate trust failed: the server is missing or cannot read a valid CA certificate bundle',
+	'update_network_tls'=>'TLS handshake or certificate verification failed',
+	'update_network_dns'=>'DNS could not resolve the GitHub or proxy address',
+	'update_network_connect'=>'Could not connect to GitHub or the proxy server',
+	'update_network_timeout'=>'The connection to GitHub or the proxy server timed out',
+	'update_network_http'=>'The remote server returned HTTP {status}',
+	'update_network_redirect'=>'The remote server returned an unsafe or excessive redirect',
+	'update_network_curl'=>'The server lacks the cURL capabilities required for secure online updates',
+	'update_network_policy'=>'The update address did not pass the public HTTPS security check',
 	
 	// hook lang_ru_ru_bbs_admin.php
 	

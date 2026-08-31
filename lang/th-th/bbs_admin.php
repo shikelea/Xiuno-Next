@@ -207,6 +207,17 @@ return array(
 	'plugin_safe_mode_exit_locked'=>'มีการดำเนินการโหมดปลอดภัยอื่นอยู่ กรุณาลองใหม่ภายหลัง',
 	'plugin_safe_mode_exit_clear_failed'=>'ไม่สามารถล้างเครื่องหมายโหมดปลอดภัยบางรายการได้ กรุณาตรวจสอบพาธและสิทธิ์ของระบบไฟล์ ปลั๊กอินจะยังคงถูกปิดใช้งาน',
 	'plugin_safe_mode_exit_unlock_failed'=>'ล้างเครื่องหมายแล้ว แต่ไม่สามารถปลดล็อกการดำเนินการได้ กรุณารีเฟรชและตรวจสอบสถานะ',
+
+	// Online update network errors
+	'update_network_ca'=>'TLS certificate trust failed: the server is missing or cannot read a valid CA certificate bundle',
+	'update_network_tls'=>'TLS handshake or certificate verification failed',
+	'update_network_dns'=>'DNS could not resolve the GitHub or proxy address',
+	'update_network_connect'=>'Could not connect to GitHub or the proxy server',
+	'update_network_timeout'=>'The connection to GitHub or the proxy server timed out',
+	'update_network_http'=>'The remote server returned HTTP {status}',
+	'update_network_redirect'=>'The remote server returned an unsafe or excessive redirect',
+	'update_network_curl'=>'The server lacks the cURL capabilities required for secure online updates',
+	'update_network_policy'=>'The update address did not pass the public HTTPS security check',
 	
 	// hook lang_th_th_bbs_admin.php
 	

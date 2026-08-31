@@ -211,6 +211,17 @@ return array(
 	'plugin_not_bought'=>'還沒購買過。',
 	'plugin_wechat_qrcode_pay'=>'微信掃碼支付。',
 	'plugin_service_qq'=>'客服 QQ',
+
+	// 線上更新網路錯誤
+	'update_network_ca'=>'TLS 憑證信任失敗：伺服器缺少或無法讀取有效的 CA 憑證包',
+	'update_network_tls'=>'TLS 交握或憑證驗證失敗',
+	'update_network_dns'=>'DNS 無法解析 GitHub 或代理位址',
+	'update_network_connect'=>'無法連線至 GitHub 或代理伺服器',
+	'update_network_timeout'=>'連線至 GitHub 或代理伺服器逾時',
+	'update_network_http'=>'遠端伺服器回傳 HTTP {status}',
+	'update_network_redirect'=>'遠端重新導向不安全或次數過多，已停止請求',
+	'update_network_curl'=>'伺服器缺少安全線上更新所需的 cURL 功能',
+	'update_network_policy'=>'更新位址未通過公用 HTTPS 安全檢查',
 	
 	// hook lang_zh_tw_bbs_admin.php
 	
