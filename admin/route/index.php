@@ -41,13 +41,20 @@ if($action == 'login') {
 
 } elseif ($action == 'logout') {
 
-	$method != 'POST' AND message(-1, 'Method Not Allowed');
+	if($method == 'GET') {
+		$header['title'] = lang('logout');
+		include _include(ADMIN_PATH.'view/htm/index_logout.htm');
+	} elseif($method == 'POST') {
 
-	// hook admin_index_logout_start.php
+		// hook admin_index_logout_start.php
 
-	admin_token_clean();
+		admin_token_clean();
 
-	message(0, jump(lang('logout_successfully'), './'));
+		message(0, jump(lang('logout_successfully'), './'));
+
+	} else {
+		message(-1, 'Method Not Allowed');
+	}
 
 } elseif ($action == 'safe_mode_exit') {
 
