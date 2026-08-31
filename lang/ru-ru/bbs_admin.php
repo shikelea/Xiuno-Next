@@ -185,6 +185,7 @@ return array(
 	'plugin_set_relatied_dir_writable'=>'Для установки плагина: {dir} задайте права чтения/записи на папку плагина',
 	'plugin_dependency_following'=>'Плагин зависит от другого плагига: {s}, сначала установите зависимости',
 	'plugin_being_dependent_cant_delete'=>'Не могу удалить ({name}), зависит от плагина: {s}.',
+	'plugin_being_dependent_cant_disable'=>'Не могу отключить ({name}), зависит от плагина: {s}.',
 	'server_response_empty'=>'Пустой ответ от сервера',
 	'server_response_error'=>'Ошибка при ответе сервера',
 	'zip_data_error'=>'Ошибка архива Zip',

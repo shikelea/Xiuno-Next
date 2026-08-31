@@ -211,7 +211,8 @@ foreach (array('unstall', 'disable') as $action) {
 	$code = preg_replace('#//[^\n]*#', '', $branch);
 	strpos($code, "plugin_require_action_state(\$dir, '$action") !== FALSE
 		|| fail("Plugin $action action must reject stale or repeated state transitions.");
-	strpos($code, "plugin_check_dependency(\$dir, 'unstall');") !== FALSE
+	$dependency_action = $action == 'disable' ? 'disable' : 'unstall';
+	strpos($code, "plugin_check_dependency(\$dir, '$dependency_action');") !== FALSE
 		|| fail("Plugin $action action must check reverse dependencies in executable code.");
 }
 

@@ -295,7 +295,7 @@ if($action == 'local') {
 	//plugin_check_dir_is_writable();
 	
 	// 插件依赖检查
-	plugin_check_dependency($dir, 'unstall');
+	plugin_check_dependency($dir, 'disable');
 	
 	// 禁用插件
 	$plugin_snapshot = plugin_state_snapshot($dir);
@@ -495,7 +495,8 @@ function plugin_check_dependency($dir, $action = 'install', $snapshot = NULL, $p
 		$arr = plugin_by_dependencies($dir);
 		if(!empty($arr)) {
 			$s = plugin_dependency_arr_to_links($arr);
-			$msg = lang('plugin_being_dependent_cant_delete', array('name'=>$name, 's'=>$s));
+			$message_key = $action == 'disable' ? 'plugin_being_dependent_cant_disable' : 'plugin_being_dependent_cant_delete';
+			$msg = lang($message_key, array('name'=>$name, 's'=>$s));
 			plugin_lifecycle_restore_or_fail($dir, $snapshot, $package_snapshot);
 			plugin_message(-1, $msg);
 		}

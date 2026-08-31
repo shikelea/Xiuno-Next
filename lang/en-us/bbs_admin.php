@@ -188,6 +188,7 @@ return array(
 	'plugin_set_relatied_dir_writable'=>'During the installation of the plugin directory, please set: {dir} and file for writable',
 	'plugin_dependency_following'=>'dependent on following plugin: {s}, please install them first.',
 	'plugin_being_dependent_cant_delete'=>'can not delete ({name}), following plugin dependent on it: {s}.',
+	'plugin_being_dependent_cant_disable'=>'can not disable ({name}), following plugin dependent on it: {s}.',
 	'server_response_empty'=>'Sever response empty',
 	'server_response_error'=>'Sever response error',
 	'zip_data_error'=>'Zip data error',

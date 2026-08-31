@@ -182,6 +182,7 @@ return array(
 	'plugin_set_relatied_dir_writable'=>'ระหว่างการติดตั้งปลั๊กอิน กรุณากำหนดให้โฟลเดอร์: {dir} และไฟล์ข้างในเขียนได้',
 	'plugin_dependency_following'=>'ต้องการปลั๊กอินดังต่อไปนี้: {s} กรุณาติดตั้งปลั๊กอินเหล่านี้ก่อน',
 	'plugin_being_dependent_cant_delete'=>'ไม่สามารถลบ ({name}) ปลั๊กอินต่อไปนี้ต้องการ: {s}',
+	'plugin_being_dependent_cant_disable'=>'ไม่สามารถปิดใช้งาน ({name}) ปลั๊กอินต่อไปนี้ต้องการ: {s}',
 	'server_response_empty'=>'ไม่มีการตอบสนองจากเซิร์ฟเวอร์',
 	'server_response_error'=>'การตอบสนองจากเซิร์ฟเวอร์ผิดพลาด',
 	'zip_data_error'=>'ข้อมูล Zip ผิดพลาด',
