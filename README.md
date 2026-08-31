@@ -121,8 +121,14 @@ php -S 127.0.0.1:8081 -t . bin/dev_router.php
 # 确保已安装依赖
 composer install
 
-# 查看所有可用命令
+# 查看版本、所有命令及单个命令帮助
+php bin/xiuno --version
 php bin/xiuno list
+php bin/xiuno <command> --help
+
+# 只检查迁移/升级元数据，不连接数据库或写入配置
+php bin/xiuno migrate --check
+php bin/xiuno upgrade --check
 
 # 创建新插件
 php bin/xiuno make:plugin <plugin_name>
@@ -137,31 +143,46 @@ php bin/xiuno migrate
 php bin/xiuno upgrade
 ```
 
-### 升级指南 (从 4.0.x 升级)
+`migrate --check` 与 `upgrade --check` 只验证随代码发布的迁移文件和升级元数据，不能代替目标站点的数据库预检。`migrate` 会在取得数据库升级锁后直接执行待迁移项，不另行询问；`upgrade` 会先显示站点预检报告，再以默认“否”询问是否继续，`--no-interaction` 不会自动批准升级。`make:plugin` 只在项目的 `plugin/<name>/` 创建新目录，并拒绝覆盖已有目录。
 
-支持从 Xiuno BBS 4.0.4 / 4.0.5 / 4.0.7 等主流版本一键升级到 Xiuno Next。
+命令成功、无需操作或用户在升级确认处取消时退出码为 `0`；参数错误、未知命令、环境检查或执行失败时退出码为 `1`。自动化脚本应同时检查退出码和输出，不能把退出码 `0` 的“升级已取消”当作已经升级。
+
+### 升级指南（Xiuno BBS 4.0.4 / 4.0.5 / 4.0.7 → Xiuno Next 4.5.1）
+
+升级分为“替换核心文件”和“执行站点迁移”两部分，不是无备份的一键覆盖。请先在旧站副本演练；生产升级时停止站点写入，并确保数据库与站点文件来自同一个恢复点。
 
 ```bash
-# 1. 备份！备份数据库和所有文件
+# 1. 备份数据库和整个站点目录，并确认备份可以读取
 mysqldump -u root -p your_db > backup.sql
 cp -r /path/to/xiuno /path/to/xiuno_backup
 
-# 2. 将 Xiuno Next 代码覆盖到站点目录（保留 conf/conf.php 和 upload/ 目录）
+# 2. 在单独目录解压 4.5.1，再将核心文件复制到旧站
+# 不得覆盖 conf/、plugin/、upload/、tmp/、log/、本地数据目录和部署配置
 
-# 3. 安装 Composer 依赖
-composer install
+# 3. 在站点目录安装运行依赖
+composer install --no-dev --prefer-dist
 
-# 4. 运行升级工具
+# 4. 先检查发布内的升级元数据，再查看实际命令帮助
+php bin/xiuno upgrade --check
+php bin/xiuno upgrade --help
+
+# 5. 运行真实站点预检；核对报告后在默认“否”的确认处明确同意
 php bin/xiuno upgrade
 ```
 
 升级工具会自动完成以下操作：
+
 - **版本检测**：识别当前安装的旧版版本号
-- **升级预检报告**：列出所有待执行的变更（配置补全、数据库迁移等），确认后再执行
+- **升级预检报告**：连接主数据库，列出配置、字段和迁移变更，确认后才进入写入阶段
 - **配置迁移**：自动添加旧版缺失的配置项（如 `csrf_on`、`disabled_plugin` 等）
-- **数据库迁移**：扩展 `password` 字段至 `varchar(255)` 以支持 bcrypt 哈希
+- **数据库迁移**：扩展 `password` 字段至 `varchar(255)`，并补充登录凭据代际字段
 - **密码渐进升级**：用户下次登录时，密码自动从 MD5+salt 升级为 bcrypt，无需重置
-- **缓存清理**：清理编译缓存、插件 Hook 缓存和安全模式标记
+- **缓存清理**：只清理可再生的编译缓存和插件 Hook 缓存；任务锁、恢复备份和安全模式标记保持不变
+- **完成标记**：前述步骤成功后才把 `conf/conf.php` 的版本与静态资源版本写为 `4.5.1`
+
+CLI 升级不会替你创建数据库或全站文件备份，也不能把 MySQL DDL、配置文件写入和第三方脚本副作用合并为一个可自动回滚的事务。如果升级失败，不要手工把 `conf/conf.php` 的版本改成 `4.5.1`：停止站点写入，保留错误输出，选择从同一恢复点同时还原数据库和全部站点文件，或修复明确的失败原因后重新运行命令。成功后如需降级，同样必须恢复升级前成套的数据库与文件备份；后台在线更新的“最近备份回滚”只处理它记录的核心文件和配置版本，不等同于数据库回滚。
+
+升级完成后重新打开站点，验证登录、发帖/回帖、附件和常用插件/主题，再到后台更新缓存。确认无误后才恢复外部写入。
 
 ## 开发与回归测试
 
