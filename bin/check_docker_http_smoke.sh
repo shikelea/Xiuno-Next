@@ -346,7 +346,8 @@ INSTALL_RESPONSE="$(submit_install "$INSTALL_TOKEN")"
 assert_json_code "$INSTALL_RESPONSE" '0'
 [[ -f "$ROOT/conf/conf.php" && -f "$ROOT/conf/.installed.lock" ]] \
 	|| fail "Web installer did not persist installation state."
-INSTALL_AUTH_KEY="$(sed -nE "s/^[[:space:]]*'auth_key'[[:space:]]*=>[[:space:]]*'([a-f0-9]{64})',[[:space:]]*$/\\1/p" "$ROOT/conf/conf.php" | head -n 1)"
+INSTALL_AUTH_KEY="$("${COMPOSE[@]}" exec -T app php -r '$conf = require "/var/www/html/conf/conf.php"; echo isset($conf["auth_key"]) && is_string($conf["auth_key"]) ? $conf["auth_key"] : "";')" \
+	|| fail "Application container could not read the installed configuration."
 [[ "$INSTALL_AUTH_KEY" =~ ^[a-f0-9]{64}$ ]] \
 	|| fail "Web installer did not persist a 64-character hexadecimal auth key."
 [[ ! -e "$ROOT/conf/conf.backup.php" ]] && ! install_stage_files_exist \
