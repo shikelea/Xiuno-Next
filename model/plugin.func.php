@@ -1130,13 +1130,28 @@ function plugin_setting_compat_log($message) {
 
 // 在安装、卸载插件的时候，需要先初始化。Schema 只注册到本次请求；调用方完成同类替换等
 // 外层提交步骤后才持久化，失败/deferred 路径不能把半安装状态写回设置。
-function plugin_compat_include_lifecycle($file, $dir = '') {
+function plugin_compat_include_lifecycle($file, $dir = '', $lifecycle_action = '') {
 	$data = NULL;
+	$compat_restore_method = FALSE;
+	$compat_original_method = NULL;
+	$compat_post_fields = array();
 	extract($GLOBALS, EXTR_REFS | EXTR_SKIP);
+	$compat_original_method = isset($method) ? $method : NULL;
+	// Core install links use a token-only POST, while some legacy multi-step installers use
+	// $method as their wizard state. Only the include sees GET; the protected request stays POST.
+	if($lifecycle_action === 'install' && $compat_original_method === 'POST') {
+		$compat_post_fields = isset($_POST) && is_array($_POST) ? $_POST : array();
+		unset($compat_post_fields['_token']);
+		if(empty($compat_post_fields)) {
+			$method = 'GET';
+			$compat_restore_method = TRUE;
+		}
+	}
 	$capture_token = plugin_setting_capture_begin($dir);
 	try {
 		return include _include($file);
 	} finally {
+		if($compat_restore_method) $method = $compat_original_method;
 		$capture = plugin_setting_capture_end($capture_token);
 		if(is_array($data)) plugin_setting_schema_bind_plugin($dir, $data, $capture);
 	}

@@ -693,7 +693,7 @@ function plugin_run_lifecycle($dir, $action, $snapshot = NULL, $package_snapshot
 	$file = $real_file;
 	plugin_lifecycle_guard_start($dir, $action, $snapshot, $package_snapshot, $extra_state_restore);
 	try {
-		$result = plugin_compat_include_lifecycle($file, $dir);
+		$result = plugin_compat_include_lifecycle($file, $dir, $action);
 		$pending_message = plugin_lifecycle_pending_message_take();
 		if($pending_message !== NULL) {
 			$lifecycle_result = plugin_lifecycle_handle_message($dir, $action, $pending_message, $snapshot, $package_snapshot, $extra_state_restore);

@@ -68,7 +68,8 @@ function write_global_context_plugin($app, $dir) {
 	write_plain_plugin($app, $dir, 0, 0);
 	$source = <<<'PHP'
 <?php
-if($method !== 'POST' || $conf['sitename'] !== 'Lifecycle Smoke') {
+$expected_method = isset($_POST['wizard_step']) ? 'POST' : 'GET';
+if($method !== $expected_method || $conf['sitename'] !== 'Lifecycle Smoke') {
 	message(-1, 'Legacy lifecycle globals missing');
 }
 return TRUE;
@@ -165,12 +166,13 @@ function run_php_child($app, $prefix, $code, $label) {
 	return $out;
 }
 
-function run_child($root, $app, $dir, $action) {
+function run_child($root, $app, $dir, $action, $post = array()) {
 	$code = <<<'PHP'
 $root = %s;
 $app = %s;
 $dir = %s;
 $lifecycle_action = %s;
+$post = %s;
 defined('DEBUG') || define('DEBUG', 0);
 defined('APP_PATH') || define('APP_PATH', $app);
 defined('ADMIN_PATH') || define('ADMIN_PATH', $app.'admin/');
@@ -180,7 +182,8 @@ $_SERVER['time'] = time();
 $_SERVER['ajax'] = 0;
 $_SERVER['HTTP_HOST'] = 'localhost';
 $_SERVER['conf'] = array('tmp_path'=>$app.'tmp/', 'log_path'=>$app.'log/', 'url_rewrite_on'=>0, 'sitename'=>'Lifecycle Smoke');
-$_REQUEST = array(1=>'__noop');
+$_POST = $post;
+$_REQUEST = array(1=>'__noop') + $post;
 $method = 'POST';
 $time = $_SERVER['time'];
 $conf = $_SERVER['conf'];
@@ -202,10 +205,11 @@ if($lifecycle_action === 'install') {
 	plugin_require_state_write(plugin_unstall($dir), $dir, $snapshot);
 	$lifecycle_result = plugin_run_lifecycle($dir, 'unstall', $snapshot);
 }
+if($method !== 'POST') throw new RuntimeException('Lifecycle compatibility method was not restored.');
 plugin_lock_end();
 	if(isset($lifecycle_result) && is_array($lifecycle_result)) echo json_encode($lifecycle_result);
 PHP;
-	$code = sprintf($code, var_export($root, TRUE), var_export($app, TRUE), var_export($dir, TRUE), var_export($action, TRUE));
+	$code = sprintf($code, var_export($root, TRUE), var_export($app, TRUE), var_export($dir, TRUE), var_export($action, TRUE), var_export($post, TRUE));
 	return run_php_child($app, $action, $code, "child $action");
 }
 
@@ -309,7 +313,7 @@ if(empty($conf['installed']) || empty($conf['enable'])) {
 	fail('plugin without install.php must preserve the installed state.');
 }
 if(!empty($no_lifecycle_out)) {
-	fail('plugin without install.php must not emit a controlled lifecycle response.');
+	fail("plugin without install.php must not emit a controlled lifecycle response.\n".implode("\n", $no_lifecycle_out));
 }
 
 write_return_plugin($app, 'return_install', 0, 0, 'install');
@@ -323,10 +327,17 @@ if(!empty($return_out)) {
 }
 
 write_global_context_plugin($app, 'global_context_install');
-$global_context_out = run_child($root, $app, 'global_context_install', 'install');
+$global_context_out = run_child($root, $app, 'global_context_install', 'install', array('_token'=>'entry-token'));
 $conf = package_conf($app, 'global_context_install');
 if(empty($conf['installed']) || empty($conf['enable']) || !empty($global_context_out)) {
-	fail('install.php must retain legacy access to global request and configuration variables.');
+	fail('Initial install entry must present GET to the legacy lifecycle include while retaining configuration globals.');
+}
+
+write_global_context_plugin($app, 'global_context_wizard_submit');
+$global_context_wizard_out = run_child($root, $app, 'global_context_wizard_submit', 'install', array('_token'=>'wizard-token', 'wizard_step'=>'complete'));
+$conf = package_conf($app, 'global_context_wizard_submit');
+if(empty($conf['installed']) || empty($conf['enable']) || !empty($global_context_wizard_out)) {
+	fail('Install wizard submissions with business fields must retain the legacy POST method.');
 }
 
 write_return_plugin($app, 'false_install', 0, 0, 'install', FALSE);
