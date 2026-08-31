@@ -26,7 +26,8 @@ if ($action == 'check') {
 	// 读取已保存的代理设置
 	$saved_proxy = isset($conf['github_proxy']) ? $conf['github_proxy'] : '';
 	$current_version = $conf['version'];
-	$latest = update_github_latest_release();
+	$check_error = '';
+	$latest = update_github_latest_release($check_error);
 	$latest_version = '';
 	$has_update = FALSE;
 	$error = '';
@@ -35,7 +36,7 @@ if ($action == 'check') {
 	$rollback_backup = update_latest_backup();
 
 	if ($latest === FALSE) {
-		$error = lang('update_check_failed');
+		$error = update_http_error_message($check_error, lang('update_check_failed'));
 	} else {
 		$tag_name = isset($latest['tag_name']) ? trim($latest['tag_name']) : '';
 		if (!update_tag_valid($tag_name)) {
@@ -65,11 +66,12 @@ if ($action == 'check') {
 	}
 
 	$start = microtime(true);
-	$response = update_http_get($test_url, 8);
+	$proxy_error = '';
+	$response = update_http_get($test_url, 8, $proxy_error);
 	$elapsed = round((microtime(true) - $start) * 1000);
 
 	if ($response === FALSE || empty($response)) {
-		message(-1, lang('update_proxy_unreachable'));
+		message(-1, update_http_error_message($proxy_error, lang('update_proxy_unreachable')));
 	}
 	$data = xn_json_decode($response);
 	if (empty($data) || (isset($data['message']) && isset($data['documentation_url']))) {
@@ -102,8 +104,9 @@ if ($action == 'check') {
 
 	// 发布元数据和校验和必须通过 GitHub TLS 直连获取。
 	// 第三方代理只能传输后续会被校验的 ZIP 字节。
-	$latest = update_github_latest_release();
-	if ($latest === FALSE) update_message(-1, lang('update_check_failed'));
+	$check_error = '';
+	$latest = update_github_latest_release($check_error);
+	if ($latest === FALSE) update_message(-1, update_http_error_message($check_error, lang('update_check_failed')));
 
 	$tag_name = isset($latest['tag_name']) ? trim($latest['tag_name']) : '';
 	if (!update_tag_valid($tag_name)) {
@@ -132,16 +135,14 @@ if ($action == 'check') {
 			$proxy_fallback_used = TRUE;
 		}
 		if ($zipdata === FALSE || strlen($zipdata) < 100) {
-			$detail = $dl_error ? ' (' . $dl_error . ')' : '';
-			update_message(-1, lang('update_download_failed') . $detail);
+			$detail = update_http_error_message($dl_error);
+			update_message(-1, lang('update_download_failed') . ($detail ? ': ' . $detail : ''));
 		}
 	}
 
 	// 校验 ZIP 文件魔数头（PK\x03\x04）
 	if (substr($zipdata, 0, 2) !== 'PK') {
-		// 下载到的不是 ZIP，可能是代理返回的 HTML/JSON 错误页
-		$hint = substr($zipdata, 0, 200);
-		update_message(-1, lang('update_not_zip') . ' (' . htmlspecialchars($hint) . ')');
+		update_message(-1, lang('update_not_zip'));
 	}
 
 	$zip_sha256 = hash('sha256', $zipdata);
@@ -326,14 +327,20 @@ function update_lock_name() {
 	return 'update_task';
 }
 
-function update_github_latest_release() {
+function update_github_latest_release(&$error = '') {
+	$error = '';
 	$url = GITHUB_API_URL . '/releases/latest';
-	$s = update_http_get_json($url);
+	$release_error = '';
+	$s = update_http_get_json($url, $release_error);
 	if ($s === FALSE) {
 		// 没有 release 时尝试获取最新 tag
 		$url = GITHUB_API_URL . '/tags';
-		$s = update_http_get_json($url);
-		if ($s === FALSE || empty($s)) return FALSE;
+		$tag_error = '';
+		$s = update_http_get_json($url, $tag_error);
+		if ($s === FALSE || empty($s)) {
+			$error = $tag_error ? $tag_error : $release_error;
+			return FALSE;
+		}
 		// 取第一个 tag 模拟 release 格式
 		$tag = $s[0];
 		return array(
@@ -380,8 +387,8 @@ function update_proxy_public_host($host) {
 /**
  * 发起 HTTPS GET 请求，返回解码后的 JSON
  */
-function update_http_get_json($url) {
-	$response = update_http_get($url);
+function update_http_get_json($url, &$error = '') {
+	$response = update_http_get($url, 10, $error);
 	if ($response === FALSE || empty($response)) return FALSE;
 	$data = xn_json_decode($response);
 	if (empty($data)) return FALSE;
@@ -393,9 +400,25 @@ function update_http_get_json($url) {
 /**
  * HTTPS GET 请求（带 User-Agent，GitHub API 必须）
  */
-function update_http_get($url, $timeout = 10) {
-	$error = '';
+function update_http_get($url, $timeout = 10, &$error = '') {
 	return update_http_get_body($url, $timeout, array('Accept: application/vnd.github.v3+json'), 5, 0, $error);
+}
+
+function update_http_error_message($error, $fallback = '') {
+	$error = trim((string)$error);
+	if ($error === '') return $fallback;
+	$errno = 0;
+	if (preg_match('/^cURL #(\d+):/i', $error, $m)) $errno = intval($m[1]);
+	if (in_array($errno, array(60, 77, 82, 83), TRUE)) return lang('update_network_ca');
+	if (in_array($errno, array(35, 51, 53, 58, 59, 64, 66, 80, 90, 91), TRUE)) return lang('update_network_tls');
+	if (in_array($errno, array(5, 6), TRUE) || stripos($error, 'DNS resolution failed') !== FALSE || stripos($error, 'DNS resolver unavailable') !== FALSE) return lang('update_network_dns');
+	if ($errno === 7) return lang('update_network_connect');
+	if ($errno === 28) return lang('update_network_timeout');
+	if (preg_match('/^HTTP (\d{3})$/i', $error, $m)) return lang('update_network_http', array('status'=>$m[1]));
+	if (stripos($error, 'redirect') !== FALSE) return lang('update_network_redirect');
+	if (stripos($error, 'cURL is required') !== FALSE || stripos($error, 'cURL unavailable') !== FALSE || stripos($error, 'CURLOPT_RESOLVE') !== FALSE) return lang('update_network_curl');
+	if (stripos($error, 'allowed public HTTPS URL') !== FALSE || stripos($error, 'public IP') !== FALSE) return lang('update_network_policy');
+	return $fallback;
 }
 
 function update_http_get_body($url, $timeout, $headers, $max_redirects, $max_bytes = 0, &$error = '') {
@@ -407,8 +430,8 @@ function update_http_get_body($url, $timeout, $headers, $max_redirects, $max_byt
 	$redirects = 0;
 	while (TRUE) {
 		$resolved_ips = array();
-		if (!update_url_public_https_allowed($current, $resolved_ips)) {
-			$error = 'URL is not an allowed public HTTPS URL';
+		if (!update_url_public_https_allowed($current, $resolved_ips, $error)) {
+			if ($error === '') $error = 'URL is not an allowed public HTTPS URL';
 			return FALSE;
 		}
 		$result = update_http_get_body_curl($current, $timeout, $headers, $resolved_ips, $error);
@@ -454,7 +477,7 @@ function update_http_get_body_curl($url, $timeout, $headers, $resolved_ips = arr
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Xiuno-Next-Updater');
 		function_exists('xn_http_curl_protocols') AND xn_http_curl_protocols($ch);
 		if (!update_curl_pin_resolved_ips($ch, $url, $resolved_ips, $error)) {
-			curl_close($ch);
+			PHP_VERSION_ID < 80000 AND curl_close($ch);
 			return FALSE;
 		}
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
@@ -463,7 +486,7 @@ function update_http_get_body_curl($url, $timeout, $headers, $resolved_ips = arr
 		$header_size = intval(curl_getinfo($ch, CURLINFO_HEADER_SIZE));
 		$curl_error = curl_error($ch);
 		$curl_errno = curl_errno($ch);
-		curl_close($ch);
+		PHP_VERSION_ID < 80000 AND curl_close($ch);
 		if ($raw === FALSE) {
 			$error = $curl_errno ? "cURL #{$curl_errno}: {$curl_error}" : 'cURL failed';
 			return FALSE;
@@ -612,40 +635,64 @@ function update_normalize_url_path($path) {
 	return '/' . implode('/', $out);
 }
 
-function update_url_public_https_allowed($url, &$resolved_ips = NULL) {
-	if (!xn_http_url_allowed($url)) return FALSE;
+function update_url_public_https_allowed($url, &$resolved_ips = NULL, &$error = '') {
+	$error = '';
+	if (!xn_http_url_allowed($url)) {
+		$error = 'URL is not an allowed public HTTPS URL';
+		return FALSE;
+	}
 	$parts = parse_url($url);
-	if (empty($parts['scheme']) || strtolower($parts['scheme']) !== 'https') return FALSE;
-	if (empty($parts['host'])) return FALSE;
-	if (!empty($parts['user']) || !empty($parts['pass'])) return FALSE;
+	if (empty($parts['scheme']) || strtolower($parts['scheme']) !== 'https' || empty($parts['host']) || !empty($parts['user']) || !empty($parts['pass'])) {
+		$error = 'URL is not an allowed public HTTPS URL';
+		return FALSE;
+	}
 	$ips = array();
-	$allowed = update_resolve_public_ips($parts['host'], $ips);
+	$allowed = update_resolve_public_ips($parts['host'], $ips, $error);
 	if ($resolved_ips !== NULL) $resolved_ips = $ips;
 	return $allowed;
 }
 
-function update_resolve_public_ips($host, &$ips = array()) {
+function update_resolve_public_ips($host, &$ips = array(), &$error = '') {
 	$host = trim((string)$host, '[]');
 	$ips = array();
-	if ($host === '') return FALSE;
+	$error = '';
+	if ($host === '') {
+		$error = 'URL is not an allowed public HTTPS URL';
+		return FALSE;
+	}
 	if (filter_var($host, FILTER_VALIDATE_IP)) {
-		if (!update_public_ip_allowed($host)) return FALSE;
+		if (!update_public_ip_allowed($host)) {
+			$error = 'URL is not an allowed public HTTPS URL';
+			return FALSE;
+		}
 		$ips[] = $host;
 		return TRUE;
 	}
-	if ($host === 'localhost' || substr($host, -10) === '.localhost' || substr($host, -6) === '.local') return FALSE;
-	if (strpos($host, '.') === FALSE || preg_match('/[\x00-\x1F\x7F]/', $host)) return FALSE;
-	if (!function_exists('dns_get_record')) return FALSE;
+	if ($host === 'localhost' || substr($host, -10) === '.localhost' || substr($host, -6) === '.local' || strpos($host, '.') === FALSE || preg_match('/[\x00-\x1F\x7F]/', $host)) {
+		$error = 'URL is not an allowed public HTTPS URL';
+		return FALSE;
+	}
+	if (!function_exists('dns_get_record')) {
+		$error = 'DNS resolver unavailable';
+		return FALSE;
+	}
 	$records = @dns_get_record($host, DNS_A | DNS_AAAA);
-	if (empty($records) || !is_array($records)) return FALSE;
+	if (empty($records) || !is_array($records)) {
+		$error = 'DNS resolution failed';
+		return FALSE;
+	}
 	foreach ($records as $record) {
 		$ip = '';
 		if (!empty($record['ip'])) $ip = $record['ip'];
 		if (!empty($record['ipv6'])) $ip = $record['ipv6'];
 		if ($ip === '') continue;
-		if (!update_public_ip_allowed($ip)) return FALSE;
+		if (!update_public_ip_allowed($ip)) {
+			$error = 'URL is not an allowed public HTTPS URL';
+			return FALSE;
+		}
 		$ips[$ip] = $ip;
 	}
+	if (empty($ips)) $error = 'DNS resolution failed';
 	return !empty($ips);
 }
 

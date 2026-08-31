@@ -27,6 +27,14 @@ function section_after($source, $needle) {
 	return substr($source, $pos + strlen($needle));
 }
 
+function param($key, $default = '') {
+	return isset($_REQUEST[$key]) ? $_REQUEST[$key] : $default;
+}
+
+function lang($key, $replace = array()) {
+	return isset($replace['status']) ? $key.':'.$replace['status'] : $key;
+}
+
 $update_route = source_text($root.'/admin/route/update.php');
 
 strpos($update_route, 'function update_lock_start()') !== FALSE
@@ -78,13 +86,13 @@ strpos($update_route, 'function update_http_get_body($url, $timeout, $headers, $
 	|| fail('Online update HTTP reads must use a shared bounded redirect helper.');
 strpos($update_route, "'cURL is required for safe online updates'") !== FALSE
 	|| fail('Online update must require cURL so resolved public IPs can be pinned.');
-strpos($update_route, 'update_url_public_https_allowed($current, $resolved_ips)') !== FALSE
+strpos($update_route, 'update_url_public_https_allowed($current, $resolved_ips, $error)') !== FALSE
 	|| fail('Online update must resolve and validate every request hop before connecting.');
 strpos($update_route, 'function update_curl_pin_resolved_ips($ch, $url, $resolved_ips, &$error =') !== FALSE
 	|| fail('Online update cURL requests must pin already validated DNS results.');
 strpos($update_route, 'CURLOPT_RESOLVE') !== FALSE
 	|| fail('Online update cURL requests must use CURLOPT_RESOLVE for DNS rebinding resistance.');
-strpos($update_route, 'function update_resolve_public_ips($host, &$ips = array())') !== FALSE
+strpos($update_route, "function update_resolve_public_ips(\$host, &\$ips = array(), &\$error = '')") !== FALSE
 	|| fail('Online update must resolve hostnames before HTTP requests.');
 strpos($update_route, 'dns_get_record($host, DNS_A | DNS_AAAA)') !== FALSE
 	|| fail('Online update DNS validation must inspect A and AAAA records.');
@@ -104,14 +112,13 @@ strpos($update_route, "'follow_location' => 1") === FALSE
 	|| fail('Online update stream fallback must not automatically follow redirects.');
 strpos($update_route, 'function update_redirect_url($location, $base_url)') !== FALSE
 	|| fail('Online update redirects must be normalized by a dedicated helper.');
-strpos($update_route, 'function update_url_public_https_allowed($url)') !== FALSE
-	|| strpos($update_route, 'function update_url_public_https_allowed($url, &$resolved_ips = NULL)') !== FALSE
+strpos($update_route, "function update_url_public_https_allowed(\$url, &\$resolved_ips = NULL, &\$error = '')") !== FALSE
 	|| fail('Online update redirects must be constrained to public HTTPS URLs.');
 strpos($update_route, "strtolower(\$parts['scheme']) !== 'https'") !== FALSE
 	|| fail('Online update redirects must reject protocol downgrade to HTTP.');
-strpos($update_route, 'update_resolve_public_ips($parts[\'host\'], $ips)') !== FALSE
+strpos($update_route, "update_resolve_public_ips(\$parts['host'], \$ips, \$error)") !== FALSE
 	|| fail('Online update redirects must reject private/local hosts after DNS resolution.');
-strpos($download, 'update_github_latest_release()') !== FALSE
+strpos($download, 'update_github_latest_release($check_error)') !== FALSE
 	|| fail('Online update must fetch release metadata directly from GitHub.');
 strpos($download, 'update_github_latest_release($proxy)') === FALSE
 	|| fail('Online update must not fetch trusted release metadata through an artifact proxy.');
@@ -154,6 +161,8 @@ strpos($download, 'update_added_files($source_dir, $app_root, $protected)') !== 
 	|| fail('Update must record files added by the replacement package before copying.');
 strpos($download, 'update_write_added_files($backup_dir, $added_files, $added_error)') !== FALSE
 	|| fail('Update must persist the added-file manifest in the backup directory.');
+strpos($download, '$hint = substr($zipdata') === FALSE
+	|| fail('Invalid update responses must not be reflected into the admin page.');
 
 $copy_failure = section_between($download, 'if ($result === FALSE)', '$result[\'backed_up\']');
 strpos($copy_failure, 'update_restore_backup_with_added_cleanup($backup_dir, $app_root, $restore_error)') !== FALSE
@@ -208,5 +217,29 @@ strpos($conf_version, '$count = 0;') !== FALSE
 	|| fail('update_conf_version() must verify that the version key was replaced.');
 strpos($conf_version, '=== strlen($s)') !== FALSE
 	|| fail('update_conf_version() must detect partial writes.');
+
+defined('DEBUG') || define('DEBUG', 1);
+$_REQUEST[1] = 'noop';
+ob_start();
+include $root.'/admin/route/update.php';
+ob_end_clean();
+
+$network_errors = array(
+	'cURL #60: unable to get local issuer certificate'=>'update_network_ca',
+	'cURL #35: TLS handshake failed'=>'update_network_tls',
+	'cURL #6: Could not resolve host'=>'update_network_dns',
+	'cURL #7: Failed to connect'=>'update_network_connect',
+	'cURL #28: Operation timed out'=>'update_network_timeout',
+	'HTTP 403'=>'update_network_http:403',
+	'too many redirects'=>'update_network_redirect',
+	'cURL is required for safe online updates'=>'update_network_curl',
+	'URL is not an allowed public HTTPS URL'=>'update_network_policy',
+);
+foreach ($network_errors as $raw_error=>$expected_message) {
+	update_http_error_message($raw_error, 'fallback') === $expected_message
+		|| fail("Online update error classification failed for $expected_message.");
+}
+update_http_error_message('unknown internal detail', 'fallback') === 'fallback'
+	|| fail('Unknown update errors must use the safe fallback message.');
 
 echo "OK: update task safety checks passed\n";
