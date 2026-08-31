@@ -156,6 +156,18 @@ plugin_cache_write_atomic($target, $payloads[0]) === strlen($payloads[0])
 hash_file('sha256', $target) === hash('sha256', $payloads[0])
 	|| fail('Atomic plugin cache writer changed sequential payload bytes.');
 
+// A successfully validated generation with identical bytes must still advance out of a stale mtime;
+// otherwise _include() recompiles it on every request without ever reaching the cache fast path.
+touch($target, 1) || fail('Failed to mark the identical generated cache stale.');
+clearstatcache(TRUE, $target);
+plugin_cache_write_atomic($target, $payloads[0]) === strlen($payloads[0])
+	|| fail('Atomic plugin cache writer failed to promote identical valid bytes.');
+clearstatcache(TRUE, $target);
+filemtime($target) > 1
+	|| fail('Identical valid generated cache remained permanently stale after successful validation.');
+hash_file('sha256', $target) === hash('sha256', $payloads[0])
+	|| fail('Promoting an identical generated cache changed its bytes.');
+
 // A malformed generated cache must never replace the last complete generation. This uses the same
 // parser as the running PHP process, records target/source context, and leaves no staging bytes.
 $syntax_log = $app.'cache-syntax.log';
