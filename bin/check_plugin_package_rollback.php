@@ -228,7 +228,7 @@ $_SERVER['conf'] = array(
 	'tmp_path'=>$app.'tmp/',
 	'log_path'=>$app.'log/',
 	'url_rewrite_on'=>0,
-	'version'=>'4.5.2',
+	'version'=>'4.5.3',
 );
 $_REQUEST = array(1=>'__package_restore_guard');
 $time = $_SERVER['time'];

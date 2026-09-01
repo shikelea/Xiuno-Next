@@ -285,6 +285,8 @@ if(empty($errors)) {
 		'button group radio toggle updates the checked value and emits one change event',
 		'button group ignores a disabled input without emitting change',
 		'core fragment-ready helper drives the shared compatibility lifecycle',
+		'same-origin POST preserves a form-owned token when no global token exists',
+		'same-origin xpost preserves a caller token when no global token exists',
 		'cross-origin xpost strips the current session token',
 		'cross-origin fetch strips the transmitted current token only',
 		'cross-origin fetch FormData strips only the scalar current token and preserves external tokens, files and fields',

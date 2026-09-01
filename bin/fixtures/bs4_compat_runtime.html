@@ -453,6 +453,23 @@
 		await wait(20);
 		assert(!tabRoot.hasAttribute('data-bs-target') && !tabRoot.hasAttribute('data-xn-bs-auto-tab-target'), 'tab href leaving a fragment cleans its owned target');
 
+		var csrfMeta = doc.querySelector('meta[name="csrf-token"]');
+		if (csrfMeta) csrfMeta.remove();
+		delete win.csrf_token;
+		var installerForm = doc.createElement('form');
+		installerForm.method = 'post';
+		installerForm.action = '/install/index.php';
+		var installerToken = doc.createElement('input');
+		installerToken.type = 'hidden';
+		installerToken.name = '_token';
+		installerToken.value = 'installer-token';
+		installerForm.appendChild(installerToken);
+		doc.body.appendChild(installerForm);
+		var installerData = new win.FormData(installerForm);
+		assert(installerData.getAll('_token').length === 1 && installerData.get('_token') === 'installer-token', 'same-origin POST preserves a form-owned token when no global token exists');
+		installerForm.remove();
+		win.csrf_token = 'fixture-token';
+
 		var sameOriginForm = doc.createElement('form');
 		sameOriginForm.method = 'post';
 		sameOriginForm.action = '/same-origin';
@@ -550,6 +567,10 @@
 		var ajaxOptions = null;
 		var originalAjax = jq.ajax;
 		jq.ajax = function (options) { ajaxOptions = options; return {}; };
+		delete win.csrf_token;
+		jq.xpost('/same-origin', 'value=kept&_token=installer-token', function () {});
+		assert(ajaxOptions.data === 'value=kept&_token=installer-token', 'same-origin xpost preserves a caller token when no global token exists');
+		win.csrf_token = 'fixture-token';
 		function responseXhr(body, contentType, requestId) {
 			return {
 				status: 200,

@@ -75,7 +75,7 @@ try {
     $migrateDb = smoke_database_name($baseName, 'migrate');
     $ownedDatabases[] = $migrateDb;
     create_old_database($pdo, $migrateDb);
-    write_cli_conf($confFile, $host, $port, $migrateDb, $user, $password, '4.5.2', $sqlMode);
+    write_cli_conf($confFile, $host, $port, $migrateDb, $user, $password, '4.5.3', $sqlMode);
     run_cli($root, ['migrate', '--no-interaction']);
     assert_column_type($pdo, $migrateDb, 'bbs_user', 'password', 'varchar(255)');
     assert_column_type($pdo, $migrateDb, 'bbs_user', 'auth_epoch', 'int unsigned');
@@ -988,7 +988,7 @@ function assert_legacy_boundary_values_preserved(PDO $pdo, string $dbname): void
     if ($row['forum_name'] !== 'legacy_edge' || strlen($row['subject']) !== 128 || hash('sha256', $row['subject']) !== hash('sha256', $expectedSubject)) {
         throw new RuntimeException('Legacy boundary-value forum or subject changed after migration.');
     }
-    if ((int) $row['thread_userip'] !== 4294967295 || (int) $row['thread_create_date'] !== 0 || (int) $row['last_date'] !== 4294967295) {
+    if ((string) $row['thread_userip'] !== '4294967295' || (string) $row['thread_create_date'] !== '0' || (string) $row['last_date'] !== '4294967295') {
         throw new RuntimeException('Legacy boundary-value thread IP or date fields changed after migration.');
     }
     if ((int) $row['posts'] !== 0 || (int) $row['files'] !== 1 || (int) $row['firstpid'] !== 301 || (int) $row['lastuid'] !== 0 || (int) $row['lastpid'] !== 301) {
@@ -1002,7 +1002,7 @@ function assert_legacy_boundary_values_preserved(PDO $pdo, string $dbname): void
     }
 
     $expectedFilename = legacy_exact_filename();
-    if ((int) $row['aid'] !== 701 || (int) $row['filesize'] !== 4294967295 || (int) $row['attach_create_date'] !== 0 || (int) $row['isimage'] !== 0) {
+    if ((int) $row['aid'] !== 701 || (string) $row['filesize'] !== '4294967295' || (int) $row['attach_create_date'] !== 0 || (int) $row['isimage'] !== 0) {
         throw new RuntimeException('Legacy boundary-value attachment numeric metadata changed after migration.');
     }
     if (strlen($row['filename']) !== 120 || strlen($row['orgfilename']) !== 120 || hash('sha256', $row['filename']) !== hash('sha256', $expectedFilename) || hash('sha256', $row['orgfilename']) !== hash('sha256', $expectedFilename)) {
@@ -1088,10 +1088,10 @@ function kv_value(PDO $pdo, string $dbname, string $key): string
 function assert_conf_upgraded(string $confFile): void
 {
     $conf = include $confFile;
-    if (($conf['version'] ?? '') !== '4.5.2') {
+    if (($conf['version'] ?? '') !== '4.5.3') {
         throw new RuntimeException('upgrade did not write target version to conf.php.');
     }
-    if (($conf['static_version'] ?? '') !== '?v=4.5.2') {
+    if (($conf['static_version'] ?? '') !== '?v=4.5.3') {
         throw new RuntimeException('upgrade did not write target static_version to conf.php.');
     }
     foreach (['csrf_on', 'disabled_plugin', 'admin_bind_ip'] as $key) {

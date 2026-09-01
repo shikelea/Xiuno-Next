@@ -39,6 +39,7 @@ foreach ($files as $relative) {
 }
 
 mysql8_check_driver_engine_rewrite($root, $errors);
+mysql8_check_driver_exact_count($root, $errors);
 mysql8_check_driver_sql_mode_config($root, $errors);
 mysql8_check_strict_mode_smoke_config($root, $errors);
 mysql8_check_plugin_sql_non_empty_fixture($root, $errors);
@@ -752,6 +753,23 @@ function mysql8_check_driver_engine_rewrite(string $root, array &$errors): void
         if (strpos($source, "strtoupper(substr(\$sql, 0, 12)) == 'CREATE TABLE'") === false) {
             $errors[] = "$relative: CREATE TABLE engine rewrite guard must inspect the SQL prefix";
         }
+    }
+}
+
+function mysql8_check_driver_exact_count(string $root, array &$errors): void
+{
+    $relative = 'xiunophp/db_pdo_mysql.class.php';
+    $source = file_get_contents($root . '/' . $relative);
+    if ($source === false) {
+        $errors[] = "$relative: unable to read file";
+        return;
+    }
+    if (!preg_match('/public function count\(\$table, \$cond = array\(\)\) \{(.*?)\n\t\}/s', $source, $match)) {
+        $errors[] = "$relative: unable to inspect count implementation";
+        return;
+    }
+    if (strpos($match[1], 'SELECT COUNT(*) AS num') === false || stripos($match[1], 'information_schema') !== false) {
+        $errors[] = "$relative: count must use exact COUNT(*) instead of InnoDB TABLE_ROWS estimates";
     }
 }
 

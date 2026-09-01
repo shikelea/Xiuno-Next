@@ -416,8 +416,8 @@ if ($xiunoJs === FALSE) {
 	if (strpos($xiunoJs, 'function xn_url_same_origin(url)') === FALSE) {
 		$errors[] = '$.xpost must define a same-origin URL check for CSRF token scope';
 	}
-	if (strpos($xiunoJs, "return same_origin === false && (!token || String(value) !== String(token));") === FALSE) {
-		$errors[] = '$.xpost must strip only the current session token across origins and preserve different external tokens';
+	if (strpos($xiunoJs, "return !token || (same_origin === false && String(value) !== String(token));") === FALSE) {
+		$errors[] = '$.xpost must preserve caller tokens without a global token and otherwise strip only the current session token across origins';
 	}
 	if (strpos($xiunoJs, 'document.baseURI || window.location.href') === FALSE || strpos($xiunoJs, "typeof url.href === 'string'") === FALSE || strpos($xiunoJs, "typeof url.url === 'string'") === FALSE) {
 		$errors[] = '$.xpost must resolve relative, URL, and Request-like targets using the document base URI';

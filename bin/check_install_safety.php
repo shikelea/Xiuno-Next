@@ -43,6 +43,7 @@ $install_db_view = source_text($root.'/install/view/htm/db.htm');
 $install_header_view = source_text($root.'/install/view/htm/header.inc.htm');
 $install_footer_view = source_text($root.'/install/view/htm/footer.inc.htm');
 $install_sql = source_text($root.'/install/install.sql');
+$misc_func = source_text($root.'/model/misc.func.php');
 $composer = json_decode(source_text($root.'/composer.json'), TRUE);
 is_array($composer) || fail('Unable to parse composer.json for installer requirement checks.');
 $nginx = source_text($root.'/docker/nginx/conf.d/default.conf');
@@ -83,6 +84,9 @@ substr_count(strtolower($install_message_html), '<div') === substr_count(strtolo
 	|| fail('Installer shell must keep rendered div elements structurally balanced.');
 strpos(str_replace(array("\r", "\n", "\t"), '', $install_footer_view), '</div></body>') === FALSE
 	|| fail('Installer footer must not emit an unmatched closing div before body.');
+$message_func = section_between($misc_func, 'function message($code, $message, $extra = array())', "\n}\n\n// 上锁");
+strpos($message_func, "include defined('INSTALL_PATH') ? MESSAGE_HTM_PATH : _include(MESSAGE_HTM_PATH);") !== FALSE
+	|| fail('Installer errors must bypass plugin cache locks without changing compiled admin message templates.');
 
 if(class_exists('DOMDocument')) {
 	$previous_libxml_errors = libxml_use_internal_errors(TRUE);
