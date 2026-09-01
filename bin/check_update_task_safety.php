@@ -59,6 +59,10 @@ strpos($download, 'update_tag_valid($tag_name)') !== FALSE
 	|| fail('Download/update action must validate release tags before building archive URLs.');
 strpos($download, 'rawurlencode($tag_name)') !== FALSE
 	|| fail('Download/update action must URL-encode release tags in archive URLs.');
+substr_count($update_route, "'https://codeload.github.com/' . GITHUB_REPO . '/zip/refs/tags/'") === 2
+	|| fail('Update check and download actions must use the direct GitHub codeload archive URL.');
+strpos($update_route, "'https://github.com/' . GITHUB_REPO . '/archive/refs/tags/'") === FALSE
+	|| fail('Online updates must not depend on the unstable github.com/archive redirect hop.');
 $download_locked = section_after($download, 'update_lock_start();');
 strpos($download_locked, "\tmessage(") === FALSE
 	|| fail('Download/update locked paths must call update_message(), not message().');
@@ -161,6 +165,14 @@ strpos($download, 'update_added_files($source_dir, $app_root, $protected)') !== 
 	|| fail('Update must record files added by the replacement package before copying.');
 strpos($download, 'update_write_added_files($backup_dir, $added_files, $added_error)') !== FALSE
 	|| fail('Update must persist the added-file manifest in the backup directory.');
+strpos($download, '$conf_default_relative = \'conf/conf.default.php\';') !== FALSE
+	|| fail('Online updates must explicitly identify the canonical default configuration file.');
+strpos($download, 'update_backup_file($conf_default_target, $backup_dir . $conf_default_relative, $backup_error)') !== FALSE
+	|| fail('Online updates must back up the canonical default configuration before replacing it.');
+strpos($download, '$added_files[] = $conf_default_relative') !== FALSE
+	|| fail('A newly added canonical default configuration must be tracked for rollback.');
+strpos($download, '@copy($conf_default_source, $conf_default_target)') !== FALSE
+	|| fail('Online updates must replace the canonical default configuration from the verified release.');
 strpos($download, '$hint = substr($zipdata') === FALSE
 	|| fail('Invalid update responses must not be reflected into the admin page.');
 
@@ -215,6 +227,10 @@ strpos($added_cleanup, 'update_remove_empty_parent_dirs(dirname($target), $dst_r
 $conf_version = section_between($update_route, 'function update_conf_version', 'function update_conf_setting');
 strpos($conf_version, '$count = 0;') !== FALSE
 	|| fail('update_conf_version() must verify that the version key was replaced.');
+strpos($conf_version, "'static_version' => '") !== FALSE
+	|| fail('update_conf_version() must update the static asset cache version with the release version.');
+strpos($conf_version, '$static_count < 1') !== FALSE
+	|| fail('update_conf_version() must verify that static_version was replaced or added.');
 strpos($conf_version, '=== strlen($s)') !== FALSE
 	|| fail('update_conf_version() must detect partial writes.');
 
