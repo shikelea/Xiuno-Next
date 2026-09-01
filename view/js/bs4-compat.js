@@ -1370,8 +1370,10 @@
 		var token = csrfToken();
 		var submission = formSubmissionDetails(form, rememberedFormSubmitter(form));
 		if (submission.localPost) {
-			event.formData.delete('_token');
-			if (token) event.formData.append('_token', token);
+			if (token) {
+				event.formData.delete('_token');
+				event.formData.append('_token', token);
+			}
 			return;
 		}
 		var ownedValues = removeLocalCsrf(form, token);

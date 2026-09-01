@@ -877,7 +877,7 @@ function xn_postdata_with_csrf(postdata, same_origin) {
 	var token = xn_csrf_token();
 	var includeLocalToken = same_origin !== false && !!token;
 	var keepToken = function (value) {
-		return same_origin === false && (!token || String(value) !== String(token));
+		return !token || (same_origin === false && String(value) !== String(token));
 	};
 
 	// Request payloads are caller-owned and are often reused. Always normalize a copy so a

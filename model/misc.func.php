@@ -142,7 +142,7 @@ function message($code, $message, $extra = array()) {
 			exit;
 		} else {
 			if(defined('MESSAGE_HTM_PATH')) {
-				include _include(MESSAGE_HTM_PATH);
+				include defined('INSTALL_PATH') ? MESSAGE_HTM_PATH : _include(MESSAGE_HTM_PATH);
 			} else {
 				include _include(APP_PATH."view/htm/message.htm");
 			}
