@@ -102,7 +102,7 @@ if(version_compare(PHP_VERSION, '8.1.0', '<')) {
 $_SERVER['db'] = (object)array('tablepre'=>'bbs_');
 
 $aligned = array(
-	'version'=>'4.5.3',
+	'version'=>'4.5.4',
 	'csrf_on'=>1,
 	'disabled_plugin'=>0,
 	'nav_2_on'=>1,
@@ -111,21 +111,21 @@ $aligned = array(
 	'admin_bind_ip'=>0,
 	'cdn_on'=>0,
 	'url_rewrite_on'=>0,
-	'static_version'=>'?v=4.5.3',
+	'static_version'=>'?v=4.5.4',
 );
 $GLOBALS['conf'] = $aligned;
 file_put_contents($fixtureRoot.'/conf/conf.php', "<?php\nreturn ".var_export($aligned, TRUE).";\n") !== FALSE
 	|| fail_upgrade_config('unable to create aligned config fixture');
 $upgradeSchemaReads = array();
 $detectSteps->invoke($command) === array()
-	|| fail_upgrade_config('an aligned 4.5.3 config must remain a true no-op');
+	|| fail_upgrade_config('an aligned 4.5.4 config must remain a true no-op');
 count($upgradeSchemaReads) === 1 && strpos($upgradeSchemaReads[0], "SHOW COLUMNS") !== FALSE
 	|| fail_upgrade_config('upgrade planning must inspect schema through the primary endpoint.');
 
 $staleStatic = $aligned;
 $staleStatic['static_version'] = '?v=4.5.0';
 $updates = $configUpdates->invoke($command, $staleStatic);
-isset($updates['static_version']) && $updates['static_version'] === '?v=4.5.3'
+isset($updates['static_version']) && $updates['static_version'] === '?v=4.5.4'
 	|| fail_upgrade_config('target-version static_version drift must be repaired');
 $GLOBALS['conf'] = $staleStatic;
 $steps = $detectSteps->invoke($command);
