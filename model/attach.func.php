@@ -157,6 +157,93 @@ function attach_type($name, $types) {
 	return 'other';
 }
 
+function attach_file_content_info($path, $ext) {
+	if(!is_string($path) || !is_file($path) || !is_string($ext) || !class_exists('finfo')) return FALSE;
+
+	try {
+		$finfo = new finfo(FILEINFO_MIME_TYPE);
+		$mime = @$finfo->file($path);
+	} catch(Throwable $e) {
+		return FALSE;
+	}
+	if(!is_string($mime) || $mime === '') return FALSE;
+
+	$ext = strtolower($ext);
+	$mime = strtolower(trim($mime));
+	$text_exts = array('c', 'cpp', 'cc', 'txt');
+	$mime_types = array(
+		'av'=>array('video/avi', 'video/mp4', 'video/mpeg', 'video/x-msvideo'),
+		'wmv'=>array('application/vnd.ms-asf', 'video/x-ms-asf', 'video/x-ms-wmv'),
+		'wav'=>array('audio/vnd.wave', 'audio/wav', 'audio/x-wav'),
+		'wma'=>array('application/vnd.ms-asf', 'audio/x-ms-wma', 'video/x-ms-asf'),
+		'avi'=>array('video/avi', 'video/msvideo', 'video/x-msvideo'),
+		'rm'=>array('application/vnd.rn-realmedia', 'application/x-pn-realmedia'),
+		'rmvb'=>array('application/vnd.rn-realmedia', 'application/x-pn-realmedia', 'video/vnd.rn-realvideo'),
+		'mp4'=>array('application/mp4', 'audio/mp4', 'video/mp4'),
+		'mp3'=>array('audio/mp3', 'audio/mpeg', 'audio/x-mpeg'),
+		'gif'=>array('image/gif'),
+		'jpg'=>array('image/jpeg'),
+		'jpeg'=>array('image/jpeg'),
+		'png'=>array('image/png'),
+		'bmp'=>array('image/bmp', 'image/x-ms-bmp'),
+		'doc'=>array('application/cdfv2', 'application/msword', 'application/vnd.ms-office', 'application/vnd.ms-word', 'application/x-ole-storage'),
+		'xls'=>array('application/cdfv2', 'application/vnd.ms-excel', 'application/vnd.ms-office', 'application/x-ole-storage'),
+		'ppt'=>array('application/cdfv2', 'application/vnd.ms-office', 'application/vnd.ms-powerpoint', 'application/x-ole-storage'),
+		'docx'=>array('application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip'),
+		'xlsx'=>array('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip'),
+		'pptx'=>array('application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'),
+		'pdf'=>array('application/pdf'),
+		'tar'=>array('application/x-tar'),
+		'zip'=>array('application/x-zip', 'application/x-zip-compressed', 'application/zip'),
+		'gz'=>array('application/gzip', 'application/x-gzip'),
+		'rar'=>array('application/vnd.rar', 'application/x-rar', 'application/x-rar-compressed'),
+		'7z'=>array('application/x-7z-compressed'),
+		'bz'=>array('application/x-bzip', 'application/x-bzip2'),
+		'chm'=>array('application/vnd.ms-htmlhelp', 'application/x-chm'),
+		'bt'=>array('application/x-bittorrent'),
+		'torrent'=>array('application/x-bittorrent'),
+		'ttf'=>array('application/font-sfnt', 'application/x-font-ttf', 'font/sfnt', 'font/ttf'),
+		'font'=>array('application/font-sfnt', 'application/x-font-ttf', 'font/sfnt', 'font/ttf'),
+		'fon'=>array('application/vnd.ms-fontobject', 'application/x-font-windows'),
+	);
+	$mime_allowed = in_array($ext, $text_exts, TRUE)
+		? strpos($mime, 'text/') === 0
+		: isset($mime_types[$ext]) && in_array($mime, $mime_types[$ext], TRUE);
+	if(!$mime_allowed) return FALSE;
+
+	$ooxml_files = array(
+		'docx'=>'word/document.xml',
+		'xlsx'=>'xl/workbook.xml',
+		'pptx'=>'ppt/presentation.xml',
+	);
+	if(isset($ooxml_files[$ext])) {
+		if(!class_exists('ZipArchive')) return FALSE;
+		$zip = new ZipArchive();
+		if($zip->open($path) !== TRUE) return FALSE;
+		$valid = $zip->locateName('[Content_Types].xml') !== FALSE
+			&& $zip->locateName($ooxml_files[$ext]) !== FALSE;
+		$zip->close();
+		if(!$valid) return FALSE;
+	}
+
+	$image_types = array(
+		'gif'=>IMAGETYPE_GIF,
+		'jpg'=>IMAGETYPE_JPEG,
+		'jpeg'=>IMAGETYPE_JPEG,
+		'png'=>IMAGETYPE_PNG,
+		'bmp'=>IMAGETYPE_BMP,
+	);
+	$info = array('mime'=>$mime, 'width'=>0, 'height'=>0, 'isimage'=>0);
+	if(isset($image_types[$ext])) {
+		$image = @getimagesize($path);
+		if(!is_array($image) || !isset($image[0], $image[1], $image[2]) || intval($image[2]) !== $image_types[$ext]) return FALSE;
+		$info['width'] = intval($image[0]);
+		$info['height'] = intval($image[1]);
+		$info['isimage'] = 1;
+	}
+	return $info;
+}
+
 function attach_orgfilename_error($filename, $max_length = 120) {
 	if(!is_string($filename) || $filename === '') return 'attach_filename_invalid';
 	if(preg_match('//u', $filename) !== 1) return 'attach_filename_invalid';
