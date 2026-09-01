@@ -232,6 +232,17 @@ foreach(array($upload_root.'tmp', $upload_root.'attach') as $directory) {
 }
 register_shutdown_function(function() use ($fixture_root) { remove_tree($fixture_root); });
 
+$valid_image_path = $upload_root.'tmp'.DIRECTORY_SEPARATOR.'valid.png';
+$valid_image = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', TRUE);
+file_put_contents($valid_image_path, $valid_image) === strlen($valid_image) || fail('failed to write valid image fixture');
+$valid_image_info = attach_file_content_info($valid_image_path, 'png');
+is_array($valid_image_info) && $valid_image_info['mime'] === 'image/png'
+	&& $valid_image_info['width'] === 1 && $valid_image_info['height'] === 1 && $valid_image_info['isimage'] === 1
+	|| fail('a valid image must pass content inspection with server-derived dimensions');
+$spoofed_image_path = $upload_root.'tmp'.DIRECTORY_SEPARATOR.'spoofed.jpg';
+file_put_contents($spoofed_image_path, "<?php echo 'not an image'; ?>") !== FALSE || fail('failed to write spoofed image fixture');
+attach_file_content_info($spoofed_image_path, 'jpg') === FALSE || fail('PHP content disguised as an image must fail closed');
+
 $uid = 7;
 $time = 1700000000;
 $conf = array('upload_path'=>$upload_root, 'upload_url'=>'upload/', 'attach_dir_save_rule'=>'Ym');
@@ -408,6 +419,7 @@ foreach(array($route, $post_model, $thread_model, $post_template) as $source) {
 }
 strpos($route, "param('attach_draft'") !== FALSE || fail('upload and delete route must accept the form draft token');
 	strpos($route, 'attach_draft_store(') !== FALSE || fail('upload route must store files through the draft ownership helper');
+	strpos($route, 'attach_file_content_info($tmpfile, $ext)') !== FALSE || fail('upload route must inspect stored bytes before draft persistence');
 	strpos($route, 'attach_draft_remove(') !== FALSE || fail('delete route must enforce draft ownership through the shared helper');
 	strpos($route, "lang('attach_upload_forbidden')") !== FALSE || fail('upload authorization failures must use a localized public message');
 	strpos($route, "lang('attach_filetype_not_allowed')") !== FALSE || fail('upload file-type failures must use a localized public message');

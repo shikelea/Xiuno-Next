@@ -60,6 +60,14 @@ if(empty($action) || $action == 'create') {
 
 	$filesize = attach_tmp_file_write($tmpfile, $data);
 	$filesize === FALSE AND message(-1, lang('write_to_file_failed'));
+	$content_info = attach_file_content_info($tmpfile, $ext);
+	if($content_info === FALSE) {
+		@unlink($tmpfile);
+		message(-1, lang('attach_filetype_not_allowed'));
+	}
+	$width = $content_info['width'];
+	$height = $content_info['height'];
+	$is_image = $content_info['isimage'];
 
 	// 保存到 session，发帖成功以后，关联到帖子。
 	// save attach information to session, associate to post after create thread.
