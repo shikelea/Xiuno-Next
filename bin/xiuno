@@ -23,7 +23,7 @@ use Xiuno\Console\Command\MakePluginCommand;
 use Xiuno\Console\Command\MigrateCommand;
 use Xiuno\Console\Command\UpgradeCommand;
 
-const XIUNO_CLI_VERSION = '4.5.3';
+const XIUNO_CLI_VERSION = '4.5.4';
 
 $application = new Application('Xiuno CLI', XIUNO_CLI_VERSION);
 
