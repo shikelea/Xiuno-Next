@@ -45,7 +45,7 @@ if ($action == 'check') {
 			$latest_version = ltrim($tag_name, 'vV');
 			$has_update = version_compare($latest_version, $current_version) > 0;
 			$changelog = isset($latest['body']) ? $latest['body'] : '';
-			$download_url = 'https://github.com/' . GITHUB_REPO . '/archive/refs/tags/' . rawurlencode($tag_name) . '.zip';
+			$download_url = 'https://codeload.github.com/' . GITHUB_REPO . '/zip/refs/tags/' . rawurlencode($tag_name);
 		}
 	}
 
@@ -117,8 +117,8 @@ if ($action == 'check') {
 		update_message(0, lang('update_already_latest'));
 	}
 
-	// 使用 github.com/archive 直接下载链接（不走 API，无速率限制，代理兼容性更好）
-	$download_url = 'https://github.com/' . GITHUB_REPO . '/archive/refs/tags/' . rawurlencode($tag_name) . '.zip';
+	// 直接使用 GitHub 官方 codeload 归档，避免 github.com/archive 的不稳定前置跳转。
+	$download_url = 'https://codeload.github.com/' . GITHUB_REPO . '/zip/refs/tags/' . rawurlencode($tag_name);
 
 	// 通过代理下载
 	$actual_url = update_proxied_url($download_url, $proxy);
@@ -208,6 +208,18 @@ if ($action == 'check') {
 
 	// 复制文件到项目根目录
 	$app_root = APP_PATH;
+	$conf_default_relative = 'conf/conf.default.php';
+	$conf_default_source = $source_dir . $conf_default_relative;
+	$conf_default_target = $app_root . $conf_default_relative;
+	if (!is_file($conf_default_source)
+		|| is_link($conf_default_source)
+		|| is_link(dirname($conf_default_target))
+		|| (file_exists($conf_default_target) && !is_file($conf_default_target))
+		|| is_link($conf_default_target)) {
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		update_message(-1, lang('update_invalid_release'));
+	}
 	$backup_dir = $conf['tmp_path'] . 'update_backup_' . date('Ymd_His') . '/';
 	xn_mkdir($backup_dir);
 	$backup_error = '';
@@ -217,7 +229,17 @@ if ($action == 'check') {
 		rmdir_recusive($extract_dir, 1);
 		update_message(-1, lang('update_backup_failed') . ' (' . htmlspecialchars($backup_error) . ')');
 	}
+	$conf_default_backed_up = FALSE;
+	if (is_file($conf_default_target)) {
+		if (!update_backup_file($conf_default_target, $backup_dir . $conf_default_relative, $backup_error)) {
+			@unlink($zipfile);
+			rmdir_recusive($extract_dir, 1);
+			update_message(-1, lang('update_backup_failed') . ' (' . htmlspecialchars($backup_error) . ')');
+		}
+		$conf_default_backed_up = TRUE;
+	}
 	$added_files = update_added_files($source_dir, $app_root, $protected);
+	if (!$conf_default_backed_up) $added_files[] = $conf_default_relative;
 	$added_error = '';
 	if (!update_write_added_files($backup_dir, $added_files, $added_error)) {
 		@unlink($zipfile);
@@ -233,6 +255,14 @@ if ($action == 'check') {
 	}
 	$copy_error = '';
 	$result = update_copy_files($source_dir, $app_root, $protected, $copy_error);
+	if ($result !== FALSE) {
+		if (!@copy($conf_default_source, $conf_default_target)) {
+			$copy_error = 'Cannot copy file: ' . $conf_default_relative;
+			$result = FALSE;
+		} else {
+			$result['copied']++;
+		}
+	}
 	if ($result === FALSE) {
 		$restore_error = '';
 		$restore_result = update_restore_backup_with_added_cleanup($backup_dir, $app_root, $restore_error);
@@ -241,7 +271,9 @@ if ($action == 'check') {
 		$restore_note = $restore_result === FALSE ? '; rollback failed: ' . htmlspecialchars($restore_error) : '; backup restored';
 		update_message(-1, lang('update_failed') . ' (' . htmlspecialchars($copy_error) . $restore_note . ')');
 	}
-	$result['backed_up'] = $backup_result['backed_up'] + (is_file($backup_dir . 'conf/conf.php') ? 1 : 0);
+	$result['backed_up'] = $backup_result['backed_up']
+		+ ($conf_default_backed_up ? 1 : 0)
+		+ (is_file($backup_dir . 'conf/conf.php') ? 1 : 0);
 	$checksum_log = $checksum_verified ? "checksum_verified=1, checksum_source={$checksum_source}" : 'checksum_verified=0';
 	@file_put_contents(APP_PATH . 'log/update.log', date('Y-m-d H:i:s') . " updated to v{$latest_version}, copied={$result['copied']}, backed_up={$result['backed_up']}, zip_sha256={$zip_sha256}, {$checksum_log}, backup={$backup_dir}\n", FILE_APPEND);
 	if (!update_conf_version($latest_version)) {
@@ -1116,7 +1148,7 @@ function update_mkdir_recursive($dir) {
 }
 
 /**
- * 更新 conf.php 中的版本号
+ * 更新 conf.php 中的版本号和静态资源版本
  */
 function update_conf_version($new_version) {
 	$conffile = APP_PATH . 'conf/conf.php';
@@ -1126,6 +1158,13 @@ function update_conf_version($new_version) {
 	$count = 0;
 	$s = preg_replace("/'version'\s*=>\s*'[^']*'/", "'version' => '" . addslashes($new_version) . "'", $s, 1, $count);
 	if ($count < 1) return FALSE;
+	$static_version = '?v=' . $new_version;
+	$static_count = 0;
+	$s = preg_replace("/'static_version'\s*=>\s*'[^']*'/", "'static_version' => '" . addslashes($static_version) . "'", $s, 1, $static_count);
+	if ($static_count < 1) {
+		$s = preg_replace('/\);\s*\?>\s*$/', "\t'static_version' => '" . addslashes($static_version) . "',\n);\n?>", $s, 1, $static_count);
+		if ($static_count < 1) return FALSE;
+	}
 	return file_put_contents($conffile, $s) === strlen($s);
 }
 

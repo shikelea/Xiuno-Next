@@ -133,8 +133,8 @@ return array (
 	'disabled_plugin' => 0, 
 	'csrf_on' => 1,
 	  
-	'version' => '4.5.1',
-	'static_version' => '?v=4.5.1',
+	'version' => '4.5.2',
+	'static_version' => '?v=4.5.2',
 	'installed' => 0,
 );
 ?>

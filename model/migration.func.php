@@ -27,7 +27,7 @@ function migration_capability() {
 	$driver = migration_driver_type();
 	if($driver !== 'pdo_mysql') {
 		if($driver === 'pdo_sqlite') {
-			$error = 'pdo_sqlite database migrations are not supported by Xiuno Next 4.5.1; no database or configuration changes were made.';
+			$error = 'pdo_sqlite database migrations are not supported by Xiuno Next 4.5.2; no database or configuration changes were made.';
 		} elseif($driver === '') {
 			$error = 'The configured database driver could not be identified; no database or configuration changes were made.';
 		} else {
