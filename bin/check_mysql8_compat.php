@@ -790,13 +790,18 @@ function mysql8_check_driver_sql_mode_config(string $root, array &$errors): void
         }
         foreach ([
             "isset(\$conf['sql_mode']) ? \$conf['sql_mode'] : ''",
+            "in_array(\$charset, array('utf8', 'utf8mb4'), TRUE)",
             "\$sql_mode = \$this->sql_mode_safe(\$sql_mode);",
             "sql_mode='\$sql_mode'",
             "private function sql_mode_safe(\$sql_mode)",
+            "array_diff(explode(',', \$sql_mode), array('NO_BACKSLASH_ESCAPES'))",
         ] as $needle) {
             if (strpos($source, $needle) === false) {
                 $errors[] = "$relative: missing sql_mode configuration guard: $needle";
             }
+        }
+        if (strpos($source, '$charset AND') !== false) {
+            $errors[] = "$relative: connection setup must apply a safe sql_mode even when charset config is empty";
         }
     }
 }

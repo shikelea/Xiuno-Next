@@ -70,15 +70,19 @@ class db_pdo_mysql {
 			return FALSE;
 	        }
 	        //$link->setFetchMode(PDO::FETCH_ASSOC);
+		$charset = strtolower(trim((string)$charset));
+		!in_array($charset, array('utf8', 'utf8mb4'), TRUE) AND $charset = 'utf8';
 		$sql_mode = $this->sql_mode_safe($sql_mode);
-		$charset AND $link->query("SET names $charset, sql_mode='$sql_mode'");
+		$link->query("SET names $charset, sql_mode='$sql_mode'");
 		 //$link->query('SET NAMES '.($charset ? $charset.',' : '').', sql_mode=""');  
 		return $link;
 	}
 
 	private function sql_mode_safe($sql_mode) {
 		$sql_mode = strtoupper(trim((string)$sql_mode));
-		return preg_match('/^[A-Z0-9_,]*$/', $sql_mode) ? $sql_mode : '';
+		if(!preg_match('/^[A-Z0-9_,]*$/', $sql_mode)) return '';
+		$modes = array_diff(explode(',', $sql_mode), array('NO_BACKSLASH_ESCAPES'));
+		return implode(',', $modes);
 	}
 	
 	public function sql_find_one($sql) {
