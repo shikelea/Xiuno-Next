@@ -121,10 +121,13 @@ if($firstLookupPos === FALSE) {
 if($rateLimitPos === FALSE || ($firstLookupPos !== FALSE && $rateLimitPos > $firstLookupPos)) {
 	$errors[] = 'user login API must check login failure rate before credential lookup';
 }
-if(substr_count($userLoginRoute, 'user_login_rate_fail($email);') < 2) {
-	$errors[] = 'user login API must record failures for both missing users and bad passwords';
+if(substr_count($userLoginRoute, 'user_login_rate_fail($email);') !== 1) {
+	$errors[] = 'user login API must record its unified credential failure once';
 }
-if(substr_count($userLoginRoute, "api_output(-1, 'Email or password is incorrect')") < 2 || strpos($userLoginRoute, "lang('user_not_exists')") !== FALSE || strpos($userLoginRoute, "lang('password_incorrect')") !== FALSE) {
+if(strpos($userLoginRoute, 'user_login_password_verify($password, $user)') === FALSE
+	|| substr_count($userLoginRoute, "api_output(-1, 'Email or password is incorrect')") !== 1
+	|| strpos($userLoginRoute, "lang('user_not_exists')") !== FALSE
+	|| strpos($userLoginRoute, "lang('password_incorrect')") !== FALSE) {
 	$errors[] = 'user login API must use a generic failure response to avoid account enumeration';
 }
 if(strpos($userLoginRoute, 'user_login_rate_clear($email);') === FALSE) {

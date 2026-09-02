@@ -79,23 +79,15 @@ if(empty($action)) {
 		user_login_rate_limited($email) AND message('email', 'Please try again later');
 		if($login_identifier_type == 'email') {
 			$_user = user_read_by_email($email, TRUE);
-			if(empty($_user)) {
-				user_login_rate_fail($email);
-				message('email', lang('email_not_exists'));
-			}
 		} else {
 			$_user = user_read_by_username($email, TRUE);
-			if(empty($_user)) {
-				user_login_rate_fail($email);
-				message('email', lang('username_not_exists'));
-			}
 		}
 
 		if(!is_password($password, $err)) {
 			user_login_rate_fail($email);
 			message('password', $err);
 		}
-		if(!user_verify_password($password, $_user)) {
+		if(!user_login_password_verify($password, $_user)) {
 			user_login_rate_fail($email);
 			message('password', lang('password_incorrect'));
 		}
@@ -267,13 +259,14 @@ if(empty($action)) {
 		empty($email) AND message('email', lang('please_input_email'));
 		!is_email($email, $err) AND message('email', $err);
 		
-		$_user = user_read_by_email($email, TRUE);
-		!$_user AND message('email', lang('email_is_not_in_use'));
-
 		$code = param('code');
 		empty($code) AND message('code', lang('please_input_verify_code'));
-		
 		user_email_code_verify('user_resetpw', $email, $code);
+		$_user = user_read_by_email($email, TRUE);
+		if(empty($_user)) {
+			user_email_code_clear('user_resetpw');
+			message('code', lang('verify_code_incorrect'));
+		}
 		user_reset_grant_issue($_user['uid'], $email) === FALSE
 			AND message(-1, 'Unable to issue a password-reset authorization. Please try again.');
 		user_email_code_clear('user_resetpw');
@@ -338,6 +331,7 @@ if(empty($action)) {
 	// hook user_sendcode_start.php
 	
 	$action2 = param(2);
+	$email_code_deliverable = TRUE;
 	
 	// 创建用户
 	if($action2 == 'user_create') {
@@ -360,15 +354,26 @@ if(empty($action)) {
 		
 		empty($email) AND message('email', lang('please_input_email'));
 		!is_email($email, $err) AND message('email', $err);
-		$_user = user_read_by_email($email, TRUE);
-		empty($_user) AND message('email', lang('email_is_not_in_use'));
-		
 		empty($conf['user_resetpw_on']) AND message(-1, lang('resetpw_not_on'));
-		
-		$code = user_email_code_issue('user_resetpw', $email, $_user['uid']);
+		$_user = user_read_by_email($email, TRUE);
+		$code = user_email_code_issue(
+			'user_resetpw',
+			$email,
+			empty($_user) ? 0 : $_user['uid'],
+			$email_code_deliverable
+		);
+		if(!empty($_user) && !$email_code_deliverable) {
+			xn_log('Unable to revoke an earlier password-reset authorization for uid '.intval($_user['uid']), 'user_auth_error');
+		}
 
 	} else {
 		message(-1, 'action2 error');
+	}
+
+	// Unknown accounts and reset-internal failures receive the same public acceptance response.
+	// Their random Session code is never delivered and therefore cannot create a reset grant.
+	if($action2 == 'user_resetpw' && !$email_code_deliverable) {
+		message(0, lang('send_successfully'));
 	}
 	
 	
@@ -387,6 +392,7 @@ if(empty($action)) {
 		message(0, lang('send_successfully'));
 	} else {
 		xn_log($errstr, 'send_mail_error');
+		$action2 == 'user_resetpw' AND message(0, lang('send_successfully'));
 		message(-1, $errstr);
 	}
 
@@ -455,8 +461,9 @@ function user_http_referer() {
 	return user_return_url_normalize($referer);
 }
 
-function user_email_code_issue($prefix, $email, $uid = 0) {
+function user_email_code_issue($prefix, $email, $uid = 0, &$deliverable = NULL) {
 	global $time;
+	$deliverable = TRUE;
 	user_email_code_rate_limit($prefix, $email);
 	if($prefix == 'user_resetpw') {
 		$uid = intval($uid);
@@ -464,8 +471,7 @@ function user_email_code_issue($prefix, $email, $uid = 0) {
 			$_reset_user = user_read_by_email($email, TRUE);
 			$uid = empty($_reset_user) ? 0 : intval($_reset_user['uid']);
 		}
-		($uid <= 0 || !user_reset_grant_revoke_uid($uid))
-			AND message(-1, 'Unable to revoke an earlier password-reset authorization. Please try again.');
+		$deliverable = $uid > 0 && user_reset_grant_revoke_uid($uid);
 		unset($_SESSION['resetpw_grant']);
 	}
 	$code = (string)random_int(100000, 999999);

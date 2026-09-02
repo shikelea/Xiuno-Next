@@ -98,6 +98,18 @@ foreach($identifier_cases as $identifier=>$expected_type) {
 		|| fail("Login identifier type mismatch for $identifier: $actual_type != $expected_type");
 }
 
+$login_password_helper = section_between($user_model, 'function user_login_password_verify', 'function user_upgrade_password');
+strpos($login_password_helper, "\$dummy_hash = '\$2y\$10\$") !== FALSE
+	&& strpos($login_password_helper, 'password_verify($password, $dummy_hash);') !== FALSE
+	&& strpos($login_password_helper, 'return user_verify_password($password, $user);') !== FALSE
+	|| fail('Anonymous login must use one bcrypt-class verification for missing, legacy and current accounts.');
+user_login_password_verify('missing-account-proof', array()) === FALSE
+	|| fail('The anonymous login password helper must reject a missing account after dummy verification.');
+$login_password_fixture = array('password'=>user_hash_password('valid-login-proof'), 'salt'=>'');
+user_login_password_verify('valid-login-proof', $login_password_fixture) === TRUE
+	&& user_login_password_verify('invalid-login-proof', $login_password_fixture) === FALSE
+	|| fail('The anonymous login password helper must preserve real bcrypt verification.');
+
 $token_gen = section_between($user_model, 'function user_token_gen', 'function user_token_fingerprint');
 strpos($token_gen, 'user_token_fingerprint()') !== FALSE
 	|| fail('Persistent login tokens must include the user-agent fingerprint.');
@@ -181,7 +193,8 @@ strpos($user_route, "user_email_code_verify('user_resetpw', \$email, \$code)") !
 	|| fail('Password reset must use the shared email code verifier.');
 strpos($user_route, "user_email_code_issue('user_create', \$email)") !== FALSE
 	|| fail('User registration code sends must use the shared issuer.');
-strpos($user_route, "user_email_code_issue('user_resetpw', \$email, \$_user['uid'])") !== FALSE
+strpos($user_route, "empty(\$_user) ? 0 : \$_user['uid']") !== FALSE
+	&& strpos($user_route, '$email_code_deliverable') !== FALSE
 	|| fail('Password reset code sends must use the shared issuer.');
 strpos($user_route, "user_email_code_clear('user_create')") !== FALSE
 	|| fail('Successful user registration must clear email verification state.');
@@ -565,9 +578,13 @@ $email_lookup_pos = strpos($login, 'user_read_by_email($email, TRUE)');
 $username_lookup_pos = strpos($login, 'user_read_by_username($email, TRUE)');
 ($rate_check_pos !== FALSE && $email_lookup_pos !== FALSE && $rate_check_pos < $email_lookup_pos && $rate_check_pos < $username_lookup_pos)
 	|| fail('Browser login must check login failure rate before credential lookup.');
-substr_count($login, 'user_login_rate_fail($email);') >= 4
-	|| fail('Browser login must record missing-account, invalid-password-format and bad-password failures.');
-$password_verify_pos = strpos($login, 'user_verify_password($password, $_user)');
+substr_count($login, 'user_login_rate_fail($email);') >= 2
+	|| fail('Browser login must record invalid-password-format and unified credential failures.');
+strpos($login, "lang('email_not_exists')") === FALSE
+	&& strpos($login, "lang('username_not_exists')") === FALSE
+	&& substr_count($login, "message('password', lang('password_incorrect'))") === 1
+	|| fail('Browser login must return one shared field and message for unknown and wrong-password accounts.');
+$password_verify_pos = strpos($login, 'user_login_password_verify($password, $_user)');
 $password_finalize_pos = strpos($login, "user_login_credentials_refresh(\$_user['uid'], \$password)");
 $password_format_pos = strpos($login, 'user_format($_user);');
 $rate_clear_pos = strpos($login, 'user_login_rate_clear($email);');
@@ -604,10 +621,26 @@ strpos($admin_user_route, 'user_password_commit($_uid, $password_hash, $update)'
 	|| fail('Administrator password replacement must revoke the target user credential generation.');
 strpos($api_user_route, '$token === FALSE AND api_output') !== FALSE
 	|| fail('API login must fail closed when an epoch-bound token cannot be issued.');
+strpos($api_user_route, 'user_login_password_verify($password, $user)') !== FALSE
+	&& substr_count($api_user_route, "api_output(-1, 'Email or password is incorrect')") === 1
+	|| fail('API login must share one missing-account and bad-password verification path.');
 strpos($api_user_route, "user_login_credentials_refresh(\$user['uid'], \$password)") !== FALSE
 	&& strpos($api_user_route, 'user_format($user);') !== FALSE
 	&& strpos($api_user_route, "user_token_gen(\$user['uid'], user_auth_epoch(\$user))") !== FALSE
 	|| fail('API login must finalize and reformat the proof before issuing only that verified generation.');
+
+$resetpw = section_between($user_route, "} elseif(\$action == 'resetpw')", "} elseif(\$action == 'resetpw_complete')");
+$reset_verify_pos = strpos($resetpw, "user_email_code_verify('user_resetpw', \$email, \$code)");
+$reset_lookup_pos = strpos($resetpw, 'user_read_by_email($email, TRUE)');
+($reset_verify_pos !== FALSE && $reset_lookup_pos !== FALSE && $reset_verify_pos < $reset_lookup_pos)
+	&& strpos($resetpw, "lang('email_is_not_in_use')") === FALSE
+	&& strpos($resetpw, "message('code', lang('verify_code_incorrect'))") !== FALSE
+	|| fail('Password-reset verification must not disclose account existence before proving the emailed code.');
+$send_code = section_between($user_route, "} elseif(\$action == 'send_code')", '// 简单的同步登陆实现');
+strpos($send_code, "lang('email_is_not_in_use')") === FALSE
+	&& strpos($send_code, "if(\$action2 == 'user_resetpw' && !\$email_code_deliverable)") !== FALSE
+	&& strpos($send_code, "\$action2 == 'user_resetpw' AND message(0, lang('send_successfully'))") !== FALSE
+	|| fail('Password-reset code requests must return the same acceptance response for unknown accounts and delivery failures.');
 strpos($install_sql, 'auth_epoch int(11) unsigned NOT NULL DEFAULT \'0\'') !== FALSE
 	|| fail('Fresh installs must create the user credential epoch column.');
 substr_count($auth_epoch_migration, 'db_sql_find_one_master(') === 2

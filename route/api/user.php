@@ -24,12 +24,7 @@ if($action == 'login') {
 		$user = user_read_by_username($email, TRUE);
 	}
 
-	if(empty($user)) {
-		user_login_rate_fail($email);
-		api_output(-1, 'Email or password is incorrect');
-	}
-
-	if(!user_verify_password($password, $user)) {
+	if(!user_login_password_verify($password, $user)) {
 		user_login_rate_fail($email);
 		api_output(-1, 'Email or password is incorrect');
 	}

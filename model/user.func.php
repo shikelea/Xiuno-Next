@@ -1220,6 +1220,22 @@ function user_verify_password($password, $user) {
 	return md5($password . $user['salt']) === $hash;
 }
 
+// Anonymous login must spend one bcrypt-class verification whether or not the account exists.
+// Legacy MD5 accounts use the dummy bcrypt first; current bcrypt accounts verify their own hash.
+function user_login_password_verify($password, $user) {
+	$dummy_hash = '$2y$10$nJrw1AeTmykLlUq9vLlBIO3eGPo/zrvz7U7.shZEMJNjj8YR/4E9K';
+	if(empty($user) || !isset($user['password'])) {
+		password_verify($password, $dummy_hash);
+		return FALSE;
+	}
+	$hash = (string)$user['password'];
+	if(substr($hash, 0, 4) === '$2y$' || substr($hash, 0, 4) === '$2a$') {
+		return user_verify_password($password, $user);
+	}
+	password_verify($password, $dummy_hash);
+	return user_verify_password($password, $user);
+}
+
 // 密码升级：将旧 MD5 哈希升级为 bcrypt 并写入数据库
 function user_upgrade_password($uid, $password) {
 	$user = user_login_credentials_refresh($uid, $password);
