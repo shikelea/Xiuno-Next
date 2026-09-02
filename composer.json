@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "php": ">=8.0",
+        "php": ">=8.0.2",
         "ext-gd": "*",
         "ext-json": "*",
         "ext-mbstring": "*",
@@ -41,6 +41,9 @@
         "check:version": "php bin/check_version.php"
     },
     "config": {
+        "platform": {
+            "php": "8.0.2"
+        },
         "optimize-autoloader": true,
         "sort-packages": true,
         "allow-plugins": {
