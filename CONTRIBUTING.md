@@ -48,7 +48,7 @@ bash bin/check_docker_http_smoke.sh
 
 如果你更习惯使用 XAMPP、宝塔或原生环境，请确保满足以下要求：
 
-*   **PHP 版本**：>= 8.0
+*   **PHP 版本**：>= 8.0.2
 *   **PHP 扩展**：`json`, `openssl`, `pdo`, `pdo_mysql`, `mbstring`, `gd`, `zip`
 *   **MySQL**：>= 5.7
 *   **Composer**：必须安装 [Composer](https://getcomposer.org/)
