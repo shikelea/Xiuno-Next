@@ -62,14 +62,18 @@ class db_mysql {
 		if(!$link) { $this->error(mysql_errno(), '连接数据库服务器失败:'.mysql_error()); return FALSE; }
 		if(!mysql_select_db($name, $link)) { $this->error(mysql_errno(), '选择数据库失败:'.mysql_error()); return FALSE; }
 		//strtolower($engine) == 'innodb' AND $this->query("SET innodb_flush_log_at_trx_commit=no", $link);
+		$charset = strtolower(trim((string)$charset));
+		!in_array($charset, array('utf8', 'utf8mb4'), TRUE) AND $charset = 'utf8';
 		$sql_mode = $this->sql_mode_safe($sql_mode);
-		$charset AND $this->query("SET names $charset, sql_mode='$sql_mode'", $link);
+		$this->query("SET names $charset, sql_mode='$sql_mode'", $link);
 		return $link;
 	}
 
 	private function sql_mode_safe($sql_mode) {
 		$sql_mode = strtoupper(trim((string)$sql_mode));
-		return preg_match('/^[A-Z0-9_,]*$/', $sql_mode) ? $sql_mode : '';
+		if(!preg_match('/^[A-Z0-9_,]*$/', $sql_mode)) return '';
+		$modes = array_diff(explode(',', $sql_mode), array('NO_BACKSLASH_ESCAPES'));
+		return implode(',', $modes);
 	}
 	public function sql_find_one($sql) {
 		$query = $this->query($sql);
