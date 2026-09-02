@@ -208,6 +208,16 @@ assert_json_not_code() {
 		|| fail "Unexpected successful JSON response: $payload"
 }
 
+api_request() {
+	local method=$1
+	local path=$2
+	local body_file=$3
+	local header_file=$4
+	shift 4
+	curl -sS -D "$header_file" -o "$body_file" -w '%{http_code}' \
+		-X "$method" "$@" --max-time 20 "$BASE_URL$path"
+}
+
 extract_install_token() {
 	sed -n 's/.*name="_token" value="\([^"]*\)".*/\1/p' "$1" | head -n 1
 }
@@ -396,6 +406,88 @@ AUTOLOGIN_REPLAY_SID="$(cookie_value "$AUTOLOGIN_FIXED_COOKIES" bbs_sid)"
 logout_user
 login_with_password "$ADMIN_PASSWORD"
 
+LEGACY_MISSING_STATUS="$(api_request GET '/?api-missing-index.htm' "$WORK_DIR/api-legacy-missing.json" "$WORK_DIR/api-legacy-missing.headers")"
+[[ "$LEGACY_MISSING_STATUS" == '200' ]] || fail "Legacy API missing route returned HTTP $LEGACY_MISSING_STATUS; expected compatibility HTTP 200."
+jq -e '(.code | tostring) == "404"' "$WORK_DIR/api-legacy-missing.json" >/dev/null \
+	|| fail 'Legacy API missing route did not preserve JSON code 404.'
+
+V1_MISSING_STATUS="$(api_request GET '/?api-v1-missing-index.htm' "$WORK_DIR/api-v1-missing.json" "$WORK_DIR/api-v1-missing.headers")"
+[[ "$V1_MISSING_STATUS" == '404' ]] || fail "API v1 missing route returned HTTP $V1_MISSING_STATUS; expected 404."
+jq -e '(.code | tostring) == "404"' "$WORK_DIR/api-v1-missing.json" >/dev/null \
+	|| fail 'API v1 missing route did not return JSON code 404.'
+grep -Fqi 'X-Xiuno-API-Version: v1' "$WORK_DIR/api-v1-missing.headers" \
+	|| fail 'API v1 response did not identify its contract version.'
+
+V1_METHOD_STATUS="$(api_request GET '/?api-v1-thread-create.htm' "$WORK_DIR/api-v1-method.json" "$WORK_DIR/api-v1-method.headers")"
+[[ "$V1_METHOD_STATUS" == '405' ]] || fail "API v1 invalid method returned HTTP $V1_METHOD_STATUS; expected 405."
+grep -Eqi '^Allow: POST' "$WORK_DIR/api-v1-method.headers" \
+	|| fail 'API v1 method rejection did not advertise Allow: POST.'
+
+V1_READ_METHOD_STATUS="$(api_request POST '/?api-v1-forum-list.htm' "$WORK_DIR/api-v1-read-method.json" "$WORK_DIR/api-v1-read-method.headers")"
+[[ "$V1_READ_METHOD_STATUS" == '405' ]] || fail "API v1 read endpoint accepted POST with HTTP $V1_READ_METHOD_STATUS; expected 405."
+grep -Eqi '^Allow: GET' "$WORK_DIR/api-v1-read-method.headers" \
+	|| fail 'API v1 read method rejection did not advertise Allow: GET.'
+
+V1_UNAUTH_STATUS="$(api_request POST '/?api-v1-thread-create.htm' "$WORK_DIR/api-v1-unauth.json" "$WORK_DIR/api-v1-unauth.headers" \
+	--data-urlencode 'fid=1' --data-urlencode 'subject=unauthorized' --data-urlencode 'message=unauthorized')"
+[[ "$V1_UNAUTH_STATUS" == '401' ]] || fail "API v1 unauthenticated write returned HTTP $V1_UNAUTH_STATUS; expected 401."
+jq -e '(.code | tostring) == "-1"' "$WORK_DIR/api-v1-unauth.json" >/dev/null \
+	|| fail 'API v1 unauthenticated write did not retain the JSON error envelope.'
+
+V1_LOGIN_STATUS="$(api_request POST '/?api-v1-user-login.htm' "$WORK_DIR/api-v1-login.json" "$WORK_DIR/api-v1-login.headers" \
+	--data-urlencode "email=$ADMIN_EMAIL" --data-urlencode "password=$ADMIN_PASSWORD")"
+[[ "$V1_LOGIN_STATUS" == '200' ]] || fail "API v1 login returned HTTP $V1_LOGIN_STATUS; expected 200."
+jq -e '(.code | tostring) == "0" and (.data.token | type == "string" and length > 20)' "$WORK_DIR/api-v1-login.json" >/dev/null \
+	|| fail 'API v1 login did not return the stable success envelope and token.'
+API_TOKEN="$(jq -r '.data.token' "$WORK_DIR/api-v1-login.json")"
+
+V1_FORUM_STATUS="$(api_request GET '/?api-v1-forum-list.htm' "$WORK_DIR/api-v1-forums.json" "$WORK_DIR/api-v1-forums.headers" \
+	-H "Authorization: Bearer $API_TOKEN")"
+[[ "$V1_FORUM_STATUS" == '200' ]] || fail "API v1 forum list returned HTTP $V1_FORUM_STATUS; expected 200."
+API_FID="$(jq -r '.data.list[0].fid // empty' "$WORK_DIR/api-v1-forums.json")"
+[[ "$API_FID" =~ ^[1-9][0-9]*$ ]] || fail 'API v1 forum list did not expose a readable forum ID.'
+
+API_THREAD_COUNT_BEFORE="$(mysql_query 'SELECT COUNT(*) FROM bbs_thread')"
+V1_DOCTYPE_STATUS="$(api_request POST '/?api-v1-thread-create.htm' "$WORK_DIR/api-v1-doctype.json" "$WORK_DIR/api-v1-doctype.headers" \
+	-H "Authorization: Bearer $API_TOKEN" --data-urlencode "fid=$API_FID" \
+	--data-urlencode 'subject=Unsupported document type' --data-urlencode 'message=Must not persist' --data-urlencode 'doctype=2')"
+[[ "$V1_DOCTYPE_STATUS" == '422' ]] || fail "API v1 unsupported document type returned HTTP $V1_DOCTYPE_STATUS; expected 422."
+jq -e '(.code | tostring) == "-1" and .message == "Document type is not supported"' "$WORK_DIR/api-v1-doctype.json" >/dev/null \
+	|| fail 'API v1 unsupported document type did not return the documented JSON error.'
+[[ "$(mysql_query 'SELECT COUNT(*) FROM bbs_thread')" == "$API_THREAD_COUNT_BEFORE" ]] \
+	|| fail 'API v1 unsupported document type wrote a thread.'
+
+API_SUBJECT="API v1 HTTP smoke $RUN_ID"
+V1_THREAD_CREATE_STATUS="$(api_request POST '/?api-v1-thread-create.htm' "$WORK_DIR/api-v1-thread-create.json" "$WORK_DIR/api-v1-thread-create.headers" \
+	-H "Authorization: Bearer $API_TOKEN" --data-urlencode "fid=$API_FID" \
+	--data-urlencode "subject=$API_SUBJECT" --data-urlencode 'message=API v1 thread body')"
+[[ "$V1_THREAD_CREATE_STATUS" == '200' ]] || fail "API v1 thread create returned HTTP $V1_THREAD_CREATE_STATUS; expected 200."
+API_TID="$(jq -r '.data.tid // empty' "$WORK_DIR/api-v1-thread-create.json")"
+[[ "$API_TID" =~ ^[1-9][0-9]*$ ]] || fail 'API v1 thread create did not return a thread ID.'
+[[ "$(mysql_query "SELECT doctype FROM bbs_post WHERE tid = $API_TID AND isfirst = 1")" == '1' ]] \
+	|| fail 'API v1 omitted document type did not default the new thread to plain text.'
+
+V1_THREAD_LIST_STATUS="$(api_request GET "/?api-v1-thread-list.htm&fid=$API_FID" "$WORK_DIR/api-v1-thread-list.json" "$WORK_DIR/api-v1-thread-list.headers" \
+	-H "Authorization: Bearer $API_TOKEN")"
+[[ "$V1_THREAD_LIST_STATUS" == '200' ]] || fail "API v1 thread list returned HTTP $V1_THREAD_LIST_STATUS; expected 200."
+jq -e --arg tid "$API_TID" '(.data.list | type) == "array" and any(.data.list[]; (.tid | tostring) == $tid)' "$WORK_DIR/api-v1-thread-list.json" >/dev/null \
+	|| fail 'API v1 thread list was not a JSON array containing the created thread.'
+
+API_VIEWS_BEFORE="$(mysql_query "SELECT views FROM bbs_thread WHERE tid = $API_TID")"
+V1_THREAD_READ_STATUS="$(api_request GET "/?api-v1-thread-read.htm&tid=$API_TID" "$WORK_DIR/api-v1-thread-read.json" "$WORK_DIR/api-v1-thread-read.headers" \
+	-H "Authorization: Bearer $API_TOKEN")"
+[[ "$V1_THREAD_READ_STATUS" == '200' ]] || fail "API v1 thread read returned HTTP $V1_THREAD_READ_STATUS; expected 200."
+jq -e --arg tid "$API_TID" '(.code | tostring) == "0" and (.data.thread.tid | tostring) == $tid and (.data.posts[0].doctype | tonumber) == 1' "$WORK_DIR/api-v1-thread-read.json" >/dev/null \
+	|| fail 'API v1 thread read did not return the created plain-text thread.'
+[[ "$(mysql_query "SELECT views FROM bbs_thread WHERE tid = $API_TID")" == "$API_VIEWS_BEFORE" ]] \
+	|| fail 'API v1 thread read changed the view counter.'
+
+V1_POST_CREATE_STATUS="$(api_request POST '/?api-v1-post-create.htm' "$WORK_DIR/api-v1-post-create.json" "$WORK_DIR/api-v1-post-create.headers" \
+	-H "Authorization: Bearer $API_TOKEN" --data-urlencode "tid=$API_TID" --data-urlencode 'message=API v1 reply body')"
+[[ "$V1_POST_CREATE_STATUS" == '200' ]] || fail "API v1 post create returned HTTP $V1_POST_CREATE_STATUS; expected 200."
+jq -e --arg tid "$API_TID" '(.code | tostring) == "0" and (.data.tid | tostring) == $tid and (.data.doctype | tonumber) == 1' "$WORK_DIR/api-v1-post-create.json" >/dev/null \
+	|| fail 'API v1 reply did not use the stable success envelope and plain-text default.'
+
 PASSWORD_TOKEN="$(site_token '/?my-password.htm')"
 EMPTY_PASSWORD_RESPONSE="$(site_post '/?my-password.htm' "$PASSWORD_TOKEN" \
 	--data-urlencode "password_old=$(md5_value "$ADMIN_PASSWORD")" \
@@ -434,4 +526,4 @@ DB_DOWN_AJAX_STATUS="$(curl -sS -H 'X-Requested-With: XMLHttpRequest' -o "$WORK_
 jq -e '.code == "-1" and (.message | contains("数据库服务暂时不可用"))' "$WORK_DIR/db-down.json" >/dev/null \
 	|| fail 'Database outage AJAX response was not structured JSON.'
 
-echo "OK: Docker Nginx, installer preflight, login rotation, credential-epoch revocation, logout/re-login, password, and database-outage HTTP smoke passed"
+echo "OK: Docker Nginx, installer preflight, API v1, login rotation, credential-epoch revocation, logout/re-login, password, and database-outage HTTP smoke passed"

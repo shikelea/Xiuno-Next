@@ -21,7 +21,7 @@
 - **🐘 PHP 8 兼容**：核心面向 PHP 8.0.2+ 维护，并通过通用兼容层逐步覆盖旧插件；未验证的第三方包不承诺直接可用。
 - **🎨 现代 UI**：默认主题全面升级至 Bootstrap 5，移动端优先设计，体验更佳。
 - **🐳 Docker 开发环境**：提供 Compose 配置和 HTTP smoke；生产部署仍需按实际存储、权限和反向代理环境验证。
-- **🔌 基础 RESTful API**：已覆盖登录、帖子列表和发帖等基础场景；并非完整的无头论坛接口。
+- **🔌 基础版本化 API**：v1 已覆盖登录、版块/主题读取和发帖等基础场景；并非完整的无头论坛接口。
 
 ## 📦 快速开始
 
@@ -109,7 +109,7 @@ php -S 127.0.0.1:8081 -t . bin/dev_router.php
 - [x] **v4.5.1 (Hardening, 预发布候选)**: 完成认证、兼容层、Docker、更新完整性与 CLI 文档加固；真实旧站门禁发现下载首跳和升级后版本元数据漂移，因此仅保留 prerelease，不提升为正式版。
 - [x] **v4.5.2 (Release reliability, 预发布候选)**: 修复官方归档下载链，并保证在线升级与回滚同步核心默认配置、运行版本和静态资源版本；最终资产测试发现浏览器安装 CSRF 与 InnoDB 统计缺陷，因此保留为 prerelease。
 - [x] **v4.5.3 (Install reliability, 发行版)**: 修复原生表单与同源 AJAX 安装 token 保留、安装前错误页呈现和 InnoDB 精确统计；最终产物通过真实升级、业务连续性与回滚门禁后正式发布。
-- [ ] **v4.5.4 (Attachment hardening, 开发中)**: 在附件进入草稿前校验扩展名、MIME 与实际内容，并由服务端确定图片尺寸和图片标记；继续完成 Linux/Docker/CLI 部署验证。
+- [ ] **v4.5.4 (Hardening & API, 开发中)**: 已完成附件内容校验、MySQL 会话转义边界、依赖锁定及登录/找回匿名响应收口，本批收口 API v1 契约；继续完成 Linux/Docker/CLI 部署验证。
 - [ ] **v5.0.0 (Next)**: 稳定 Theme API、统一编辑器接口，改善移动端与渐进增强体验；继续保持轻量服务端渲染，不建设插件/主题市场。
 
 > 路线图中的已完成项记录对应版本当时的交付。项目不建设插件/主题市场；历史远程插件下载入口保持 fail-closed，本地插件/主题扩展与兼容能力继续维护。在线更新仅在完整性校验、备份与回滚边界全部通过后作为生产能力发布；Theme API 仍需更多真实生态采用和回归证据。
@@ -246,9 +246,76 @@ SHA-256、AB 指标和经过同一契约复验的 TTFB 样本；`bench_*.txt` �
 对比应标记为 `warm`；真正的冷缓存单请求需在每次采样前由外部可审计流程重置缓存，不能把
 本脚本预检后的 AB 结果声明为纯冷缓存结果。
 
-## API 文档
+## API v1 文档
 
-本项目提供 RESTful API，实现位于 `route/api/`；统一返回 `{code, message, data}`，并支持 token 鉴权与标准分页参数。
+API v1 使用 Xiuno 的查询路由形式，入口为 `/?api-v1-{resource}-{action}.htm`。它是面向轻量客户端的稳定最小契约，不是完整 JSON:API，也尚未覆盖论坛资源的全部生命周期。未带 `v1` 的 `/?api-*` 路径仅供旧客户端兼容：其错误仍可能返回 HTTP 200，不应作为新集成入口。
+
+### 端点
+
+| 方法 | 路径 | 认证 | 参数与返回 |
+| --- | --- | --- | --- |
+| GET | `/?api-v1-index.htm` | 否 | 返回核心版本、API 版本和服务器时间 |
+| GET | `/?api-v1-forum-list.htm` | 否 | 返回当前用户可读版块的 `total/list` |
+| GET | `/?api-v1-forum-read.htm` | 否 | `fid`；返回一个可读版块 |
+| GET | `/?api-v1-thread-list.htm` | 否 | 可选 `fid/page/pagesize`；`pagesize` 最大 100 |
+| GET | `/?api-v1-thread-read.htm` | 否 | `tid`，可选 `page/pagesize`；返回主题与回复，不增加浏览量 |
+| POST | `/?api-v1-thread-create.htm` | 是 | `fid/subject/message`，可选 `doctype`；返回新主题 |
+| POST | `/?api-v1-post-create.htm` | 是 | `tid/message`，可选 `doctype/quotepid`；返回新回复 |
+| POST | `/?api-v1-user-login.htm` | 否 | `email/password`，密码为原始输入；返回安全用户信息及 token |
+| GET | `/?api-v1-user-read.htm` | 否 | 可选 `uid`；省略时读取当前 token/Session 用户 |
+| GET | `/?api-v1-user-threads.htm` | 否 | 可选 `uid/page/pagesize`；只返回当前访问者可读主题 |
+| GET | `/?api-v1-search-thread.htm` | 否 | `keyword`（或 `q`），可选 `page/pagesize`；`pagesize` 最大 50 |
+
+请求参数当前使用查询参数或 `application/x-www-form-urlencoded` 表单；v1 尚不接受 JSON request body。创建主题和回复时，`doctype` 省略即为 `1`，当前只接受：
+
+- `0`：经过服务端净化的 HTML。
+- `1`：纯文本，默认值。
+
+Markdown/UBB 尚未成为核心 v1 格式，传入其他值返回 HTTP 422。历史 legacy API 继续保留原来的 `doctype=0` 默认值。
+v1 的 `list` 和 `posts` 集合固定返回 JSON array；legacy 可能继续返回以资源 ID 为键的 JSON object。
+
+### 认证
+
+新客户端应在请求头使用：
+
+```http
+Authorization: Bearer <token>
+```
+
+`token`/`bbs_token` 参数仅为旧客户端兼容，不建议放入 URL。使用浏览器 Session 发起写请求时，仍必须通过 `_token` 或 `X-CSRF-Token` 提交当前 Session 的 CSRF token；Bearer 请求不依赖 Session CSRF。
+
+### 响应与状态
+
+进入 API 路由后的 v1 响应保留统一 JSON envelope：
+
+```json
+{
+  "code": 0,
+  "message": "OK",
+  "data": {}
+}
+```
+
+v1 使用以下 HTTP 状态。`message` 可能随语言变化，客户端应以 HTTP 状态和 `code` 判断结果，并忽略不认识的新增字段。
+
+| HTTP | 含义 |
+| --- | --- |
+| 200 | 成功 |
+| 401 | 未登录、token 无效或登录凭据错误 |
+| 403 | 权限不足或 Session CSRF 校验失败 |
+| 404 | API action、版块、主题或用户不存在 |
+| 405 | 请求方法不允许；响应包含 `Allow` |
+| 409 | 主题关闭或登录期间凭据并发变化 |
+| 422 | 必填项、长度、搜索词或 `doctype` 校验失败 |
+| 429 | 登录尝试过于频繁 |
+| 500 | 创建、token 签发等服务器内部失败 |
+| 503 | 数据库等必要服务暂时不可用 |
+
+数据库在 API 路由加载前不可用时，bootstrap 会直接返回 HTTP 503 和包含
+`code/message/request_id` 的 JSON 服务诊断；该响应不保证带有 `data` 或 API 版本头，
+客户端应把它作为可重试的服务级失败处理。
+
+资源的稳定基础字段为：版块 `fid/name/brief`；主题 `fid/tid/uid/subject/create_date/last_date/views/posts/closed`；回复 `tid/pid/uid/isfirst/create_date/doctype/quotepid/message`；用户 `uid/gid/username/threads/posts/credits/avatar`。格式化与 Hook 可以增加字段，但不得重新暴露 `safe_info()` 已移除的凭据、邮箱、IP 等敏感字段。
 
 ## 插件体系状态
 

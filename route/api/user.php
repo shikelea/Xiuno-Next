@@ -12,9 +12,9 @@ if($action == 'login') {
 	$email = param('email');
 	$password = param('password');
 
-	if(empty($email)) api_output(-1, lang('email_is_empty'));
-	if(empty($password)) api_output(-1, lang('password_is_empty'));
-	user_login_rate_limited($email) AND api_output(-1, 'Please try again later');
+	if(empty($email)) api_output(-1, lang('email_is_empty'), array(), 422);
+	if(empty($password)) api_output(-1, lang('password_is_empty'), array(), 422);
+	user_login_rate_limited($email) AND api_output(-1, 'Please try again later', array(), 429);
 
 	// API 客户端发送原始密码（无浏览器端 JS MD5），服务端需对齐浏览器行为
 	$password = md5($password);
@@ -26,16 +26,16 @@ if($action == 'login') {
 
 	if(!user_login_password_verify($password, $user)) {
 		user_login_rate_fail($email);
-		api_output(-1, 'Email or password is incorrect');
+		api_output(-1, 'Email or password is incorrect', array(), 401);
 	}
 
 	$user = user_login_credentials_refresh($user['uid'], $password);
-	empty($user) AND api_output(-1, 'Account credentials changed during sign-in; please retry');
+	empty($user) AND api_output(-1, 'Account credentials changed during sign-in; please retry', array(), 409);
 	user_format($user);
 	user_login_rate_clear($email);
 
 	$token = user_token_gen($user['uid'], user_auth_epoch($user));
-	$token === FALSE AND api_output(-1, 'Unable to issue login token');
+	$token === FALSE AND api_output(-1, 'Unable to issue login token', array(), 500);
 
 	user_update($user['uid'], array(
 		'login_ip' => $longip,
@@ -50,30 +50,33 @@ if($action == 'login') {
 	api_output(0, 'Login Success', $user_safe);
 
 } elseif($action == 'read') {
+	api_is_v1() AND api_method_required('GET');
 	
 	// 获取用户信息
 	$uid = param('uid');
 	if(empty($uid)) $uid = api_auth_uid(FALSE);
 	
-	if(empty($uid)) api_output(-1, lang('user_not_exists'));
+	if(empty($uid)) api_output(-1, lang('user_not_exists'), array(), 404);
 	
 	$user = user_read($uid);
-	if(empty($user)) api_output(-1, lang('user_not_exists'));
+	if(empty($user)) api_output(-1, lang('user_not_exists'), array(), 404);
 	
 	api_output(0, 'OK', user_safe_info($user));
 
 } elseif($action == 'threads') {
+	api_is_v1() AND api_method_required('GET');
 
 	$_uid = param('uid', 0);
 	if(empty($_uid)) $_uid = api_auth_uid(FALSE);
 
-	if(empty($_uid)) api_output(-1, lang('user_not_exists'));
+	if(empty($_uid)) api_output(-1, lang('user_not_exists'), array(), 404);
 
 	$_user = user_read($_uid);
-	if(empty($_user)) api_output(-1, lang('user_not_exists'));
+	if(empty($_user)) api_output(-1, lang('user_not_exists'), array(), 404);
 
 	list($page, $pagesize) = api_page_params();
 	$result = mythread_find_visible_by_uid($_uid, $gid, $page, $pagesize);
+	if(api_is_v1()) $result['list'] = array_values($result['list']);
 
 	api_output(0, 'OK', array(
 		'user' => user_safe_info($_user),
@@ -84,7 +87,7 @@ if($action == 'login') {
 	));
 
 } else {
-	api_output(-1, 'Unknown Action');
+	api_output(-1, 'Unknown Action', array(), 404);
 }
 
 ?>

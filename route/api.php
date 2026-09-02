@@ -16,7 +16,7 @@ if($action == 'v1') {
 $_SERVER['api_version'] = $api_version;
 
 if(!preg_match('/^\w{1,32}$/', $action) || ($api_version != 'legacy' && !preg_match('/^\w{1,32}$/', $_REQUEST[2]))) {
-	api_output(404, 'API Not Found');
+	api_output(404, 'API Not Found', array(), 404);
 }
 
 // 自动加载对应的 API 文件
@@ -26,7 +26,7 @@ if(is_file($api_file)) {
 	include $api_file;
 } else {
 	// 404 Not Found
-	api_output(404, 'API Not Found');
+	api_output(404, 'API Not Found', array(), 404);
 }
 
 ?>

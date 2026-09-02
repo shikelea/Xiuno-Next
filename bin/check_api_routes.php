@@ -19,20 +19,33 @@ function param($key, $defval = '') {
 	return isset($_REQUEST[$key]) ? $_REQUEST[$key] : $defval;
 }
 
-function api_output($code, $message, $data = array()) {
+function api_output($code, $message, $data = array(), $http_status = 200) {
+	$effective_status = isset($_SERVER['api_version']) && $_SERVER['api_version'] === 'v1' ? intval($http_status) : 200;
 	throw new ApiSmokeOutput(array(
 		'code' => $code,
 		'message' => $message,
 		'data' => $data,
+		'_http_status' => $effective_status,
 	));
+}
+
+function api_is_v1() {
+	return isset($_SERVER['api_version']) && $_SERVER['api_version'] === 'v1';
+}
+
+function api_method_required($required) {
+	global $method;
+	if(strtoupper($method) === strtoupper($required)) return TRUE;
+	api_output(-1, 'Method Not Allowed', array(), 405);
 }
 
 function api_route_source($path) {
 	return file_get_contents(APP_PATH . $path);
 }
 
-function api_smoke_run($request) {
-	global $conf;
+function api_smoke_run($request, $request_method = 'GET') {
+	global $conf, $method;
+	$method = strtoupper($request_method);
 	$_REQUEST = array();
 	foreach((array)$request as $key => $value) {
 		$_REQUEST[$key] = $value;
@@ -46,36 +59,58 @@ function api_smoke_run($request) {
 }
 
 $response = api_smoke_run(array());
-if(!is_array($response) || $response['code'] !== 0 || $response['data']['version'] !== 'smoke' || $response['data']['api_version'] !== 'legacy') {
+if(!is_array($response) || $response['code'] !== 0 || $response['data']['version'] !== 'smoke' || $response['data']['api_version'] !== 'legacy' || $response['_http_status'] !== 200) {
 	$errors[] = 'default API route did not return index response';
 }
 
 $response = api_smoke_run(array(1 => 'v1'));
-if(!is_array($response) || $response['code'] !== 0 || $response['data']['api_version'] !== 'v1') {
+if(!is_array($response) || $response['code'] !== 0 || $response['data']['api_version'] !== 'v1' || $response['_http_status'] !== 200) {
 	$errors[] = 'versioned API route did not return v1 index response';
 }
 
+$response = api_smoke_run(array(1 => 'v1'), 'POST');
+if(!is_array($response) || $response['code'] !== -1 || $response['_http_status'] !== 405) {
+	$errors[] = 'versioned API index must reject POST with HTTP 405';
+}
+
+$response = api_smoke_run(array(), 'POST');
+if(!is_array($response) || $response['code'] !== 0 || $response['_http_status'] !== 200) {
+	$errors[] = 'legacy API index must preserve its historical POST behavior';
+}
+
 $response = api_smoke_run(array(1 => 'missing'));
-if(!is_array($response) || $response['code'] !== 404) {
-	$errors[] = 'missing API route did not return 404';
+if(!is_array($response) || $response['code'] !== 404 || $response['_http_status'] !== 200) {
+	$errors[] = 'legacy missing API route must preserve HTTP 200 with JSON code 404';
 }
 
 $response = api_smoke_run(array(1 => '../user'));
-if(!is_array($response) || $response['code'] !== 404) {
-	$errors[] = 'unsafe API route action did not return 404';
+if(!is_array($response) || $response['code'] !== 404 || $response['_http_status'] !== 200) {
+	$errors[] = 'unsafe legacy API route action must preserve HTTP 200 with JSON code 404';
 }
 
 $response = api_smoke_run(array(1 => 'v1', 2 => 'thread', 3 => '../list'));
-if(!is_array($response) || $response['code'] !== 404) {
-	$errors[] = 'unsafe versioned API action did not return 404';
+if(!is_array($response) || $response['code'] !== 404 || $response['_http_status'] !== 404) {
+	$errors[] = 'unsafe versioned API action must return HTTP and JSON 404';
 }
 
+$response = api_smoke_run(array(1 => 'v1', 2 => 'missing', 3 => 'index'));
+if(!is_array($response) || $response['code'] !== 404 || $response['_http_status'] !== 404) {
+	$errors[] = 'missing versioned API controller must return HTTP and JSON 404';
+}
+
+$indexRoute = api_route_source('route/api/index.php');
+$forumRoute = api_route_source('route/api/forum.php');
+$searchRoute = api_route_source('route/api/search.php');
+$userRoute = api_route_source('route/api/user.php');
 $postRoute = api_route_source('route/api/post.php');
 if(strpos($postRoute, 'api_login_required();') === FALSE) {
 	$errors[] = 'post create API must use api_login_required()';
 }
 if(strpos($postRoute, 'api_method_required(\'POST\');') === FALSE) {
 	$errors[] = 'post create API must require POST through api_method_required()';
+}
+if(strpos($postRoute, '$doctype = api_post_doctype();') === FALSE) {
+	$errors[] = 'post create API must use the version-aware document type contract';
 }
 if(strpos($postRoute, '$quotepost = post__read($quotepid);') === FALSE || strpos($postRoute, '$quotepost[\'tid\'] != $tid') === FALSE) {
 	$errors[] = 'post create API must validate quotepid belongs to the target thread';
@@ -88,6 +123,18 @@ if(strpos($threadRoute, 'api_login_required();') === FALSE) {
 if(strpos($threadRoute, 'api_method_required(\'POST\');') === FALSE) {
 	$errors[] = 'thread create API must require POST through api_method_required()';
 }
+if(strpos($threadRoute, '$doctype = api_post_doctype();') === FALSE) {
+	$errors[] = 'thread create API must use the version-aware document type contract';
+}
+if(strpos($threadRoute, 'if(!api_is_v1()) thread_inc_views($tid);') === FALSE) {
+	$errors[] = 'v1 thread reads must not mutate the view counter';
+}
+if(substr_count($threadRoute, 'if(api_is_v1() && is_array($threadlist)) $threadlist = array_values($threadlist);') !== 1
+	|| substr_count($threadRoute, 'if(api_is_v1() && is_array($postlist)) $postlist = array_values($postlist);') !== 1
+	|| substr_count($userRoute, "if(api_is_v1()) \$result['list'] = array_values(\$result['list']);") !== 1
+	|| substr_count($searchRoute, "if(api_is_v1()) \$result['list'] = array_values(\$result['list']);") !== 1) {
+	$errors[] = 'v1 collection responses must use JSON arrays without changing legacy keyed lists';
+}
 if(strpos($threadRoute, '$cond[\'fid\'] = $allowfids;') === FALSE) {
 	$errors[] = 'thread list API must restrict global listing to readable forums';
 }
@@ -95,7 +142,17 @@ if(strpos($threadRoute, '$forum[\'accesson\'] && !forum_access_user') !== FALSE)
 	$errors[] = 'thread API must not bypass group allowread when forum accesson is disabled';
 }
 
-$userRoute = api_route_source('route/api/user.php');
+foreach(array(
+	'API index' => array($indexRoute, 1),
+	'forum read routes' => array($forumRoute, 2),
+	'thread read routes' => array($threadRoute, 2),
+	'user read routes' => array($userRoute, 2),
+	'search read route' => array($searchRoute, 1),
+) as $label => $expectation) {
+	if(substr_count($expectation[0], "api_is_v1() AND api_method_required('GET');") !== $expectation[1]) {
+		$errors[] = $label.' must reject non-GET methods in v1 without changing legacy behavior';
+	}
+}
 $loginStart = strpos($userRoute, "if(\$action == 'login')");
 $loginEnd = strpos($userRoute, "} elseif(\$action == 'read')");
 if($loginStart === FALSE || $loginEnd === FALSE || $loginEnd <= $loginStart) {
@@ -125,7 +182,8 @@ if(substr_count($userLoginRoute, 'user_login_rate_fail($email);') !== 1) {
 	$errors[] = 'user login API must record its unified credential failure once';
 }
 if(strpos($userLoginRoute, 'user_login_password_verify($password, $user)') === FALSE
-	|| substr_count($userLoginRoute, "api_output(-1, 'Email or password is incorrect')") !== 1
+	|| substr_count($userLoginRoute, "'Email or password is incorrect'") !== 1
+	|| strpos($userLoginRoute, "api_output(-1, 'Email or password is incorrect', array(), 401)") === FALSE
 	|| strpos($userLoginRoute, "lang('user_not_exists')") !== FALSE
 	|| strpos($userLoginRoute, "lang('password_incorrect')") !== FALSE) {
 	$errors[] = 'user login API must use a generic failure response to avoid account enumeration';
@@ -162,8 +220,27 @@ if(strpos($miscModel, 'function api_method_required') === FALSE) {
 if(strpos($miscModel, 'function api_page_params') === FALSE) {
 	$errors[] = 'misc helpers must define api_page_params()';
 }
+foreach(array(
+	'function api_output($code, $message, $data = array(), $http_status = 200)',
+	'if(api_is_v1())',
+	'http_response_code($http_status)',
+	"header('X-Xiuno-API-Version: v1')",
+	"api_output(-1, 'Method Not Allowed', array(), 405)",
+	'function api_post_doctype()',
+	"if(!api_is_v1()) return param('doctype', 0)",
+	"if(!array_key_exists('doctype', \$_REQUEST)) return 1",
+	"api_output(-1, 'Document type is not supported', array(), 422)",
+) as $needle) {
+	if(strpos($miscModel, $needle) === FALSE) {
+		$errors[] = 'v1 API response contract is missing: '.$needle;
+	}
+}
 if(strpos($miscModel, 'function api_csrf_check') === FALSE || strpos($miscModel, 'api_request_token() === \'\'') === FALSE) {
 	$errors[] = 'API session-backed POST requests must require CSRF when no API token is present';
+}
+if(substr_count($miscModel, "api_output(-1, lang('please_login'), array(), 401)") !== 2
+	|| strpos($miscModel, "api_output(-1, 'CSRF token validation failed', array(), 403)") === FALSE) {
+	$errors[] = 'v1 authentication and CSRF failures must request stable HTTP statuses';
 }
 if(strpos($miscModel, '$_user = user_read_primary_proven($_uid);') === FALSE) {
 	$errors[] = 'API token authorization must load permission fields from the primary database';

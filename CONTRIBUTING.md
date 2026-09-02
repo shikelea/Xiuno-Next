@@ -115,7 +115,7 @@ php -S 127.0.0.1:8081 -t . bin/dev_router.php
 
 ## 🔌 API 开发指南
 
-我们使用 RESTful 风格的 API，代码位于 `route/api/` 目录下。
+版本化 API 代码位于 `route/api/`，公开 v1 契约和端点表见 README。新接口只能加入 `/api-v1-*` 契约；未带版本的 `/api-*` 路径是 legacy 兼容面，不能用修改 legacy 行为的方式实现 v1 语义。
 
 *   **响应格式**: 所有 API 统一返回 JSON 格式：
     ```json
@@ -128,7 +128,10 @@ php -S 127.0.0.1:8081 -t . bin/dev_router.php
 *   **新增接口**:
     1.  在 `route/api/` 下创建或修改对应的控制器文件（如 `user.php`）。
     2.  使用 `param()` 获取参数。
-    3.  使用 `api_output($code, $message, $data)` 输出结果。
+    3.  使用 `api_output($code, $message, $data, $http_status)` 输出结果；第四个参数只改变 v1 的 HTTP 状态，legacy 错误继续兼容 HTTP 200。
+    4.  v1 读取分支使用 `api_is_v1() AND api_method_required('GET')`，写接口调用 `api_method_required('POST')` 和 `api_login_required()`；Session 写入继续经过 CSRF，API 客户端优先使用 Bearer token。
+    5.  创建内容统一调用 `api_post_doctype()`；v1 只接受核心实际支持的 `0/1` 且默认纯文本 `1`，不得通过注释中的未来格式扩张公开契约。
+    6.  新增或修改端点时同步 README，并扩展现有 `bin/check_api_routes.php`；真实 HTTP 行为优先加入现有 Docker smoke，不新建一套 API 测试框架。
 
 ## 💻 CLI 工具开发
 
