@@ -6,6 +6,7 @@ $action = param(2);
 
 // 帖子列表
 if($action == 'list') {
+	api_is_v1() AND api_method_required('GET');
 	
 	$fid = param('fid', 0);
 	list($page, $pagesize) = api_page_params();
@@ -15,11 +16,11 @@ if($action == 'list') {
 	if($fid > 0) {
 		$cond['fid'] = $fid;
 		$forum = forum_read($fid);
-		if(empty($forum)) api_output(-1, lang('forum_not_exists'));
+		if(empty($forum)) api_output(-1, lang('forum_not_exists'), array(), 404);
 		
 		// 权限判断
 		if(!forum_access_user($fid, $gid, 'allowread')) {
-			api_output(-1, lang('insufficient_privilege'));
+			api_output(-1, lang('insufficient_privilege'), array(), 403);
 		}
 	} else {
 		$allowfids = empty($forumlist_show) ? array() : array_keys($forumlist_show);
@@ -48,6 +49,7 @@ if($action == 'list') {
 			$thread['user'] = user_safe_info($thread['user']);
 		}
 	}
+	if(api_is_v1() && is_array($threadlist)) $threadlist = array_values($threadlist);
 	
 	$total = thread_count($cond);
 	
@@ -59,21 +61,22 @@ if($action == 'list') {
 	));
 
 } elseif($action == 'read') {
+	api_is_v1() AND api_method_required('GET');
 	
 	$tid = param('tid', 0);
 	list($page, $pagesize) = api_page_params();
 	
-	if(empty($tid)) api_output(-1, lang('thread_not_exists'));
+	if(empty($tid)) api_output(-1, lang('thread_not_exists'), array(), 404);
 	
 	$thread = thread_read($tid);
-	if(empty($thread)) api_output(-1, lang('thread_not_exists'));
+	if(empty($thread)) api_output(-1, lang('thread_not_exists'), array(), 404);
 	
 	$fid = $thread['fid'];
 	$forum = forum_read($fid);
 	
 	// 权限判断
 	if(!forum_access_user($fid, $gid, 'allowread')) {
-		api_output(-1, lang('insufficient_privilege'));
+		api_output(-1, lang('insufficient_privilege'), array(), 403);
 	}
 	
 	// 获取帖子内容 (第一楼)
@@ -87,9 +90,10 @@ if($action == 'list') {
 			unset($post['message_fmt']);
 		}
 	}
+	if(api_is_v1() && is_array($postlist)) $postlist = array_values($postlist);
 	
-	// 增加点击数
-	thread_inc_views($tid);
+	// Legacy API historically counted reads as views. v1 keeps GET read-only.
+	if(!api_is_v1()) thread_inc_views($tid);
 	
 	api_output(0, 'OK', array(
 		'thread' => thread_safe_info($thread),
@@ -105,23 +109,23 @@ if($action == 'list') {
 	$fid = param('fid', 0);
 	$subject = thread_subject_normalize(param('subject', '', FALSE));
 	$message = param('message');
-	$doctype = param('doctype', 0);
+	$doctype = api_post_doctype();
 	
-	if(empty($fid)) api_output(-1, lang('fid_is_empty'));
-	if(empty($subject)) api_output(-1, lang('subject_is_empty'));
-	if(empty($message)) api_output(-1, lang('message_is_empty'));
+	if(empty($fid)) api_output(-1, lang('fid_is_empty'), array(), 422);
+	if(empty($subject)) api_output(-1, lang('subject_is_empty'), array(), 422);
+	if(empty($message)) api_output(-1, lang('message_is_empty'), array(), 422);
 	
 	$forum = forum_read($fid);
-	if(empty($forum)) api_output(-1, lang('forum_not_exists'));
+	if(empty($forum)) api_output(-1, lang('forum_not_exists'), array(), 404);
 	
 	// 权限校验
 	if(!forum_access_user($fid, $gid, 'allowthread')) {
-		api_output(-1, lang('insufficient_privilege'));
+		api_output(-1, lang('insufficient_privilege'), array(), 403);
 	}
 	
 	// 长度校验
-	if(thread_subject_is_too_long($subject)) api_output(-1, lang('subject_too_long'));
-	if(mb_strlen($message, 'UTF-8') > 2028000) api_output(-1, lang('message_too_long'));
+	if(thread_subject_is_too_long($subject)) api_output(-1, lang('subject_too_long'), array(), 422);
+	if(mb_strlen($message, 'UTF-8') > 2028000) api_output(-1, lang('message_too_long'), array(), 422);
 	
 	$thread = array(
 		'fid' => $fid,
@@ -136,14 +140,14 @@ if($action == 'list') {
 	$pid = 0;
 	$tid = thread_create($thread, $pid);
 	if($tid === FALSE) {
-		api_output(-1, lang('create_thread_failed'));
+		api_output(-1, lang('create_thread_failed'), array(), 500);
 	}
 	
 	$thread = thread_read($tid);
 	api_output(0, lang('create_thread_sucessfully'), thread_safe_info($thread));
 
 } else {
-	api_output(-1, 'Unknown Action');
+	api_output(-1, 'Unknown Action', array(), 404);
 }
 
 ?>

@@ -622,7 +622,8 @@ strpos($admin_user_route, 'user_password_commit($_uid, $password_hash, $update)'
 strpos($api_user_route, '$token === FALSE AND api_output') !== FALSE
 	|| fail('API login must fail closed when an epoch-bound token cannot be issued.');
 strpos($api_user_route, 'user_login_password_verify($password, $user)') !== FALSE
-	&& substr_count($api_user_route, "api_output(-1, 'Email or password is incorrect')") === 1
+	&& substr_count($api_user_route, "'Email or password is incorrect'") === 1
+	&& strpos($api_user_route, "api_output(-1, 'Email or password is incorrect', array(), 401)") !== FALSE
 	|| fail('API login must share one missing-account and bad-password verification path.');
 strpos($api_user_route, "user_login_credentials_refresh(\$user['uid'], \$password)") !== FALSE
 	&& strpos($api_user_route, 'user_format($user);') !== FALSE

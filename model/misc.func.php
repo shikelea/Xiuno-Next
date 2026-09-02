@@ -338,7 +338,15 @@ function xn_html_safe($doc, $arg = array()) {
 /*
 	api_output(0, 'OK', array('uid'=>1));
 */
-function api_output($code, $message, $data = array()) {
+function api_version_current() {
+	return isset($_SERVER['api_version']) && $_SERVER['api_version'] === 'v1' ? 'v1' : 'legacy';
+}
+
+function api_is_v1() {
+	return api_version_current() === 'v1';
+}
+
+function api_output($code, $message, $data = array(), $http_status = 200) {
 	global $conf;
 	$arr = array(
 		'code' => $code,
@@ -348,6 +356,12 @@ function api_output($code, $message, $data = array()) {
 	
 	// hook model_api_output_start.php
 	
+	if(api_is_v1()) {
+		$http_status = intval($http_status);
+		($http_status < 100 || $http_status > 599) AND $http_status = 500;
+		http_response_code($http_status);
+		header('X-Xiuno-API-Version: v1');
+	}
 	header('Content-Type: application/json; charset=UTF-8');
 	echo xn_json_encode($arr);
 	exit;
@@ -360,7 +374,8 @@ function api_method_required($required) {
 	foreach($methods as $_method) {
 		if($current == strtoupper($_method)) return TRUE;
 	}
-	api_output(-1, 'Method Not Allowed');
+	api_is_v1() AND header('Allow: '.implode(', ', array_map('strtoupper', $methods)));
+	api_output(-1, 'Method Not Allowed', array(), 405);
 }
 
 function api_page_params($default_pagesize = 20, $max_pagesize = 100) {
@@ -369,6 +384,19 @@ function api_page_params($default_pagesize = 20, $max_pagesize = 100) {
 	if($pagesize < 1) $pagesize = $default_pagesize;
 	if($pagesize > $max_pagesize) $pagesize = $max_pagesize;
 	return array($page, $pagesize);
+}
+
+function api_post_doctype() {
+	if(!api_is_v1()) return param('doctype', 0);
+	if(!array_key_exists('doctype', $_REQUEST)) return 1;
+
+	$doctype = $_REQUEST['doctype'];
+	if((is_int($doctype) && ($doctype === 0 || $doctype === 1))
+		|| (is_string($doctype) && ($doctype === '0' || $doctype === '1'))) {
+		return intval($doctype);
+	}
+
+	api_output(-1, 'Document type is not supported', array(), 422);
 }
 
 function api_request_token() {
@@ -412,12 +440,12 @@ function api_auth_uid($required = FALSE) {
 			}
 		}
 
-		if($required) api_output(-1, lang('please_login'));
+		if($required) api_output(-1, lang('please_login'), array(), 401);
 		return 0;
 	}
 
 	if(!empty($uid)) return intval($uid);
-	if($required) api_output(-1, lang('please_login'));
+	if($required) api_output(-1, lang('please_login'), array(), 401);
 	return 0;
 }
 
@@ -426,7 +454,7 @@ function api_csrf_check() {
 	if(isset($conf['csrf_on']) && $conf['csrf_on'] == 0) return;
 	$token = isset($_REQUEST['_token']) ? $_REQUEST['_token'] : (isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : '');
 	if(empty($token) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
-		api_output(-1, 'CSRF token validation failed');
+		api_output(-1, 'CSRF token validation failed', array(), 403);
 	}
 }
 
