@@ -93,7 +93,10 @@ if($action == 'create') {
 	// hook thread_info_start.php
 	
 	$thread = thread_read($tid);
-	empty($thread) AND message(-1, lang('thread_not_exists'));
+	if(empty($thread)) {
+		http_response_code(404);
+		message(-1, lang('thread_not_exists'));
+	}
 	
 	$fid = $thread['fid'];
 	$forum = forum_read($fid);
