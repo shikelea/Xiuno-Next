@@ -454,6 +454,51 @@
 		}
 	}
 
+	function legacyQueryRouteGetDestination(form, submitter) {
+		if (!form || form.tagName !== 'FORM') return '';
+		if (typeof window.FormData !== 'function' || typeof window.URLSearchParams !== 'function') return '';
+		var validSubmitter = !!(submitter && submitter.nodeType === 1 && submitter.form === form);
+		var method = validSubmitter && submitter.hasAttribute('formmethod') ? submitter.formMethod : form.method;
+		if (String(method || 'get').toUpperCase() !== 'GET') return '';
+		var target = validSubmitter && submitter.hasAttribute('formtarget') ? submitter.formTarget : form.target;
+		if (target && String(target).toLowerCase() !== '_self') return '';
+
+		var action = validSubmitter && submitter.hasAttribute('formaction') ? submitter.formAction : form.action;
+		var resolved;
+		try {
+			resolved = new URL(action || window.location.href, document.baseURI || window.location.href);
+		} catch (error) {
+			return '';
+		}
+		if (resolved.origin !== window.location.origin || !resolved.search) return '';
+		var rawQuery = resolved.search.slice(1);
+		var route = rawQuery.split('&', 1)[0];
+		if (!route || route.indexOf('=') !== -1 || /[\u0000-\u0020\u007f]/.test(route)) return '';
+		if (validSubmitter && String(submitter.type || '').toLowerCase() === 'image') return '';
+
+		var formData;
+		try {
+			formData = new window.FormData(form);
+		} catch (error2) {
+			return '';
+		}
+		if (validSubmitter && submitter.name && !submitter.disabled) formData.append(submitter.name, submitter.value);
+		var parameters = new window.URLSearchParams();
+		formData.forEach(function (value, name) {
+			parameters.append(name, typeof value === 'string' ? value : (value && value.name ? value.name : ''));
+		});
+		var serialized = parameters.toString();
+		return resolved.origin + resolved.pathname + '?' + rawQuery + (serialized ? '&' + serialized : '') + resolved.hash;
+	}
+
+	function preserveLegacyQueryRouteGet(event) {
+		if (event.defaultPrevented || !event.target || event.target.tagName !== 'FORM') return;
+		var destination = legacyQueryRouteGetDestination(event.target, event.submitter || null);
+		if (!destination) return;
+		event.preventDefault();
+		window.location.assign(destination);
+	}
+
 	function isCoreQuickReplyAction(action) {
 		var resolved;
 		try {
@@ -1364,6 +1409,7 @@
             reconcileCsrfForm(event.target, csrfToken(), event.submitter || null);
         }
     }, true);
+	document.addEventListener('submit', preserveLegacyQueryRouteGet);
     document.addEventListener('formdata', function (event) {
         var form = event.target;
         if (!form || form.tagName !== 'FORM') return;

@@ -776,6 +776,25 @@
 		var restoredProxy = proxy.noConflict();
 		assert(restoredProxy === proxy, 'noConflict returns the compat proxy');
 		assert(jq.fn.modal !== proxy && jq.fn.modal.Constructor === win.bootstrap.Modal, 'noConflict restores the captured implementation');
+
+		var externalQueryRouteForm = doc.createElement('form');
+		externalQueryRouteForm.method = 'get';
+		externalQueryRouteForm.action = 'https://example.invalid/?search.htm';
+		doc.body.appendChild(externalQueryRouteForm);
+		var externalQueryRouteSubmit = new win.Event('submit', { bubbles: true, cancelable: true });
+		assert(externalQueryRouteForm.dispatchEvent(externalQueryRouteSubmit), 'cross-origin query-route GET forms remain caller-owned');
+
+		var queryRouteForm = doc.createElement('form');
+		queryRouteForm.method = 'get';
+		queryRouteForm.action = '?search.htm';
+		queryRouteForm.innerHTML = '<input name="keyword" value="legacy route"><input type="radio" name="range" value="1" checked>';
+		doc.body.appendChild(queryRouteForm);
+		var queryRouteSubmit = new win.Event('submit', { bubbles: true, cancelable: true });
+		var queryRouteDefaultAllowed = queryRouteForm.dispatchEvent(queryRouteSubmit);
+		for (var routeAttempt = 0; routeAttempt < 20 && context.frame.contentWindow.location.search !== '?search.htm&keyword=legacy+route&range=1'; routeAttempt++) await wait(10);
+		assert(!queryRouteDefaultAllowed
+			&& context.frame.contentWindow.location.search === '?search.htm&keyword=legacy+route&range=1',
+			'native same-origin GET preserves a bare Xiuno query route when no package handler owns submission');
 		context.frame.remove();
 	}
 
