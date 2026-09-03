@@ -127,6 +127,21 @@
 		assert(win.XiunoCompat && win.XiunoCompat.jquery === jq, 'default runtime binds current jQuery identity');
 		assertApis(context, 'default');
 
+		context.frame.hidden = false;
+		context.frame.style.cssText = 'position:fixed;left:-2000px;top:0;width:1300px;height:1px;border:0';
+		var legacyDesktop = doc.createElement('div');
+		legacyDesktop.className = 'hidden-sm';
+		var legacyMobile = doc.createElement('div');
+		legacyMobile.className = 'hidden-md hidden-lg';
+		doc.body.appendChild(legacyDesktop);
+		doc.body.appendChild(legacyMobile);
+		await wait(20);
+		assert(win.getComputedStyle(legacyDesktop).display !== 'none' && win.getComputedStyle(legacyMobile).display === 'none', 'legacy responsive utilities keep only desktop navigation at 1300px');
+		context.frame.style.width = '390px';
+		await wait(20);
+		assert(win.getComputedStyle(legacyDesktop).display === 'none' && win.getComputedStyle(legacyMobile).display !== 'none', 'legacy responsive utilities keep only mobile navigation at 390px');
+		context.frame.hidden = true;
+
 		var modal = doc.createElement('div');
 		modal.className = 'modal';
 		modal.innerHTML = '<div class="modal-dialog"><div class="modal-content">modal</div></div>';
