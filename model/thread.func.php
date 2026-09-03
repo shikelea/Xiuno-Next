@@ -143,7 +143,7 @@ function thread_create($arr, &$pid, $attach_draft = '') {
 	// 板块总数+1, 用户发帖+1
 	
 	// 更新统计数据
-	$uid AND user__update($uid, array('threads+'=>1));
+	$uid AND user_update($uid, array('threads+'=>1));
 	forum__update($fid, array('threads+'=>1, 'todaythreads+'=>1));
 
 	// 我参与的发帖
