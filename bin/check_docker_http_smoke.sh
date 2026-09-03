@@ -30,6 +30,9 @@ PASSWORD_FIXED_COOKIES="$WORK_DIR/password-fixed.cookies"
 AUTOLOGIN_FIXED_COOKIES="$WORK_DIR/autologin-fixed.cookies"
 OLD_AUTH_COOKIES="$WORK_DIR/old-auth.cookies"
 UPLOAD_PROBE="$ROOT/upload/xiuno-http-smoke.php"
+TMP_CSS_PROBE="$ROOT/tmp/xiuno-http-smoke.css"
+TMP_TEXT_PROBE="$ROOT/tmp/xiuno-http-smoke.txt"
+TMP_LINK_PROBE="$ROOT/tmp/xiuno-http-smoke-link.css"
 COMPOSE=(docker compose)
 COMPOSE_STARTED=0
 REMOVE_INSTALL_STATE=0
@@ -96,7 +99,7 @@ cleanup() {
 		"${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1
 	fi
 	if (( PROBE_CREATED == 1 )); then
-		rm -f "$UPLOAD_PROBE"
+		rm -f "$UPLOAD_PROBE" "$TMP_CSS_PROBE" "$TMP_TEXT_PROBE" "$TMP_LINK_PROBE"
 	fi
 	if (( REMOVE_INSTALL_STATE == 1 )); then
 		rm -f "$ROOT/conf/conf.php" \
@@ -127,8 +130,11 @@ if [[ -e "$ROOT/conf/conf.php" \
 	fail "Docker HTTP smoke requires a clean, uninstalled checkout."
 fi
 [[ ! -e "$UPLOAD_PROBE" ]] || fail "$UPLOAD_PROBE already exists."
+[[ ! -e "$TMP_CSS_PROBE" ]] || fail "$TMP_CSS_PROBE already exists."
+[[ ! -e "$TMP_TEXT_PROBE" ]] || fail "$TMP_TEXT_PROBE already exists."
+[[ ! -e "$TMP_LINK_PROBE" && ! -L "$TMP_LINK_PROBE" ]] || fail "$TMP_LINK_PROBE already exists."
 
-for command in docker curl jq md5sum sha256sum; do
+for command in docker curl jq ln md5sum sha256sum; do
 	command -v "$command" >/dev/null 2>&1 || fail "$command is required."
 done
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is required."
@@ -138,8 +144,11 @@ chmod 0777 "$ROOT/conf" "$ROOT/log" "$ROOT/tmp" "$ROOT/upload"
 mkdir "$LOCK_DIR" || fail "Another Docker HTTP smoke is already using this checkout."
 LOCK_CREATED=1
 PLUGIN_MANIFEST_BEFORE="$(plugin_manifest)"
-echo '<?php echo "UPLOAD_PHP_EXECUTED";' > "$UPLOAD_PROBE"
 PROBE_CREATED=1
+echo '<?php echo "UPLOAD_PHP_EXECUTED";' > "$UPLOAD_PROBE"
+printf 'body{color:#123456}' > "$TMP_CSS_PROBE"
+printf 'TMP_TEXT_EXPOSED' > "$TMP_TEXT_PROBE"
+ln -s ../README.md "$TMP_LINK_PROBE"
 
 "${COMPOSE[@]}" config -q
 COMPOSE_STARTED=1
@@ -330,6 +339,10 @@ assert_status '/model/check.func.php' '404'
 assert_status '/view/htm/header.inc.htm' '404'
 assert_status '/admin/route/update.php' '404'
 assert_status '/upload/xiuno-http-smoke.php' '404'
+assert_status '/tmp/xiuno-http-smoke.css' '200'
+grep -Fxq 'body{color:#123456}' "$WORK_DIR/status-body" || fail 'Public tmp CSS response did not contain the generated asset.'
+assert_status '/tmp/xiuno-http-smoke.txt' '404'
+assert_status '/tmp/xiuno-http-smoke-link.css' '404'
 assert_status '/plugin/xiuno-http-smoke/install.php' '404'
 assert_status '/plugin/xiuno-http-smoke/unstall.php' '404'
 assert_status '/plugin/xiuno-http-smoke/upgrade.php' '404'
