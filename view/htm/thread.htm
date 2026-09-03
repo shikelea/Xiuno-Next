@@ -185,7 +185,7 @@
 						<!--{hook thread_user_threads_after.htm}-->
 						<td>
 							<span class="text-muted"><?php echo lang('posts');?></span><br>
-							<b><?php echo $thread['user']['posts'];?></b>
+							<b data-xn-user-post-count data-uid="<?php echo intval($thread['user']['uid']);?>"><?php echo $thread['user']['posts'];?></b>
 						</td>
 						<!--{hook thread_user_posts_after.htm}-->
 						<td>
@@ -244,6 +244,13 @@ jform.on('submit', function() {
 			} else {
 				var jposts = $('[data-xn-thread-post-count], .card-postlist .posts').first();
 				jposts.length && jposts.text(Math.max(0, xn.intval(jposts.text()) + 1));
+			}
+			var replyUid = xn.intval(jli.first().attr('data-uid'));
+			if(replyUid > 0) {
+				$('[data-xn-user-post-count][data-uid="'+replyUid+'"]').each(function() {
+					var juserposts = $(this);
+					juserposts.text(Math.max(0, xn.intval(juserposts.text()) + 1));
+				});
 			}
 			
 		} else if(code < 0) {
