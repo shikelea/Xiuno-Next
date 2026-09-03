@@ -123,6 +123,10 @@ $quick_reply_count = strpos($thread_template, 'xn_thread_post_count_update(1);')
 $quick_reply_fallback !== FALSE && $quick_reply_clear !== FALSE && $quick_reply_count !== FALSE
 	&& $quick_reply_fallback < $quick_reply_clear && $quick_reply_fallback < $quick_reply_count
 	|| fail('Quick reply must validate the response shape before clearing input or changing counters.');
+strpos($thread_template, 'data-xn-user-post-count data-uid="<?php echo intval($thread[\'user\'][\'uid\']);?>"') !== FALSE
+	&& strpos($thread_template, "var replyUid = xn.intval(jli.first().attr('data-uid'));") !== FALSE
+	&& strpos($thread_template, "'[data-xn-user-post-count][data-uid=\"'+replyUid+'\"]'") !== FALSE
+	|| fail('Quick reply must update a visible core user post count for the author returned by the successful response.');
 
 foreach(array('zh-cn', 'zh-tw', 'en-us', 'ru-ru', 'th-th') as $language) {
 	$lang_source = source_text($root.'lang/'.$language.'/bbs.php');
