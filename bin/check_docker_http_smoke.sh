@@ -386,6 +386,7 @@ INSTALL_AUTH_KEY="$("${COMPOSE[@]}" exec -T app php -r '$conf = require "/var/ww
 	|| fail "Successful installation left a config backup or staging file."
 
 assert_status '/' '200'
+assert_status '/?thread-999999.htm' '404'
 PASSWORD_FIXED_SID='fixedpasswordsid1234567890123456'
 [[ ${#PASSWORD_FIXED_SID} -eq 32 ]] || fail "Password fixed session ID must fit the database primary key."
 printf '%s\tFALSE\t/\tFALSE\t0\tbbs_sid\t%s\n' "$(cookie_host)" "$PASSWORD_FIXED_SID" > "$SITE_COOKIES"
@@ -493,6 +494,7 @@ jq -e '(.data.user.threads | tonumber) == 1' "$WORK_DIR/api-v1-thread-create.jso
 	|| fail 'API v1 omitted document type did not default the new thread to plain text.'
 [[ "$(mysql_query "SELECT message FROM bbs_post WHERE tid = $API_TID AND isfirst = 1")" == "$API_THREAD_MESSAGE" ]] \
 	|| fail 'API v1 thread create escaped the stored plain-text message more than once.'
+assert_status "/?thread-$API_TID.htm" '200'
 
 V1_THREAD_LIST_STATUS="$(api_request GET "/?api-v1-thread-list.htm&fid=$API_FID" "$WORK_DIR/api-v1-thread-list.json" "$WORK_DIR/api-v1-thread-list.headers" \
 	-H "Authorization: Bearer $API_TOKEN")"
