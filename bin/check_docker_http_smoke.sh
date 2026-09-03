@@ -465,6 +465,8 @@ V1_THREAD_CREATE_STATUS="$(api_request POST '/?api-v1-thread-create.htm' "$WORK_
 [[ "$V1_THREAD_CREATE_STATUS" == '200' ]] || fail "API v1 thread create returned HTTP $V1_THREAD_CREATE_STATUS; expected 200."
 API_TID="$(jq -r '.data.tid // empty' "$WORK_DIR/api-v1-thread-create.json")"
 [[ "$API_TID" =~ ^[1-9][0-9]*$ ]] || fail 'API v1 thread create did not return a thread ID.'
+jq -e '(.data.user.threads | tonumber) == 1' "$WORK_DIR/api-v1-thread-create.json" >/dev/null \
+	|| fail 'API v1 thread create returned a stale author thread count.'
 [[ "$(mysql_query "SELECT doctype FROM bbs_post WHERE tid = $API_TID AND isfirst = 1")" == '1' ]] \
 	|| fail 'API v1 omitted document type did not default the new thread to plain text.'
 [[ "$(mysql_query "SELECT message FROM bbs_post WHERE tid = $API_TID AND isfirst = 1")" == "$API_THREAD_MESSAGE" ]] \
@@ -491,7 +493,7 @@ V1_POST_CREATE_STATUS="$(api_request POST '/?api-v1-post-create.htm' "$WORK_DIR/
 [[ "$V1_POST_CREATE_STATUS" == '200' ]] || fail "API v1 post create returned HTTP $V1_POST_CREATE_STATUS; expected 200."
 API_PID="$(jq -r '.data.pid // empty' "$WORK_DIR/api-v1-post-create.json")"
 [[ "$API_PID" =~ ^[1-9][0-9]*$ ]] || fail 'API v1 post create did not return a post ID.'
-jq -e --arg tid "$API_TID" '(.code | tostring) == "0" and (.data.tid | tostring) == $tid and (.data.doctype | tonumber) == 1 and (.data.message | contains("&lt;body&gt;") and contains("&amp;") and (contains("&amp;lt;") | not) and (contains("&amp;amp;") | not))' "$WORK_DIR/api-v1-post-create.json" >/dev/null \
+jq -e --arg tid "$API_TID" '(.code | tostring) == "0" and (.data.tid | tostring) == $tid and (.data.doctype | tonumber) == 1 and (.data.user.posts | tonumber) == 1 and (.data.message | contains("&lt;body&gt;") and contains("&amp;") and (contains("&amp;lt;") | not) and (contains("&amp;amp;") | not))' "$WORK_DIR/api-v1-post-create.json" >/dev/null \
 	|| fail 'API v1 reply did not use the stable success envelope and plain-text default.'
 [[ "$(mysql_query "SELECT message FROM bbs_post WHERE pid = $API_PID")" == "$API_REPLY_MESSAGE" ]] \
 	|| fail 'API v1 reply create escaped the stored plain-text message more than once.'
