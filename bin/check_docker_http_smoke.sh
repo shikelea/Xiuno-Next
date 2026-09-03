@@ -151,6 +151,15 @@ fi
 "${COMPOSE[@]}" exec -T app sh -c \
 	'touch /var/www/html/vendor/.xiuno-write-probe && rm -f /var/www/html/vendor/.xiuno-write-probe' \
 	|| fail 'The isolated Composer dependency volume is not writable.'
+"${COMPOSE[@]}" exec -T app composer install --no-interaction --prefer-dist --no-progress
+if MAKE_PLUGIN_OUTPUT="$("${COMPOSE[@]}" exec -T app php bin/xiuno make:plugin "readonly-$RUN_ID" 2>&1)"; then
+	MAKE_PLUGIN_STATUS=0
+else
+	MAKE_PLUGIN_STATUS=$?
+fi
+[[ "$MAKE_PLUGIN_STATUS" == '1' ]] || fail "make:plugin returned $MAKE_PLUGIN_STATUS in the read-only container; expected 1."
+grep -Fq '[ERROR]' <<<"$MAKE_PLUGIN_OUTPUT" || fail 'make:plugin did not report its checked read-only failure.'
+! grep -Fq 'PHP Warning' <<<"$MAKE_PLUGIN_OUTPUT" || fail 'make:plugin leaked a raw PHP warning for the checked read-only failure.'
 
 mysql_ready() {
 	"${COMPOSE[@]}" exec -T -e MYSQL_PWD=root_password_changeme db \

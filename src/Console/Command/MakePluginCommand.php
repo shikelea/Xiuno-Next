@@ -39,7 +39,7 @@ class MakePluginCommand extends Command
         $pluginRoot = $projectRoot . '/plugin';
 
         if (!is_dir($pluginRoot)) {
-            if (!mkdir($pluginRoot, 0755, true)) {
+            if (!@mkdir($pluginRoot, 0755, true)) {
                  $io->error('无法创建 plugin 目录: ' . $pluginRoot);
                  return Command::FAILURE;
             }
@@ -53,7 +53,7 @@ class MakePluginCommand extends Command
         }
 
         // 创建目录结构
-        if (!mkdir($pluginPath, 0755, true)) {
+        if (!@mkdir($pluginPath, 0755, true)) {
              $io->error('无法创建插件目录。');
              return Command::FAILURE;
         }
