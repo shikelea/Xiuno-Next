@@ -790,6 +790,8 @@ foreach(array('conf', 'log', 'tmp', 'upload') as $runtime_dir) {
 strpos($compose, 'vendor-data:/var/www/html/vendor') !== FALSE
 	&& preg_match('/^\s{2}vendor-data:\s*$/m', $compose) === 1
 	|| fail('Docker Compose must provide a dedicated writable dependency volume under the read-only source mount.');
+is_file($root.'/vendor/.gitkeep')
+	|| fail('Docker source checkouts must retain the vendor mountpoint below the read-only source mount.');
 strpos($docker_smoke, 'dependency volume is not writable') !== FALSE
 	|| fail('Docker HTTP smoke must verify that the isolated Composer dependency volume is writable.');
 strpos($docker_smoke, 'export COMPOSE_PROJECT_NAME=') !== FALSE

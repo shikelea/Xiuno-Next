@@ -18,7 +18,8 @@
 
 /docs/
 *.log
-/vendor/
+/vendor/*
+!/vendor/.gitkeep
 tmp/*
 !tmp/.gitkeep
 log/*
