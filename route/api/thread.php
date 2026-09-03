@@ -108,7 +108,7 @@ if($action == 'list') {
 	
 	$fid = param('fid', 0);
 	$subject = thread_subject_normalize(param('subject', '', FALSE));
-	$message = param('message');
+	$message = param('message', '', FALSE);
 	$doctype = api_post_doctype();
 	
 	if(empty($fid)) api_output(-1, lang('fid_is_empty'), array(), 422);

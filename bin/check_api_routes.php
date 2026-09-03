@@ -112,6 +112,9 @@ if(strpos($postRoute, 'api_method_required(\'POST\');') === FALSE) {
 if(strpos($postRoute, '$doctype = api_post_doctype();') === FALSE) {
 	$errors[] = 'post create API must use the version-aware document type contract';
 }
+if(strpos($postRoute, "\$message = param('message', '', FALSE);") === FALSE) {
+	$errors[] = 'post create API must preserve raw message text until the shared formatter escapes it';
+}
 if(strpos($postRoute, '$quotepost = post__read($quotepid);') === FALSE || strpos($postRoute, '$quotepost[\'tid\'] != $tid') === FALSE) {
 	$errors[] = 'post create API must validate quotepid belongs to the target thread';
 }
@@ -125,6 +128,9 @@ if(strpos($threadRoute, 'api_method_required(\'POST\');') === FALSE) {
 }
 if(strpos($threadRoute, '$doctype = api_post_doctype();') === FALSE) {
 	$errors[] = 'thread create API must use the version-aware document type contract';
+}
+if(strpos($threadRoute, "\$message = param('message', '', FALSE);") === FALSE) {
+	$errors[] = 'thread create API must preserve raw message text until the shared formatter escapes it';
 }
 if(strpos($threadRoute, 'if(!api_is_v1()) thread_inc_views($tid);') === FALSE) {
 	$errors[] = 'v1 thread reads must not mutate the view counter';

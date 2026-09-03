@@ -458,14 +458,17 @@ jq -e '(.code | tostring) == "-1" and .message == "Document type is not supporte
 	|| fail 'API v1 unsupported document type wrote a thread.'
 
 API_SUBJECT="API v1 HTTP smoke $RUN_ID"
+API_THREAD_MESSAGE='API v1 thread <body> & content'
 V1_THREAD_CREATE_STATUS="$(api_request POST '/?api-v1-thread-create.htm' "$WORK_DIR/api-v1-thread-create.json" "$WORK_DIR/api-v1-thread-create.headers" \
 	-H "Authorization: Bearer $API_TOKEN" --data-urlencode "fid=$API_FID" \
-	--data-urlencode "subject=$API_SUBJECT" --data-urlencode 'message=API v1 thread body')"
+	--data-urlencode "subject=$API_SUBJECT" --data-urlencode "message=$API_THREAD_MESSAGE")"
 [[ "$V1_THREAD_CREATE_STATUS" == '200' ]] || fail "API v1 thread create returned HTTP $V1_THREAD_CREATE_STATUS; expected 200."
 API_TID="$(jq -r '.data.tid // empty' "$WORK_DIR/api-v1-thread-create.json")"
 [[ "$API_TID" =~ ^[1-9][0-9]*$ ]] || fail 'API v1 thread create did not return a thread ID.'
 [[ "$(mysql_query "SELECT doctype FROM bbs_post WHERE tid = $API_TID AND isfirst = 1")" == '1' ]] \
 	|| fail 'API v1 omitted document type did not default the new thread to plain text.'
+[[ "$(mysql_query "SELECT message FROM bbs_post WHERE tid = $API_TID AND isfirst = 1")" == "$API_THREAD_MESSAGE" ]] \
+	|| fail 'API v1 thread create escaped the stored plain-text message more than once.'
 
 V1_THREAD_LIST_STATUS="$(api_request GET "/?api-v1-thread-list.htm&fid=$API_FID" "$WORK_DIR/api-v1-thread-list.json" "$WORK_DIR/api-v1-thread-list.headers" \
 	-H "Authorization: Bearer $API_TOKEN")"
@@ -477,16 +480,21 @@ API_VIEWS_BEFORE="$(mysql_query "SELECT views FROM bbs_thread WHERE tid = $API_T
 V1_THREAD_READ_STATUS="$(api_request GET "/?api-v1-thread-read.htm&tid=$API_TID" "$WORK_DIR/api-v1-thread-read.json" "$WORK_DIR/api-v1-thread-read.headers" \
 	-H "Authorization: Bearer $API_TOKEN")"
 [[ "$V1_THREAD_READ_STATUS" == '200' ]] || fail "API v1 thread read returned HTTP $V1_THREAD_READ_STATUS; expected 200."
-jq -e --arg tid "$API_TID" '(.code | tostring) == "0" and (.data.thread.tid | tostring) == $tid and (.data.posts[0].doctype | tonumber) == 1' "$WORK_DIR/api-v1-thread-read.json" >/dev/null \
+jq -e --arg tid "$API_TID" '(.code | tostring) == "0" and (.data.thread.tid | tostring) == $tid and (.data.posts[0].doctype | tonumber) == 1 and (.data.posts[0].message | contains("&lt;body&gt;") and contains("&amp;") and (contains("&amp;lt;") | not) and (contains("&amp;amp;") | not))' "$WORK_DIR/api-v1-thread-read.json" >/dev/null \
 	|| fail 'API v1 thread read did not return the created plain-text thread.'
 [[ "$(mysql_query "SELECT views FROM bbs_thread WHERE tid = $API_TID")" == "$API_VIEWS_BEFORE" ]] \
 	|| fail 'API v1 thread read changed the view counter.'
 
+API_REPLY_MESSAGE='API v1 reply <body> & content'
 V1_POST_CREATE_STATUS="$(api_request POST '/?api-v1-post-create.htm' "$WORK_DIR/api-v1-post-create.json" "$WORK_DIR/api-v1-post-create.headers" \
-	-H "Authorization: Bearer $API_TOKEN" --data-urlencode "tid=$API_TID" --data-urlencode 'message=API v1 reply body')"
+	-H "Authorization: Bearer $API_TOKEN" --data-urlencode "tid=$API_TID" --data-urlencode "message=$API_REPLY_MESSAGE")"
 [[ "$V1_POST_CREATE_STATUS" == '200' ]] || fail "API v1 post create returned HTTP $V1_POST_CREATE_STATUS; expected 200."
-jq -e --arg tid "$API_TID" '(.code | tostring) == "0" and (.data.tid | tostring) == $tid and (.data.doctype | tonumber) == 1' "$WORK_DIR/api-v1-post-create.json" >/dev/null \
+API_PID="$(jq -r '.data.pid // empty' "$WORK_DIR/api-v1-post-create.json")"
+[[ "$API_PID" =~ ^[1-9][0-9]*$ ]] || fail 'API v1 post create did not return a post ID.'
+jq -e --arg tid "$API_TID" '(.code | tostring) == "0" and (.data.tid | tostring) == $tid and (.data.doctype | tonumber) == 1 and (.data.message | contains("&lt;body&gt;") and contains("&amp;") and (contains("&amp;lt;") | not) and (contains("&amp;amp;") | not))' "$WORK_DIR/api-v1-post-create.json" >/dev/null \
 	|| fail 'API v1 reply did not use the stable success envelope and plain-text default.'
+[[ "$(mysql_query "SELECT message FROM bbs_post WHERE pid = $API_PID")" == "$API_REPLY_MESSAGE" ]] \
+	|| fail 'API v1 reply create escaped the stored plain-text message more than once.'
 
 PASSWORD_TOKEN="$(site_token '/?my-password.htm')"
 EMPTY_PASSWORD_RESPONSE="$(site_post '/?my-password.htm' "$PASSWORD_TOKEN" \

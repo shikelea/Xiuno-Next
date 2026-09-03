@@ -11,7 +11,7 @@ if($action == 'create') {
 	api_login_required();
 	
 	$tid = param('tid', 0);
-	$message = param('message');
+	$message = param('message', '', FALSE);
 	$doctype = api_post_doctype();
 	$quotepid = param('quotepid', 0);
 	
