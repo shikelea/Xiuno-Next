@@ -1197,6 +1197,7 @@ function http_url_path() {
  * )
  */
 function xn_url_parse($request_url) {
+	$original_request_url = $request_url;
 	// 处理: /demo/?user-login.htm?a=b&c=d
 	// 结果：/demo/user-login.htm?a=b&c=d
 	$request_url = str_replace('/?', '/', $request_url);
@@ -1243,7 +1244,11 @@ function xn_url_parse($request_url) {
 	
 	// 是否开启 /user/login 这种格式的 URL
 	$conf = _SERVER('conf');
-	if(!empty($conf['url_rewrite_on']) && $conf['url_rewrite_on'] == 3) {
+	if(!empty($conf['url_rewrite_on']) && $conf['url_rewrite_on'] == 2) {
+		$path_query = (string)parse_url($original_request_url, PHP_URL_QUERY);
+		$path_query = preg_replace('/&/', '?', $path_query, 1);
+		$r = xn_url_parse_path_format($path_query) + $r;
+	} elseif(!empty($conf['url_rewrite_on']) && $conf['url_rewrite_on'] == 3) {
 		$r = xn_url_parse_path_format($_SERVER['REQUEST_URI']) + $r;
 	}
 
