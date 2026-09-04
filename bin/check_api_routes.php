@@ -3,6 +3,9 @@
 define('DEBUG', 1);
 define('APP_PATH', dirname(__DIR__) . '/');
 
+require APP_PATH . 'xiunophp/array.func.php';
+require APP_PATH . 'xiunophp/misc.func.php';
+
 $conf = array('version' => 'smoke');
 $errors = array();
 
@@ -15,10 +18,6 @@ class ApiSmokeOutput extends Exception {
 	}
 }
 
-function param($key, $defval = '') {
-	return isset($_REQUEST[$key]) ? $_REQUEST[$key] : $defval;
-}
-
 function api_output($code, $message, $data = array(), $http_status = 200) {
 	$effective_status = isset($_SERVER['api_version']) && $_SERVER['api_version'] === 'v1' ? intval($http_status) : 200;
 	throw new ApiSmokeOutput(array(
@@ -28,6 +27,17 @@ function api_output($code, $message, $data = array(), $http_status = 200) {
 		'_http_status' => $effective_status,
 	));
 }
+
+$_SERVER['conf'] = array('url_rewrite_on'=>2);
+$_SERVER['REQUEST_URI'] = '/?/api/v1/forum/read&fid=9';
+$_GET = array('/api/v1/forum/read'=>'', 'fid'=>'9');
+$pathQueryRoute = xn_url_parse($_SERVER['REQUEST_URI']);
+if(array_slice($pathQueryRoute, 0, 4) !== array('api', 'v1', 'forum', 'read')
+	|| !isset($pathQueryRoute['fid']) || $pathQueryRoute['fid'] !== '9') {
+	$errors[] = 'query-path rewrite mode must preserve the API v1 route and named parameters';
+}
+unset($_SERVER['conf']);
+$_GET = array();
 
 function api_is_v1() {
 	return isset($_SERVER['api_version']) && $_SERVER['api_version'] === 'v1';

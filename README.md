@@ -6,6 +6,8 @@
 
 > **当前状态：可用性仍不佳，不推荐直接用于生产环境。** 项目正在持续开发与兼容性验证，请先在测试环境部署，做好备份并自行评估风险。
 >
+> **当前稳定版：** v4.5.6
+>
 > **欢迎参与贡献：** 欢迎提交 Issue、复现步骤、测试结果、文档改进和 Pull Request，一起完善 Xiuno Next。
 
 > **"不破不立，在保持轻量的基础上拥抱未来。"**
@@ -92,28 +94,6 @@ php -S 127.0.0.1:8081 -t . bin/dev_router.php
 
 欢迎社区提交安全相关的 PR 或报告漏洞。
 
-## 🗺️ 路线图 (Roadmap)
-
-- [x] **v4.0.5 (Reborn)**: 修复 PHP 8 兼容性，移除过时函数，Docker 化。
-- [x] **v4.1.0 (Standard)**: 引入 Composer，规范化依赖管理。
-- [x] **v4.2.0 (API)**: 提供 RESTful API，支持前后端分离 (已实现登录、帖子列表、发帖)。
-- [x] **v4.3.0 (Experience)**: 重构默认主题 (Bootstrap 5)，修复后台样式，CLI 脚手架，建立核心场景性能基准，完善 SEO 基础。
-- [x] **v4.3.1 (Audit)**: 代码审查修复：API 响应结构规范化、安全模式路径加固、BS4 残留清理、CLI 脚手架修复。
-- [x] **v4.4.0 (Security)**: 安全加固第一批：数据库迁移系统、密码哈希迁移 (MD5→bcrypt)、安全响应头。
-- [x] **v4.4.1 (Security)**: 安全加固第二批：CSRF 防护、XSS 修复、SQL 注入加固、旧版一键升级工具。
-- [x] **v4.4.2 (Hardening)**: BS4→BS5 兼容垫片、Token 加固、参数注入修复、后台安全面板、安装/API/退出修复。
-- [x] **v4.4.3 (Performance & Compat)**: 插件页性能优化、CSRF 主题兼容、管理操作修复、后台一键在线更新（含 GitHub 加速代理）、BS4→BS5 全面兼容层。
-- [x] **v4.4.4 (Stability)**: 在线更新 ZIP 校验加固、版本号管理修复。
-- [x] **v4.4.5 (Compat Layer)**: 四层兼容层体系：通用注入器（`ob_start` 自动向所有主题注入 CSRF token + bs4-compat）、PHP 8+ 运行时兼容、BS4→BS5 CSS/JS 全面兼容（`input-group-prepend/append`、`custom-file`、`modal/tooltip/popover` API 代理、CSRF 全局保护）、核心主题 API。
-- [x] **v4.5.0 (Modernization, 主线完成 / 发行版)**: 轻量现代化主线已完成：轻量 Helper、前端资源审计、HTMX 只读分页试点、CLI/CI 最小闭环、前端安全守卫和生态样本兼容审计结论。API 扩展、发布包签名和兼容矩阵沉淀继续作为 v4.5.x / 阶段六前置项推进。
-- [x] **v4.5.1 (Hardening, 预发布候选)**: 完成认证、兼容层、Docker、更新完整性与 CLI 文档加固；真实旧站门禁发现下载首跳和升级后版本元数据漂移，因此仅保留 prerelease，不提升为正式版。
-- [x] **v4.5.2 (Release reliability, 预发布候选)**: 修复官方归档下载链，并保证在线升级与回滚同步核心默认配置、运行版本和静态资源版本；最终资产测试发现浏览器安装 CSRF 与 InnoDB 统计缺陷，因此保留为 prerelease。
-- [x] **v4.5.3 (Install reliability, 发行版)**: 修复原生表单与同源 AJAX 安装 token 保留、安装前错误页呈现和 InnoDB 精确统计；最终产物通过真实升级、业务连续性与回滚门禁后正式发布。
-- [x] **v4.5.4 (Hardening & API, 预发布候选)**: 完成附件内容校验、MySQL 会话转义边界、依赖锁定、登录/找回匿名响应、邮件 outbox、API v1、Linux/Docker/CLI 实证及 10 包兼容验证；最终 Linux 在线更新门禁发现解压目录权限缺陷，因此保留 prerelease，未提升为正式版。
-- [x] **v4.5.5 (Update reliability, 预发布候选)**: 修复 Linux 在线更新解压和备份目录权限，并通过旧站升级、迁移、业务与回滚闭环；最终在线文件树比对发现隐藏文件遗漏，因此保持 prerelease。
-- [x] **v4.5.6 (Release integrity, 发行版)**: 统一在线更新的隐藏文件复制、备份、新增记录与回滚语义，修正手工升级、数据库恢复和 Docker 权限边界说明；唯一 Release 资产已通过 Linux 升级、真实业务与成套回滚验证。
-- [ ] **v5.0.0 (Next)**: 稳定 Theme API、统一编辑器接口，改善移动端与渐进增强体验；继续保持轻量服务端渲染，不建设插件/主题市场。
-
 ## 💻 命令行工具 (CLI)
 
 本项目内置了 `xiuno` 命令行工具，用于辅助开发和运维。
@@ -151,51 +131,34 @@ php bin/xiuno upgrade
 
 `migrate --check` 与 `upgrade --check` 只验证随代码发布的迁移文件和升级元数据，不能代替目标站点的数据库预检。`migrate` 会在取得数据库升级锁后直接执行待迁移项，不另行询问；`upgrade` 会先显示站点预检报告，再以默认“否”询问是否继续，`--no-interaction` 不会自动批准升级。`make:plugin` 只在项目的 `plugin/<name>/` 创建新目录，并拒绝覆盖已有目录。
 
-启用找回密码后，Web 请求只把加密邮件任务写入主数据库，不会同步等待 SMTP。部署者必须每分钟运行一次 `php bin/xiuno mail:work`（Windows 任务计划程序、cron 或 systemd timer 均可），并监控非零退出码；Docker 部署可在 Compose 目录执行 `docker compose exec -T app php bin/xiuno mail:work`。否则页面仍返回统一的匿名成功响应，但邮件会留在 outbox，超过验证码的 5 分钟有效期后不再发送。可用 `--limit=1..100` 控制单次处理量，默认 10；同一数据库只允许一个 worker，重叠运行会以非零状态退出。投递是 at-least-once：失败任务从本次投递结束时起退避重试；若 SMTP 已接收而 worker 恰好在删除任务前崩溃，同一验证码可能重复送达。
+找回密码需要单独说明，因为 Web 只把邮件写入数据库 outbox；worker 未运行时页面仍会返回统一成功，但邮件不会发出。部署后必须每分钟运行 `php bin/xiuno mail:work`（Docker：`docker compose exec -T app php bin/xiuno mail:work`）并监控非零退出码；同一数据库不要并发运行多个 worker。
 
 命令成功、无需操作或用户在升级确认处取消时退出码为 `0`；参数错误、未知命令、环境检查或执行失败时退出码为 `1`。自动化脚本应同时检查退出码和输出，不能把退出码 `0` 的“升级已取消”当作已经升级。
 
 ### 升级指南（Xiuno BBS 4.0.4 / 4.0.5 / 4.0.7 → Xiuno Next 4.5.6）
 
-升级分为“替换核心文件”和“执行站点迁移”两部分，不是无备份的一键覆盖。请先在旧站副本演练；生产升级时停止站点写入，并确保数据库与站点文件来自同一个恢复点。
-
-从 `4.5.5` 及更早版本升级到 `4.5.6` 时，必须按下述步骤手工替换核心文件并执行 CLI 升级：`4.5.4` 及更早版本的 Linux 更新器可能在临时目录权限检查处停止，`4.5.5` 及更早更新器又不会处理发布包中的隐藏文件。站点已进入 `4.5.6` 后，后续在线更新才使用完整的目录枚举逻辑。
-
-默认安全部署应保持应用代码只读，因此 Docker bind mount 下的后台在线更新会因无法覆盖核心文件而失败关闭。如果不采用手工替换，必须在停止外部写入的维护窗口中，临时让 Web/PHP 运行用户可写核心文件、`conf/conf.php` 和 `conf/conf.default.php`，更新验证后立即恢复只读；不要对全站使用 `0777`。更新器不会为自身提权。
+请先在旧站副本演练。生产升级时停止外部写入，并从同一时点备份数据库和整个站点目录。原版 4.0.4 不能直接在 PHP 8 运行；先用兼容的 PHP 7.x 环境（本次实测为 7.4）完成备份，替换核心后再切换到 PHP 8.0+（项目 Docker 默认 PHP 8.2）执行升级。`4.5.5` 及更早版本升级到 `4.5.6` 也应手工替换核心，避免旧更新器的 Linux 权限和隐藏文件遗漏。
 
 ```bash
-# 1. 备份数据库和整个站点目录，并确认备份可以读取
+# 1. 备份数据库和整个站点目录
 mysqldump -u root -p your_db > backup.sql
 cp -r /path/to/xiuno /path/to/xiuno_backup
 
-# 2. 在单独目录解压 4.5.6，再将核心文件复制到旧站
-# 保留 conf/conf.php、conf/.installed.lock、SMTP/附件等运行配置，但必须单独覆盖代码模板 conf/conf.default.php
-# 不得覆盖 plugin/、upload/、tmp/、log/、本地数据目录和部署配置
+# 2. 在单独目录解压新版，只替换核心文件
+# 保留 conf/conf.php、conf/.installed.lock、plugin/、upload/、tmp/、log/、本地数据和部署配置
+# 但需覆盖代码模板 conf/conf.default.php
 
-# 3. 在站点目录安装运行依赖
-composer install --no-dev --prefer-dist
+# 3. 切换 PHP 运行时，安装锁定依赖，并恢复 conf/log/tmp/upload 的 Web 用户属主和最小写权限
+composer install --no-dev --prefer-dist --no-interaction
 
-# 4. 先检查发布内的升级元数据，再查看实际命令帮助
+# 4. 以 PHP-FPM 的同一系统用户检查元数据，再运行真实预检和迁移
 php bin/xiuno upgrade --check
-php bin/xiuno upgrade --help
-
-# 5. 运行真实站点预检；核对报告后在默认“否”的确认处明确同意
 php bin/xiuno upgrade
 ```
 
-升级工具会自动完成以下操作：
+`upgrade` 会显示预检报告，在默认“否”的确认处继续后，自动补齐配置、执行全部待办数据库迁移、清理可再生缓存并写入新版本，无需再单独执行 `migrate`。Docker 中必须用 PHP-FPM 的同一用户运行两条升级命令，例如 `docker compose exec -T -u www-data app php bin/xiuno upgrade --check` 和 `docker compose exec -u www-data app php bin/xiuno upgrade`；否则 root 生成的缓存锁可能使 Web 请求无法重建缓存。
 
-- **版本检测**：识别当前安装的旧版版本号
-- **升级预检报告**：连接主数据库，列出配置、字段和迁移变更，确认后才进入写入阶段
-- **配置迁移**：自动添加旧版缺失的配置项（如 `csrf_on`、`disabled_plugin` 等）
-- **数据库迁移**：扩展 `password` 字段至 `varchar(255)`，并补充登录凭据代际字段
-- **密码渐进升级**：用户下次登录时，密码自动从 MD5+salt 升级为 bcrypt，无需重置
-- **缓存清理**：只清理可再生的编译缓存和插件 Hook 缓存；任务锁、恢复备份和安全模式标记保持不变
-- **完成标记**：前述步骤成功后才把 `conf/conf.php` 的版本与静态资源版本写为 `4.5.6`
-
-CLI 升级不会替你创建数据库或全站文件备份，也不能把 MySQL DDL、配置文件写入和第三方脚本副作用合并为一个可自动回滚的事务。如果升级失败，不要手工把 `conf/conf.php` 的版本改成 `4.5.6`：停止站点写入，保留错误输出，选择从同一恢复点同时还原数据库和全部站点文件，或修复明确的失败原因后重新运行命令。成功后如需降级，同样必须恢复升级前成套的数据库与文件备份；导入旧 dump 前必须确认目标库，再删除并重建该数据库（或使用能删除新版多余表的等价恢复流程），直接将旧 dump 覆盖导入现有库会遗留新版新增表。后台在线更新的“最近备份回滚”只处理它记录的核心文件和配置版本，不等同于数据库回滚。
-
-升级完成后重新打开站点，验证登录、发帖/回帖、附件和常用插件/主题，再到后台更新缓存。确认无误后才恢复外部写入。
+升级后验证登录、发帖/回帖、附件和常用扩展；旧 MD5+salt 密码会在首次成功登录后自动转为 bcrypt。若升级失败，不要手工改版本号，应停止写入并成套恢复同一时点的数据库与站点文件；后台核心文件回滚不等于数据库回滚。
 
 ## 开发与回归测试
 
@@ -258,7 +221,16 @@ SHA-256、AB 指标和经过同一契约复验的 TTFB 样本；`bench_*.txt` �
 
 ## API v1 文档
 
-API v1 使用 Xiuno 的查询路由形式，入口为 `/?api-v1-{resource}-{action}.htm`。它是面向轻量客户端的稳定最小契约，不是完整 JSON:API，也尚未覆盖论坛资源的全部生命周期。未带 `v1` 的 `/?api-*` 路径仅供旧客户端兼容：其错误仍可能返回 HTTP 200，不应作为新集成入口。
+API v1 使用 Xiuno 的现有 URL 模式。下表以默认 `url_rewrite_on=0` 为例，其中 `?` 是查询路由的分隔符，不是 API 路径的一部分。开启需要 Web 服务器转发的模式 1 或 3 后，URL 中就没有该问号：
+
+| `url_rewrite_on` | API v1 首页 | 是否依赖伪静态转发 |
+| --- | --- | --- |
+| `0` | `/?api-v1-index.htm` | 否 |
+| `1` | `/api-v1-index.htm` | 是 |
+| `2` | `/?/api/v1/index` | 否 |
+| `3` | `/api/v1/index` | 是 |
+
+项目附带的 Nginx 配置已支持模式 1/3；其他 Web 服务器需将不存在的路径转发到 `index.php`。API v1 是面向轻量客户端的稳定最小契约，不是完整 JSON:API。未带 `v1` 的旧 API 只供兼容，其错误仍可能返回 HTTP 200，不应用于新集成。
 
 ### 端点
 
@@ -330,6 +302,8 @@ v1 使用以下 HTTP 状态。`message` 可能随语言变化，客户端应以 
 ## 插件体系状态
 
 当前已经可以开发传统兼容插件，使用 `php bin/xiuno make:plugin <plugin_name>` 生成基础结构。Xiuno Next 原生插件规范仍处于预览前准备阶段，v4.5.x 优先固定 `plugin.json` 草案、Hook 索引和可重复的插件/主题 smoke test。
+
+旧插件不兼容并不只是 PHP 8 问题，还常见于 Bootstrap/jQuery 版本差异、Hook 加载顺序与缓存、旧主题覆盖绕过 CSRF/表单约定，以及安装器环境和插件自身依赖。核心兼容层只修复可复用的通用问题，不为单个第三方包修改业务逻辑。
 
 ## 开发者资料
 
