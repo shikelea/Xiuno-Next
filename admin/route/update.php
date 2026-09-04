@@ -170,9 +170,12 @@ if ($action == 'check') {
 	include XIUNOPHP_PATH . 'xn_zip.func.php';
 	$extract_dir = $conf['tmp_path'] . 'update_extract/';
 	if (is_dir($extract_dir)) {
-		rmdir_recusive($extract_dir, 1);
+		rmdir_recusive($extract_dir);
 	}
-	xn_mkdir($extract_dir);
+	if (is_dir($extract_dir) || !update_mkdir_recursive($extract_dir)) {
+		@unlink($zipfile);
+		update_message(-1, lang('update_extract_failed'));
+	}
 
 	$zip = new ZipArchive;
 	$open_result = $zip->open($zipfile);
@@ -221,7 +224,11 @@ if ($action == 'check') {
 		update_message(-1, lang('update_invalid_release'));
 	}
 	$backup_dir = $conf['tmp_path'] . 'update_backup_' . date('Ymd_His') . '/';
-	xn_mkdir($backup_dir);
+	if (!update_mkdir_recursive($backup_dir)) {
+		@unlink($zipfile);
+		rmdir_recusive($extract_dir, 1);
+		update_message(-1, lang('update_backup_failed') . ' (Cannot create backup directory)');
+	}
 	$backup_error = '';
 	$backup_result = update_backup_existing_files($source_dir, $app_root, $protected, $backup_dir, $backup_error);
 	if ($backup_result === FALSE) {

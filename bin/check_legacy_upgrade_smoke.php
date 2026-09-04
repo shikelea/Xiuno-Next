@@ -75,7 +75,7 @@ try {
     $migrateDb = smoke_database_name($baseName, 'migrate');
     $ownedDatabases[] = $migrateDb;
     create_old_database($pdo, $migrateDb);
-    write_cli_conf($confFile, $host, $port, $migrateDb, $user, $password, '4.5.4', $sqlMode);
+    write_cli_conf($confFile, $host, $port, $migrateDb, $user, $password, '4.5.5', $sqlMode);
     run_cli($root, ['migrate', '--no-interaction']);
     assert_column_type($pdo, $migrateDb, 'bbs_user', 'password', 'varchar(255)');
     assert_column_type($pdo, $migrateDb, 'bbs_user', 'auth_epoch', 'int unsigned');
@@ -1088,10 +1088,10 @@ function kv_value(PDO $pdo, string $dbname, string $key): string
 function assert_conf_upgraded(string $confFile): void
 {
     $conf = include $confFile;
-    if (($conf['version'] ?? '') !== '4.5.4') {
+    if (($conf['version'] ?? '') !== '4.5.5') {
         throw new RuntimeException('upgrade did not write target version to conf.php.');
     }
-    if (($conf['static_version'] ?? '') !== '?v=4.5.4') {
+    if (($conf['static_version'] ?? '') !== '?v=4.5.5') {
         throw new RuntimeException('upgrade did not write target static_version to conf.php.');
     }
     foreach (['csrf_on', 'disabled_plugin', 'admin_bind_ip'] as $key) {

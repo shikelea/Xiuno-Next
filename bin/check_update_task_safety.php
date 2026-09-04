@@ -140,6 +140,14 @@ strpos($checksum_lookup, 'update_proxied_url') === FALSE
 	|| fail('Release checksum assets must stay on the direct GitHub trust channel.');
 strpos($download, 'if (!$zip->extractTo($extract_dir))') !== FALSE
 	|| fail('ZIP extraction failures must stop the update before source selection.');
+strpos($download, 'rmdir_recusive($extract_dir);') !== FALSE
+	|| fail('Update extraction must remove a stale root before recreating it.');
+strpos($download, 'if (is_dir($extract_dir) || !update_mkdir_recursive($extract_dir))') !== FALSE
+	|| fail('Update extraction must create a writable directory with explicit permissions and stop on failure.');
+strpos($download, 'if (!update_mkdir_recursive($backup_dir))') !== FALSE
+	|| fail('Update backups must create their directory with explicit permissions and stop on failure.');
+strpos($download, 'xn_mkdir($extract_dir)') === FALSE && strpos($download, 'xn_mkdir($backup_dir)') === FALSE
+	|| fail('Update directories must not use xn_mkdir() with its nullable mode default.');
 $source = section_between($update_route, 'function update_find_source_dir', 'function update_zip_validate');
 strpos($source, 'count($top) !== 1') !== FALSE
 	|| fail('Update source selection must require exactly one top-level package directory.');
