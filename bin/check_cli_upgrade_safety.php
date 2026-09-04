@@ -62,6 +62,7 @@ function run_cli_from($cwd, $launcher, $args, &$output = '') {
 
 $makePlugin = read_file_checked($root . '/src/Console/Command/MakePluginCommand.php');
 $launcher = read_file_checked($root . '/bin/xiuno');
+$mailWork = read_file_checked($root . '/src/Console/Command/MailWorkCommand.php');
 $composer = json_decode(read_file_checked($root . '/composer.json'), true);
 if (!is_array($composer)) {
     fail('composer.json must be valid JSON.');
@@ -75,6 +76,20 @@ strpos($launcher, "defined('APP_PATH') || define('APP_PATH', \$root . DIRECTORY_
     || fail('bin/xiuno must define APP_PATH before Composer autoload loads xiunophp.php.');
 strpos($launcher, "require APP_PATH . 'vendor/autoload.php';") !== false
     || fail('bin/xiuno must load Composer from APP_PATH.');
+strpos($launcher, 'use Xiuno\\Console\\Command\\MailWorkCommand;') !== false
+	&& strpos($launcher, '$application->add(new MailWorkCommand());') !== false
+	|| fail('bin/xiuno must register the mail:work command.');
+strpos($mailWork, "#[AsCommand(name: 'mail:work'") !== false
+	&& strpos($mailWork, "addOption('limit'") !== false
+	&& strpos($mailWork, "preg_match('/^\\d+\$/D', \$limitRaw)") !== false
+	&& strpos($mailWork, 'mail_outbox_work_one()') !== false
+	|| fail('mail:work must be a bounded one-shot worker with strict limit validation.');
+strpos($mailWork, "include_once XIUNOPHP_PATH . 'xn_send_mail.func.php'") !== false
+	&& strpos($mailWork, "include_once APP_PATH . 'model/mail_outbox.func.php'") !== false
+	|| fail('mail:work must load the real SMTP transport and mail outbox model after site configuration.');
+strpos($mailWork, 'mail_outbox_worker_lock_acquire()') !== false
+	&& strpos($mailWork, 'mail_outbox_worker_lock_release($workerLock)') !== false
+	|| fail('mail:work must serialize workers with the database advisory lock.');
 
 strpos($makePlugin, "realpath(dirname(__DIR__, 3))") !== false
     || fail('make:plugin must resolve the project root from the command class, not from the current working directory.');
@@ -169,6 +184,12 @@ strpos($authEpochMigration, 'ADD `auth_epoch` int(11) unsigned NOT NULL DEFAULT 
     || fail('auth epoch migration must add a non-negative credential generation field.');
 strpos($authEpochMigration, "throw new RuntimeException('Failed to add the user auth_epoch field.')") !== false
     || fail('auth epoch migration must throw when ALTER TABLE fails.');
+
+$mailOutboxMigration = read_file_checked($root . '/database/migrations/0003_create_mail_outbox.php');
+strpos($mailOutboxMigration, 'CREATE TABLE `{$table}`') !== false
+	&& strpos($mailOutboxMigration, '`lease_token` char(64)') !== false
+	&& strpos($mailOutboxMigration, 'SHOW COLUMNS FROM `{$table}`') !== false
+	|| fail('mail outbox migration must create and verify the lease-token schema idempotently.');
 
 $fixtureToken = bin2hex(random_bytes(8));
 $fixtureRoot = rtrim(str_replace('\\', '/', sys_get_temp_dir()), '/') . '/xiuno-cli-guard-' . $fixtureToken;

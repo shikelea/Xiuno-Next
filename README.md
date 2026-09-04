@@ -136,6 +136,9 @@ php bin/xiuno upgrade --check
 # 创建新插件
 php bin/xiuno make:plugin <plugin_name>
 
+# 投递找回密码邮件队列（适合每分钟由 cron / 计划任务调用）
+php bin/xiuno mail:work
+
 # 生成本地 Hook 点索引（输出到已忽略的 docs/）
 php bin/generate_hook_docs.php
 
@@ -147,6 +150,8 @@ php bin/xiuno upgrade
 ```
 
 `migrate --check` 与 `upgrade --check` 只验证随代码发布的迁移文件和升级元数据，不能代替目标站点的数据库预检。`migrate` 会在取得数据库升级锁后直接执行待迁移项，不另行询问；`upgrade` 会先显示站点预检报告，再以默认“否”询问是否继续，`--no-interaction` 不会自动批准升级。`make:plugin` 只在项目的 `plugin/<name>/` 创建新目录，并拒绝覆盖已有目录。
+
+启用找回密码后，Web 请求只把加密邮件任务写入主数据库，不会同步等待 SMTP。部署者必须每分钟运行一次 `php bin/xiuno mail:work`（Windows 任务计划程序、cron 或 systemd timer 均可），并监控非零退出码；Docker 部署可在 Compose 目录执行 `docker compose exec -T app php bin/xiuno mail:work`。否则页面仍返回统一的匿名成功响应，但邮件会留在 outbox，超过验证码的 5 分钟有效期后不再发送。可用 `--limit=1..100` 控制单次处理量，默认 10；同一数据库只允许一个 worker，重叠运行会以非零状态退出。投递是 at-least-once：失败任务从本次投递结束时起退避重试；若 SMTP 已接收而 worker 恰好在删除任务前崩溃，同一验证码可能重复送达。
 
 命令成功、无需操作或用户在升级确认处取消时退出码为 `0`；参数错误、未知命令、环境检查或执行失败时退出码为 `1`。自动化脚本应同时检查退出码和输出，不能把退出码 `0` 的“升级已取消”当作已经升级。
 
