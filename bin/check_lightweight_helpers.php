@@ -17,7 +17,7 @@ include_once APP_PATH . 'model/misc.func.php';
 
 $errors = array();
 
-if (conf_get('version') !== '4.5.4') {
+if (conf_get('version') !== '4.5.5') {
 	$errors[] = 'conf_get(version) failed';
 }
 
