@@ -109,7 +109,7 @@ php -S 127.0.0.1:8081 -t . bin/dev_router.php
 - [x] **v4.5.1 (Hardening, 预发布候选)**: 完成认证、兼容层、Docker、更新完整性与 CLI 文档加固；真实旧站门禁发现下载首跳和升级后版本元数据漂移，因此仅保留 prerelease，不提升为正式版。
 - [x] **v4.5.2 (Release reliability, 预发布候选)**: 修复官方归档下载链，并保证在线升级与回滚同步核心默认配置、运行版本和静态资源版本；最终资产测试发现浏览器安装 CSRF 与 InnoDB 统计缺陷，因此保留为 prerelease。
 - [x] **v4.5.3 (Install reliability, 发行版)**: 修复原生表单与同源 AJAX 安装 token 保留、安装前错误页呈现和 InnoDB 精确统计；最终产物通过真实升级、业务连续性与回滚门禁后正式发布。
-- [ ] **v4.5.4 (Hardening & API, 开发中)**: 已完成附件内容校验、MySQL 会话转义边界、依赖锁定、登录/找回匿名响应、邮件 outbox、API v1、Linux/Docker/CLI 实证及 10 包兼容矩阵；下一步完成唯一发布包、旧站升级与回滚闭环。
+- [ ] **v4.5.4 (Hardening & API, 开发中)**: 已完成附件内容校验、MySQL 会话转义边界、依赖锁定、登录/找回匿名响应、邮件 outbox、API v1、Linux/Docker/CLI 实证及 10 包兼容验证；下一步完成唯一发布包、旧站升级与回滚闭环。
 - [ ] **v5.0.0 (Next)**: 稳定 Theme API、统一编辑器接口，改善移动端与渐进增强体验；继续保持轻量服务端渲染，不建设插件/主题市场。
 
 > 路线图中的已完成项记录对应版本当时的交付。项目不建设插件/主题市场；历史远程插件下载入口保持 fail-closed，本地插件/主题扩展与兼容能力继续维护。在线更新仅在完整性校验、备份与回滚边界全部通过后作为生产能力发布；Theme API 仍需更多真实生态采用和回归证据。
@@ -326,11 +326,9 @@ v1 使用以下 HTTP 状态。`message` 可能随语言变化，客户端应以 
 
 当前已经可以开发传统兼容插件，使用 `php bin/xiuno make:plugin <plugin_name>` 生成基础结构。Xiuno Next 原生插件规范仍处于预览前准备阶段，v4.5.x 优先固定 `plugin.json` 草案、Hook 索引和可重复的插件/主题 smoke test。
 
-已完成动态验证的第三方包、版本、功能范围与已知限制见[插件与主题兼容矩阵](COMPATIBILITY.md)。该矩阵是特定版本与环境下的验证快照，不是插件市场或第三方包背书。
-
 ## 开发者资料
 
-`docs/` 仅用于维护者本地的审计、基线和生成索引，不纳入 Git。对外稳定契约以 `README.md`、`COMPATIBILITY.md`、`CONTRIBUTING.md`、CLI 帮助和代码内容为准。
+`docs/` 仅用于维护者本地的审计、基线和生成索引，不纳入 Git。对外稳定契约以 `README.md`、`CONTRIBUTING.md`、CLI 帮助和代码内容为准。
 
 ## 🤝 参与贡献
 
