@@ -20,6 +20,7 @@ if (file_exists(APP_PATH . 'vendor/autoload.php')) {
 
 use Symfony\Component\Console\Application;
 use Xiuno\Console\Command\MakePluginCommand;
+use Xiuno\Console\Command\MailWorkCommand;
 use Xiuno\Console\Command\MigrateCommand;
 use Xiuno\Console\Command\UpgradeCommand;
 
@@ -28,6 +29,7 @@ const XIUNO_CLI_VERSION = '4.5.4';
 $application = new Application('Xiuno CLI', XIUNO_CLI_VERSION);
 
 $application->add(new MakePluginCommand());
+$application->add(new MailWorkCommand());
 $application->add(new MigrateCommand());
 $application->add(new UpgradeCommand());
 

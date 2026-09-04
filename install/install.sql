@@ -240,6 +240,21 @@ CREATE TABLE bbs_queue (
   KEY(expiry)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
+CREATE TABLE bbs_mail_outbox (
+  outbox_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  kind varchar(32) NOT NULL default '',
+  payload mediumtext NOT NULL,
+  available_at int(11) unsigned NOT NULL default '0',
+  expires_at int(11) unsigned NOT NULL default '0',
+  lease_until int(11) unsigned NOT NULL default '0',
+  lease_token char(64) NOT NULL default '',
+  attempts tinyint(3) unsigned NOT NULL default '0',
+  create_date int(11) unsigned NOT NULL default '0',
+  PRIMARY KEY (outbox_id),
+  KEY due (available_at, lease_until),
+  KEY expires (expires_at)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
 CREATE TABLE `bbs_table_day` (
   `year` smallint(11) unsigned NOT NULL DEFAULT '0' COMMENT '年',
   `month` tinyint(11) unsigned NOT NULL DEFAULT '0' COMMENT '月',
