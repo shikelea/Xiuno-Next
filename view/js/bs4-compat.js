@@ -889,6 +889,8 @@
             jthis.data('xn-alert-title-saved', true);
             jthis.data('xn-alert-had-title', element.hasAttribute('title'));
             jthis.data('xn-alert-original-title', element.getAttribute('title') || '');
+			jthis.data('xn-alert-had-aria-label', element.hasAttribute('aria-label'));
+			jthis.data('xn-alert-original-aria-label', element.getAttribute('aria-label') || '');
         }
         var jfeedback = jthis.siblings('.invalid-feedback').first();
         if (!jfeedback.length) jfeedback = jthis.closest('.input-group, .mb-3, .form-group, .form-floating').find('.invalid-feedback').first();
@@ -898,6 +900,7 @@
         jthis.data('xn-alert-feedback', jfeedback);
         jthis.attr('title', message);
 
+		var ariaLabelBeforeTooltip = element.getAttribute('aria-label');
         try {
             var Tooltip = componentConstructor('tooltip');
             var tooltip = Tooltip && Tooltip.getInstance ? Tooltip.getInstance(jthis[0]) : null;
@@ -908,6 +911,8 @@
         } catch (error) {
             try { jthis.tooltip({ title: message, trigger: 'manual', placement: 'top' }).tooltip('show'); } catch (ignored) {}
         }
+		var ariaLabelAfterTooltip = element.getAttribute('aria-label');
+		if (ariaLabelAfterTooltip === message && ariaLabelAfterTooltip !== ariaLabelBeforeTooltip) jthis.data('xn-alert-generated-aria-label', ariaLabelAfterTooltip);
 
         var feedbackId = jfeedback.attr('id');
         var originalDescribedby = jthis.data('xn-alert-original-aria-describedby') || '';
@@ -937,7 +942,13 @@
         if (jthis.data('xn-alert-title-saved') !== true) return;
         if (jthis.data('xn-alert-had-title')) jthis.attr('title', jthis.data('xn-alert-original-title') || '');
         else jthis.removeAttr('title');
+		var generatedAriaLabel = jthis.data('xn-alert-generated-aria-label');
+		if (generatedAriaLabel !== undefined && jthis.attr('aria-label') === generatedAriaLabel) {
+			if (jthis.data('xn-alert-had-aria-label')) jthis.attr('aria-label', jthis.data('xn-alert-original-aria-label') || '');
+			else jthis.removeAttr('aria-label');
+		}
         jthis.removeData('xn-alert-title-saved').removeData('xn-alert-had-title').removeData('xn-alert-original-title');
+		jthis.removeData('xn-alert-had-aria-label').removeData('xn-alert-original-aria-label').removeData('xn-alert-generated-aria-label');
     }
 
     function installAlertHelper(jq, state) {

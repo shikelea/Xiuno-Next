@@ -164,13 +164,15 @@
 		assert(field.nextElementSibling && field.nextElementSibling.textContent === 'required', 'field alert renders visible feedback');
 		jq(field).trigger('input');
 		assert(!field.hasAttribute('title'), 'field alert cleanup removes compatibility-owned title text');
+		assert(!field.hasAttribute('aria-label'), 'field alert cleanup removes compatibility-owned accessible label');
 		assert(win.bootstrap.Tooltip.getInstance(field) === null, 'field alert cleanup disposes only its compatibility-owned tooltip');
 		var titledField = doc.createElement('input');
 		titledField.setAttribute('title', 'original title');
+		titledField.setAttribute('aria-label', 'original label');
 		doc.body.appendChild(titledField);
 		jq(titledField).alert('temporary error');
 		jq(titledField).trigger('change');
-		assert(titledField.getAttribute('title') === 'original title', 'field alert cleanup restores a caller-owned title');
+		assert(titledField.getAttribute('title') === 'original title' && titledField.getAttribute('aria-label') === 'original label', 'field alert cleanup restores a caller-owned title');
 
 		var callerTooltipField = doc.createElement('input');
 		callerTooltipField.setAttribute('title', 'caller tooltip');
