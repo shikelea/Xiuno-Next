@@ -1681,8 +1681,14 @@ function xn_field_alert_restore_title(jthis) {
 	else jthis.removeAttr('title');
 	if (jthis.data('xn-alert-had-bs-original-title')) jthis.attr('data-bs-original-title', jthis.data('xn-alert-original-bs-title') || '');
 	else jthis.removeAttr('data-bs-original-title');
+	var generatedAriaLabel = jthis.data('xn-alert-generated-aria-label');
+	if (generatedAriaLabel !== undefined && jthis.attr('aria-label') === generatedAriaLabel) {
+		if (jthis.data('xn-alert-had-aria-label')) jthis.attr('aria-label', jthis.data('xn-alert-original-aria-label') || '');
+		else jthis.removeAttr('aria-label');
+	}
 	jthis.removeData('xn-alert-title-saved').removeData('xn-alert-had-title').removeData('xn-alert-original-title');
 	jthis.removeData('xn-alert-had-bs-original-title').removeData('xn-alert-original-bs-title');
+	jthis.removeData('xn-alert-had-aria-label').removeData('xn-alert-original-aria-label').removeData('xn-alert-generated-aria-label');
 }
 
 function xn_field_alert_show_tooltip(jq, jthis, message) {
@@ -1766,6 +1772,8 @@ function xn_field_alert_show(jq, element, message) {
 		jthis.data('xn-alert-original-title', element.getAttribute('title') || '');
 		jthis.data('xn-alert-had-bs-original-title', element.hasAttribute('data-bs-original-title'));
 		jthis.data('xn-alert-original-bs-title', element.getAttribute('data-bs-original-title') || '');
+		jthis.data('xn-alert-had-aria-label', element.hasAttribute('aria-label'));
+		jthis.data('xn-alert-original-aria-label', element.getAttribute('aria-label') || '');
 	}
 	var feedback = jthis.siblings('.invalid-feedback').first();
 	if (!feedback.length) feedback = jthis.closest('.input-group, .mb-3, .form-group, .form-floating').find('.invalid-feedback').first();
@@ -1773,7 +1781,10 @@ function xn_field_alert_show(jq, element, message) {
 	feedback.text(message).addClass('d-block');
 	if (!feedback.attr('id')) feedback.attr('id', 'invalid-feedback-' + Math.random().toString(36).slice(2));
 	jthis.data('xn-alert-feedback', feedback).attr('title', message);
+	var ariaLabelBeforeTooltip = element.getAttribute('aria-label');
 	try { xn_field_alert_show_tooltip(jq, jthis, message); } catch (ignored) {}
+	var ariaLabelAfterTooltip = element.getAttribute('aria-label');
+	if (ariaLabelAfterTooltip === message && ariaLabelAfterTooltip !== ariaLabelBeforeTooltip) jthis.data('xn-alert-generated-aria-label', ariaLabelAfterTooltip);
 
 	var currentDescribedby = jthis.attr('aria-describedby') || '';
 	var describedby = (currentDescribedby + ' ' + feedback.attr('id')).replace(/^\s+|\s+$/g, '');
