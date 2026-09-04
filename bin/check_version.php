@@ -58,11 +58,12 @@ if ($target !== null && preg_match('/^\d+\.\d+\.\d+$/', $target)) {
     $tagStatus = 0;
     exec('git -C ' . escapeshellarg($root) . ' rev-parse --verify ' . escapeshellarg($tagRef) . ' 2>&1', $tagOutput, $tagStatus);
     if ($tagStatus === 0 && !empty($tagOutput[0])) {
-        $headOutput = [];
-        $headStatus = 0;
-        exec('git -C ' . escapeshellarg($root) . ' rev-parse HEAD 2>&1', $headOutput, $headStatus);
-        if ($headStatus !== 0 || empty($headOutput[0]) || trim($headOutput[0]) !== trim($tagOutput[0])) {
-            $errors[] = "v$target already points to a different commit; bump the release version.";
+        $tagCommit = trim($tagOutput[0]);
+        $ancestorOutput = [];
+        $ancestorStatus = 0;
+        exec('git -C ' . escapeshellarg($root) . ' merge-base --is-ancestor ' . escapeshellarg($tagCommit) . ' HEAD 2>&1', $ancestorOutput, $ancestorStatus);
+        if ($ancestorStatus !== 0) {
+            $errors[] = "v$target does not belong to the current release history; bump the release version.";
         }
     }
 }
