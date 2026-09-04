@@ -207,6 +207,10 @@ strpos($copy, 'is_link($item)') !== FALSE
 	|| fail('update_copy_files() must reject symlinks before copying.');
 strpos($copy, 'Unsupported file type') !== FALSE
 	|| fail('update_copy_files() must reject unsupported filesystem entries.');
+substr_count($update_route, '$items = update_directory_entries(') === 5
+	|| fail('Copy, backup, added-file, restore, and count paths must share hidden-file enumeration.');
+substr_count($update_route, '$name === basename(update_added_manifest(') === 2
+	|| fail('Restore and backup counts must exclude the internal added-file manifest.');
 
 $restore = section_between($update_route, 'function update_restore_backup', 'function update_count_files');
 strpos($restore, 'Cannot create restore directory') !== FALSE
@@ -247,6 +251,32 @@ $_REQUEST[1] = 'noop';
 ob_start();
 include $root.'/admin/route/update.php';
 ob_end_clean();
+
+$hidden_root = sys_get_temp_dir().'/xiuno-update-hidden-'.bin2hex(random_bytes(6));
+$hidden_source = $hidden_root.'/source/';
+$hidden_target = $hidden_root.'/target/';
+$hidden_backup = $hidden_root.'/backup/';
+$hidden_ready = mkdir($hidden_source, 0777, TRUE) && mkdir($hidden_target, 0777, TRUE)
+	&& mkdir($hidden_backup, 0777, TRUE)
+	&& file_put_contents($hidden_source.'.managed', 'new') === 3
+	&& file_put_contents($hidden_target.'.managed', 'old') === 3;
+$hidden_error = '';
+$hidden_backed_up = $hidden_ready ? update_backup_existing_files($hidden_source, $hidden_target, array(), $hidden_backup, $hidden_error) : FALSE;
+$hidden_copied = $hidden_backed_up !== FALSE ? update_copy_files($hidden_source, $hidden_target, array(), $hidden_error) : FALSE;
+$hidden_updated = $hidden_copied !== FALSE
+	&& @file_get_contents($hidden_target.'.managed') === 'new'
+	&& update_count_files($hidden_backup) === 1;
+$hidden_restored = $hidden_updated ? update_restore_backup($hidden_backup, $hidden_target, $hidden_error) : FALSE;
+$hidden_ok = $hidden_restored !== FALSE
+	&& @file_get_contents($hidden_target.'.managed') === 'old';
+@unlink($hidden_source.'.managed');
+@unlink($hidden_target.'.managed');
+@unlink($hidden_backup.'.managed');
+@rmdir($hidden_source);
+@rmdir($hidden_target);
+@rmdir($hidden_backup);
+@rmdir($hidden_root);
+$hidden_ok || fail('Online update must preserve hidden files across update and rollback.');
 
 $network_errors = array(
 	'cURL #60: unable to get local issuer certificate'=>'update_network_ca',

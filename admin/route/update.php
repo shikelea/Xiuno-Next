@@ -879,6 +879,18 @@ function update_zip_entry_is_symlink($zip, $index) {
 	return $mode === 0120000;
 }
 
+function update_directory_entries($dir) {
+	$dir = rtrim(str_replace('\\', '/', $dir), '/') . '/';
+	$names = @scandir($dir);
+	if ($names === FALSE) return array();
+	$items = array();
+	foreach ($names as $name) {
+		if ($name === '.' || $name === '..') continue;
+		$items[] = $dir . $name;
+	}
+	return $items;
+}
+
 /**
  * 递归复制文件，跳过受保护的目录
  */
@@ -887,7 +899,7 @@ function update_copy_files($src, $dst, $protected = array(), &$error = '', $rela
 	$src = rtrim(str_replace('\\', '/', $src), '/') . '/';
 	$dst = rtrim(str_replace('\\', '/', $dst), '/') . '/';
 
-	$items = glob($src . '*');
+	$items = update_directory_entries($src);
 	if (empty($items)) return $result;
 
 	foreach ($items as $item) {
@@ -935,7 +947,7 @@ function update_backup_existing_files($src, $dst, $protected, $backup_dir, &$err
 	$dst = rtrim(str_replace('\\', '/', $dst), '/') . '/';
 	$backup_dir = rtrim(str_replace('\\', '/', $backup_dir), '/') . '/';
 
-	$items = glob($src . '*');
+	$items = update_directory_entries($src);
 	if (empty($items)) return $result;
 
 	foreach ($items as $item) {
@@ -980,7 +992,7 @@ function update_backup_file($src, $backup_file, &$error = '') {
 function update_added_files($src, $dst, $protected = array(), $relative = '') {
 	$src = rtrim(str_replace('\\', '/', $src), '/') . '/';
 	$dst = rtrim(str_replace('\\', '/', $dst), '/') . '/';
-	$items = glob($src . '*');
+	$items = update_directory_entries($src);
 	$arr = array();
 	if (empty($items)) return $arr;
 
@@ -1058,12 +1070,13 @@ function update_restore_backup($backup_dir, $dst_root, &$error = '', $relative =
 	$backup_dir = rtrim(str_replace('\\', '/', $backup_dir), '/') . '/';
 	$dst_root = rtrim(str_replace('\\', '/', $dst_root), '/') . '/';
 	$current = $backup_dir . ($relative ? $relative . '/' : '');
-	$items = glob($current . '*');
+	$items = update_directory_entries($current);
 	if (empty($items)) return $result;
 
 	foreach ($items as $item) {
 		$item = str_replace('\\', '/', $item);
 		$name = basename($item);
+		if ($relative === '' && $name === basename(update_added_manifest($backup_dir))) continue;
 		$rel = $relative ? $relative . '/' . $name : $name;
 		if (preg_match('#(^|/)\.\.(/|$)#', $rel)) {
 			$error = 'Unsafe backup path: ' . $rel;
@@ -1134,14 +1147,17 @@ function update_remove_empty_parent_dirs($dir, $root) {
 	}
 }
 
-function update_count_files($dir) {
+function update_count_files($dir, $relative = '') {
 	$n = 0;
 	$dir = rtrim(str_replace('\\', '/', $dir), '/') . '/';
-	$items = glob($dir . '*');
+	$items = update_directory_entries($dir);
 	if (empty($items)) return 0;
 	foreach ($items as $item) {
+		$name = basename($item);
+		if ($relative === '' && $name === basename(update_added_manifest($dir))) continue;
 		if (is_dir($item)) {
-			$n += update_count_files($item);
+			$rel = $relative ? $relative . '/' . $name : $name;
+			$n += update_count_files($item, $rel);
 		} else {
 			$n++;
 		}
