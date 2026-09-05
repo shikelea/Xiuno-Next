@@ -48,6 +48,13 @@ if (http_get('file:///etc/passwd') !== FALSE) {
 	$errors[] = 'legacy http_get did not reject unsupported URL scheme';
 }
 
+$helper_time = $_SERVER['time'];
+$_SERVER['time'] = 100;
+if (humandate(101) !== '0秒前') {
+	$errors[] = 'humandate did not clamp future timestamps to zero seconds';
+}
+$_SERVER['time'] = $helper_time;
+
 $_SERVER['HTTP_HOST'] = 'localhost';
 $_SERVER['SERVER_PORT'] = 80;
 unset($_SERVER['HTTPS'], $_SERVER['HTTP_X_FORWARDED_PROTO'], $_SERVER['PHP_SELF'], $_SERVER['HTTP_REFERER'], $_REQUEST['referer']);

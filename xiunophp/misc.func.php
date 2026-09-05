@@ -493,7 +493,7 @@ function humandate($timestamp, $lan = array()) {
 	if($custom_humandate === NULL) $custom_humandate = function_exists('custom_humandate');
 	if($custom_humandate) return custom_humandate($timestamp, $lan);
 	
-	$seconds = $time - $timestamp;
+	$seconds = max(0, $time - $timestamp);
 	$lan = empty($lang) ? $lan : $lang;
 	empty($lan) AND $lan = array(
 		'month_ago'=>'月前',
