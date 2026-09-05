@@ -304,7 +304,7 @@ function install_core_table_names($tablepre) {
 	$tablepre = (string)$tablepre;
 	$tables = array(
 		'user', 'group', 'forum', 'forum_access', 'thread', 'thread_top', 'post', 'attach',
-		'mythread', 'mypost', 'session', 'session_data', 'modlog', 'kv', 'cache', 'queue', 'mail_outbox', 'table_day',
+		'mythread', 'mypost', 'session', 'session_data', 'modlog', 'kv', 'cache', 'queue', 'table_day',
 	);
 	$return = array();
 	foreach($tables as $table) $return[] = $tablepre.$table;

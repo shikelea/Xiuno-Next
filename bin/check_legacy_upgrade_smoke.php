@@ -1088,10 +1088,10 @@ function kv_value(PDO $pdo, string $dbname, string $key): string
 function assert_conf_upgraded(string $confFile): void
 {
     $conf = include $confFile;
-    if (($conf['version'] ?? '') !== '4.5.6') {
+    if (($conf['version'] ?? '') !== '4.5.7') {
         throw new RuntimeException('upgrade did not write target version to conf.php.');
     }
-    if (($conf['static_version'] ?? '') !== '?v=4.5.6') {
+    if (($conf['static_version'] ?? '') !== '?v=4.5.7') {
         throw new RuntimeException('upgrade did not write target static_version to conf.php.');
     }
     foreach (['csrf_on', 'disabled_plugin', 'admin_bind_ip'] as $key) {
