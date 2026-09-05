@@ -72,6 +72,8 @@ preg_match('/(?:xn_strlen|mb_strlen)\s*\(\s*\$subject[^;]*(?:80|128)/', $thread_
 	|| fail('Thread routes must not restore a private numeric subject-length contract.');
 strpos($post_template, 'maxlength="<?php echo thread_subject_maxlength();?>"') !== FALSE
 	|| fail('The full post form must expose the shared server-side subject limit to the browser.');
+strpos($post_template, '<div class="text-end flex-shrink-0">') !== FALSE
+	|| fail('The post submit control must not wrap when the attachment area competes for mobile width.');
 
 $safe_field_lookup = "jform.find(':input').filter(function() { return this.name == code; }).first();";
 strpos($post_template, $safe_field_lookup) !== FALSE
