@@ -3,7 +3,6 @@
 $root = dirname(__DIR__);
 $check_model = file_get_contents($root.'/model/check.func.php');
 $user_model = file_get_contents($root.'/model/user.func.php');
-$mail_outbox_model = file_get_contents($root.'/model/mail_outbox.func.php');
 $kv_model = file_get_contents($root.'/model/kv.func.php');
 $user_route = file_get_contents($root.'/route/user.php');
 $user_route !== FALSE && strpos($user_route, "lang('resetpw_not_on')") !== FALSE
@@ -641,19 +640,12 @@ $reset_lookup_pos = strpos($resetpw, 'user_read_by_email($email, TRUE)');
 $send_code = section_between($user_route, "} elseif(\$action == 'send_code')", '// 简单的同步登陆实现');
 strpos($send_code, "lang('email_is_not_in_use')") === FALSE
 	&& strpos($send_code, "if(\$action2 == 'user_resetpw' && !\$email_code_deliverable)") !== FALSE
-	&& strpos($send_code, "mail_outbox_enqueue_reset(\$smtp, \$conf['sitename'], \$email, \$subject, \$message, \$time)") !== FALSE
+	&& substr_count($send_code, 'xn_send_mail(') === 1
 	&& strpos($send_code, "user_email_code_clear('user_resetpw')") !== FALSE
 	|| fail('Password-reset code requests must return the same acceptance response for unknown accounts and delivery failures.');
-strpos($user_route, "include_once APP_PATH.'model/mail_outbox.func.php';") !== FALSE
-	&& substr_count($send_code, 'xn_send_mail(') === 1
-	&& strpos($send_code, "if(\$action2 == 'user_resetpw')") < strpos($send_code, 'xn_send_mail(')
-	|| fail('Password-reset HTTP requests must enqueue mail while registration keeps the synchronous transport path.');
-is_string($mail_outbox_model)
-	&& strpos($mail_outbox_model, 'xn_encrypt($json, $key)') !== FALSE
-	&& strpos($mail_outbox_model, 'xn_decrypt($payload, $key)') !== FALSE
-	&& strpos($mail_outbox_model, 'UPDATE `{$table}` SET `lease_token` = ?, `lease_until` = ?') !== FALSE
-	&& strpos($mail_outbox_model, 'WHERE `outbox_id` = ? AND `lease_token` = ?') !== FALSE
-	|| fail('Password-reset mail tasks must use encrypted payloads and token-bound prepared claim completion.');
+strpos($send_code, 'mail_outbox') === FALSE
+	&& strpos($user_route, "model/mail_outbox.func.php") === FALSE
+	|| fail('Password-reset HTTP requests must send through the existing synchronous SMTP path without an outbox worker.');
 strpos($install_sql, 'auth_epoch int(11) unsigned NOT NULL DEFAULT \'0\'') !== FALSE
 	|| fail('Fresh installs must create the user credential epoch column.');
 substr_count($auth_epoch_migration, 'db_sql_find_one_master(') === 2
@@ -921,26 +913,6 @@ if(!function_exists('xn_decrypt')) {
 		return $decoded === FALSE ? '' : $decoded;
 	}
 }
-require_once $root.'/model/mail_outbox.func.php';
-$mail_payload = array(
-	'v'=>1,
-	'smtp'=>array('host'=>'smtp.test', 'port'=>587, 'user'=>'mailer', 'pass'=>'secret', 'email'=>'from@example.com'),
-	'username'=>'Xiuno Test',
-	'email'=>'reset@example.com',
-	'subject'=>'Reset 123456',
-	'message'=>'Code 123456',
-	'charset'=>'UTF-8',
-);
-$mail_ciphertext = mail_outbox_payload_encode($mail_payload);
-is_string($mail_ciphertext) && $mail_ciphertext !== '' && $mail_ciphertext !== json_encode($mail_payload)
-	|| fail('Mail outbox payloads must not be stored as plaintext JSON.');
-mail_outbox_payload_decode($mail_ciphertext) === $mail_payload
-	|| fail('Mail outbox payloads must round-trip through the site-key encryption boundary.');
-mail_outbox_payload_decode('not-a-valid-payload') === FALSE
-	&& mail_outbox_retry_delay(1) === 15
-	&& mail_outbox_retry_delay(2) === 60
-	&& mail_outbox_retry_delay(3) === 180
-	|| fail('Mail outbox must reject invalid payloads and keep bounded retry delays.');
 if(!function_exists('kv_set')) {
 	function kv_set($key, $value, $life = 0) {
 		global $auth_test_kv, $auth_test_kv_fail;

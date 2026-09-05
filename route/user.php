@@ -3,7 +3,6 @@
 !defined('DEBUG') AND exit('Access Denied.');
 
 include _include(XIUNOPHP_PATH.'xn_send_mail.func.php');
-include_once APP_PATH.'model/mail_outbox.func.php';
 
 $action = param(1);
 
@@ -386,11 +385,7 @@ if(empty($action)) {
 	$smtp = $smtplist[$n];
 	
 	// hook user_send_code_before.php
-	if($action2 == 'user_resetpw') {
-		$r = mail_outbox_enqueue_reset($smtp, $conf['sitename'], $email, $subject, $message, $time);
-	} else {
-		$r = xn_send_mail($smtp, $conf['sitename'], $email, $subject, $message);
-	}
+	$r = xn_send_mail($smtp, $conf['sitename'], $email, $subject, $message);
 	// hook user_send_code_after.php
 	
 	if($r === TRUE) {
@@ -398,7 +393,7 @@ if(empty($action)) {
 	} else {
 		if($action2 == 'user_resetpw') {
 			user_email_code_clear('user_resetpw');
-			xn_log('Unable to persist a password-reset mail task.', 'send_mail_error');
+			xn_log($errstr, 'send_mail_error');
 			message(0, lang('send_successfully'));
 		}
 		xn_log($errstr, 'send_mail_error');
