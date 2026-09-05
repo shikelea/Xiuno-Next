@@ -197,6 +197,9 @@ if ($adminHeaderTemplate === FALSE) {
 	if (strpos($adminHeaderTemplate, '<?php echo xn_html_escape($header[\'title\']);?>') === FALSE) {
 		$errors[] = 'admin title must escape header title';
 	}
+	if (stripos($adminHeaderTemplate, '<!DOCTYPE html>') === FALSE || stripos($adminHeaderTemplate, '<!DOCTYPE html>') > stripos($adminHeaderTemplate, '<html')) {
+		$errors[] = 'admin pages must declare standards mode before the html element';
+	}
 }
 
 $indexTemplate = file_get_contents($root . 'view/htm/index.htm');
