@@ -132,22 +132,43 @@ function thread_create($arr, &$pid, $attach_draft = '') {
 		return FALSE;
 	}
 
-	// Publish attachments before counters and participation records. A failed draft association is
-	// compensated by the attachment layer, so the new core rows can still be removed without orphans.
-	if(!attach_assoc_post($pid, $attach_draft)) {
-		thread__delete($tid);
-		post__delete($pid);
+	// Complete associated writes before the attachment layer consumes the editor's draft sources.
+	$user_result = $forum_result = NULL;
+	$participation_created = FALSE;
+	$published = FALSE;
+	do {
+		if($uid) {
+			$r = user_update($uid, array('threads+'=>1), NULL, $user_result);
+			if($r === FALSE || !$user_result) break;
+		}
+		$forum_result = forum__update($fid, array('threads+'=>1, 'todaythreads+'=>1));
+		if(!$forum_result) break;
+		if($uid) {
+			if(mythread_create($uid, $tid) === FALSE) break;
+			$participation_created = TRUE;
+		}
+		if(!attach_assoc_post($pid, $attach_draft)) break;
+		$published = TRUE;
+	} while(FALSE);
+	if(!$published) {
+		xn_log("thread create failed, pid:$pid, tid:$tid", 'php_error');
+		$post_deleted = $thread_deleted = NULL;
+		post__delete($pid, $post_deleted);
+		// Retain the parent as a recovery handle when the first post cannot be removed.
+		if($post_deleted !== FALSE) thread__delete($tid, $thread_deleted);
+		if($post_deleted === FALSE || $thread_deleted === FALSE) {
+			xn_log("thread create rollback delete failed, pid:$pid, tid:$tid", 'php_error');
+		} elseif(intval($thread_deleted) > 0) {
+			$participation_created && mythread_delete($uid, $tid) === FALSE
+				AND xn_log("thread create rollback participation failed, tid:$tid, uid:$uid", 'php_error');
+			intval($user_result) > 0 && user_update($uid, array('threads-'=>1)) === FALSE
+				AND xn_log("thread create rollback user count failed, tid:$tid, uid:$uid", 'php_error');
+			intval($forum_result) > 0 && forum__update($fid, array('threads-'=>1, 'todaythreads-'=>1)) === FALSE
+				AND xn_log("thread create rollback forum count failed, tid:$tid, fid:$fid", 'php_error');
+		}
+		forum_list_cache_delete();
 		return FALSE;
 	}
-
-	// 板块总数+1, 用户发帖+1
-	
-	// 更新统计数据
-	$uid AND user_update($uid, array('threads+'=>1));
-	forum__update($fid, array('threads+'=>1, 'todaythreads+'=>1));
-
-	// 我参与的发帖
-	$uid AND mythread_create($uid, $tid);
 	
 	// 全站发帖数
 	runtime_set('threads+', 1);
@@ -518,14 +539,14 @@ function thread_find_lastpid($tid) {
 }
 
 // 更新最后的 uid pid
-function thread_update_last($tid) {
-	$lastpid = thread_find_lastpid($tid);
-	if(empty($lastpid)) return;
-	
-	$lastpost = post__read($lastpid);
-	if(empty($lastpost)) return;
-	
-	$r = thread__update($tid, array('lastpid'=>$lastpid, 'lastuid'=>$lastpost['uid'], 'last_date'=>$lastpost['create_date']));
+function thread_update_last($tid, $expected_lastpid = 0) {
+	$lastpost = db_find_one_master('post', array('tid'=>$tid), array('pid'=>-1));
+	if(empty($lastpost)) return FALSE;
+	$update = array('lastpid'=>$lastpost['pid'], 'lastuid'=>$lastpost['uid'], 'last_date'=>$lastpost['create_date']);
+	// A failed creation may only replace its own lastpid, not a concurrently published reply.
+	$r = $expected_lastpid
+		? db_update('thread', array('tid'=>$tid, 'lastpid'=>$expected_lastpid), $update)
+		: thread__update($tid, $update);
 
 	return $r;
 }

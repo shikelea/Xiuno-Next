@@ -235,7 +235,8 @@ function runtime_set($key, $value) {
 }
 function user_update_group($uid) { return TRUE; }
 function forum__update($fid, $update) {
-	global $fixture_forum_update_calls;
+	global $fixture_forum_update_calls, $fixture_forum_create_fail;
+	if(!empty($fixture_forum_create_fail) && isset($update['todayposts+'])) return FALSE;
 	$fixture_forum_update_calls[] = array($fid, $update);
 	return 1;
 }
@@ -244,6 +245,15 @@ function user__update($uid, $update, $expected_auth_epoch = NULL, &$db_result = 
 	$fixture_user_update_calls[] = array($uid, $update);
 	return 1;
 }
+function user_update($uid, $update, $expected_auth_epoch = NULL, &$db_result = NULL) {
+	$db_result = user__update($uid, $update);
+	return $db_result;
+}
+function attach_assoc_post($pid, $draft = '') {
+	$GLOBALS['fixture_consumed_drafts'][] = $draft;
+	return TRUE;
+}
+function xn_log($message, $channel = 'error') { return TRUE; }
 function mythread_create($uid, $tid) { return 1; }
 function mythread_delete($uid, $tid) {
 	global $fixture_mythread_delete_calls;
@@ -253,7 +263,15 @@ function mythread_delete($uid, $tid) {
 function thread_top_update_by_tid($tid, $fid) { return TRUE; }
 function thread_top_cache_delete() { return TRUE; }
 
-function db_insert($table, $row) { return FALSE; }
+function db_insert($table, $row) {
+	$store = $table === 'thread' ? 'fixture_threads' : ($table === 'post' ? 'fixture_posts' : '');
+	if($store === '') return FALSE;
+	$id_key = $table === 'thread' ? 'tid' : 'pid';
+	$rows =& $GLOBALS[$store];
+	$id = empty($rows) ? 1 : max(array_keys($rows)) + 1;
+	$rows[$id] = $row + array($id_key=>$id, 'posts'=>0);
+	return $id;
+}
 
 function db_update($table, $condition, $update) {
 	global $fixture_threads, $fixture_posts;
@@ -263,6 +281,7 @@ function db_update($table, $condition, $update) {
 	$id = isset($condition[$id_key]) ? intval($condition[$id_key]) : 0;
 	$rows =& $$store;
 	if(!isset($rows[$id])) return 0;
+	if(isset($condition['lastpid']) && $rows[$id]['lastpid'] != $condition['lastpid']) return 0;
 	foreach($update as $key=>$value) {
 		$last = substr($key, -1);
 		if($last === '+' || $last === '-') {
@@ -320,6 +339,10 @@ function db_find_one_master($table, $condition = array(), $orderby = array(), $c
 	global $fixture_threads, $fixture_posts, $fixture_post_primary_read_fail,
 		$fixture_thread_primary_read_fail, $fixture_primary_read_calls;
 	if($table === 'post') {
+		if(isset($condition['tid'])) {
+			$rows = post_delete_guard_posts_for_tid($condition['tid']);
+			return empty($rows) ? array() : $rows[max(array_keys($rows))];
+		}
 		$pid = isset($condition['pid']) ? intval($condition['pid']) : 0;
 		$fixture_primary_read_calls['post'][] = $pid;
 		if(isset($fixture_post_primary_read_fail[$pid])) return FALSE;
@@ -577,6 +600,36 @@ foreach($driver_sources as $driver_source) {
 	);
 }
 
-echo "OK: post delete failure propagation checks passed\n";
+// Reuse this model fixture for the creation contract: one normal thread/reply flow and one
+// associated-write failure after the parent and user increments, before draft consumption.
+$time = 200;
+$fixture_consumed_drafts = array();
+$create_arr = array('fid'=>7, 'uid'=>10, 'subject'=>'Create fixture', 'message'=>'body',
+	'time'=>$time, 'longip'=>0, 'doctype'=>1);
+$created_tid = thread_create($create_arr, $created_firstpid, 'thread-draft');
+$reply_arr = array('tid'=>$created_tid, 'uid'=>10, 'message'=>'reply', 'doctype'=>1,
+	'create_date'=>$time, 'isfirst'=>0);
+$created_pid = post_create($reply_arr, 7, 1, 'reply-draft');
+post_delete_guard_assert(
+	$created_tid > 0 && $created_pid > 0
+		&& $fixture_posts[$created_firstpid]['tid'] === $created_tid
+		&& $fixture_threads[$created_tid]['posts'] === 1
+		&& $fixture_threads[$created_tid]['lastpid'] === $created_pid
+		&& $fixture_consumed_drafts === array('thread-draft', 'reply-draft'),
+	'Normal thread and reply creation must preserve association, counters and selected drafts.'
+);
+$before_failed_reply = array($fixture_threads[$created_tid], $fixture_posts, $fixture_runtime_set_calls);
+$fixture_forum_create_fail = TRUE;
+$failed_pid = post_create($reply_arr, 7, 1, 'retryable-draft');
+$fixture_forum_create_fail = FALSE;
+post_delete_guard_assert(
+	$failed_pid === FALSE
+		&& array($fixture_threads[$created_tid], $fixture_posts, $fixture_runtime_set_calls) === $before_failed_reply
+		&& $fixture_consumed_drafts === array('thread-draft', 'reply-draft')
+		&& array_slice($fixture_user_update_calls, -2) === array(array(10, array('posts+'=>1)), array(10, array('posts-'=>1))),
+	'A failed associated write must restore this attempt, retain its draft and avoid runtime increments.'
+);
+
+echo "OK: post creation and deletion failure propagation checks passed\n";
 
 ?>
