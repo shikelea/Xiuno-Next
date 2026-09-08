@@ -63,24 +63,53 @@ function post_create($arr, $fid, $gid, $attach_draft = '') {
 	
 	$pid = post__create($arr, $gid);
 	if(!$pid) return $pid;
-	if(!attach_assoc_post($pid, $attach_draft)) {
-		post__delete($pid);
-		return FALSE;
-	}
-	
 	$tid = $arr['tid'];
 	$uid = $arr['uid'];
+	$thread_result = $user_result = $forum_result = NULL;
+	$published = FALSE;
+	// Keep draft sources retryable until every database write required by this creation succeeds.
+	// MyISAM sites need explicit compensation; a transaction would not protect their rows.
+	do {
+		if($tid > 0) {
+			$thread_result = thread__update($tid, array('posts+'=>1, 'lastpid'=>$pid, 'lastuid'=>$uid, 'last_date'=>$time));
+			if(!$thread_result) break;
+			if($uid) {
+				$r = user_update($uid, array('posts+'=>1), NULL, $user_result);
+				if($r === FALSE || !$user_result) break;
+			}
+			$forum_result = forum__update($fid, array('todayposts+'=>1));
+			if(!$forum_result) break;
+		}
+		if(!attach_assoc_post($pid, $attach_draft)) break;
+		$published = TRUE;
+	} while(FALSE);
+	if(!$published) {
+		xn_log("post create failed, pid:$pid, tid:$tid", 'php_error');
+		$deleted = NULL;
+		post__delete($pid, $deleted);
+		if($deleted === FALSE) {
+			xn_log("post create rollback delete failed, pid:$pid, tid:$tid", 'php_error');
+		} elseif(intval($deleted) > 0) {
+			// Never decrement twice if another request already removed this post.
+			if(intval($thread_result) > 0) {
+				thread__update($tid, array('posts-'=>1)) === FALSE
+					AND xn_log("post create rollback thread count failed, pid:$pid, tid:$tid", 'php_error');
+				thread_update_last($tid, $pid) === FALSE
+					AND xn_log("post create rollback last post failed, pid:$pid, tid:$tid", 'php_error');
+			}
+			intval($user_result) > 0 && user_update($uid, array('posts-'=>1)) === FALSE
+				AND xn_log("post create rollback user count failed, pid:$pid, uid:$uid", 'php_error');
+			intval($forum_result) > 0 && forum__update($fid, array('todayposts-'=>1)) === FALSE
+				AND xn_log("post create rollback forum count failed, pid:$pid, fid:$fid", 'php_error');
+		}
+		forum_list_cache_delete();
+		return FALSE;
+	}
 
 	// 回帖
 	if($tid > 0) {
-		
-		// todo: 如果是老帖，不更新 lastpid
-		thread__update($tid, array('posts+'=>1, 'lastpid'=>$pid, 'lastuid'=>$uid, 'last_date'=>$time));
-		$uid AND user_update($uid, array('posts+'=>1));
-	
 		runtime_set('posts+', 1);
 		runtime_set('todayposts+', 1);
-		forum__update($fid, array('todayposts+'=>1));
 	}
 	
 	//post_list_cache_delete($tid);
