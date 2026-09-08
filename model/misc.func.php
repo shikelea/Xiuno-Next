@@ -72,13 +72,20 @@ function check_runlevel() {
 	$param0 = param(0);
 	$param1 = param(1);
 	if($param0 == 'user' && in_array($param1, array('login', 'create', 'logout', 'sendinitpw', 'resetpw', 'resetpw_sendcode', 'resetpw_complete', 'synlogin'))) return;
+	if($param0 == 'api' && (($param1 == 'user' && param(2) == 'login')
+		|| ($param1 == 'v1' && param(2) == 'user' && param(3) == 'login'))) return;
+	$denied = NULL;
 	switch ($conf['runlevel']) {
-		case 0: message(-1, $conf['runlevel_reason']); break;
-		case 1: message(-1, lang('runlevel_reson_1')); break;
-		case 2: ($gid == 0 || $method != 'GET') AND message(-1, lang('runlevel_reson_2')); break;
-		case 3: $gid == 0 AND message(-1, lang('runlevel_reson_3')); break;
-		case 4: $method != 'GET' AND message(-1, lang('runlevel_reson_4')); break;
+		case 0: $denied = $conf['runlevel_reason']; break;
+		case 1: $denied = lang('runlevel_reson_1'); break;
+		case 2: ($gid == 0 || $method != 'GET') AND $denied = lang('runlevel_reson_2'); break;
+		case 3: $gid == 0 AND $denied = lang('runlevel_reson_3'); break;
+		case 4: $method != 'GET' AND $denied = lang('runlevel_reson_4'); break;
 		//case 5: break;
+	}
+	if($denied !== NULL) {
+		if($param0 == 'api') api_output(-1, $denied, array(), 403);
+		message(-1, $denied);
 	}
 	// hook model_check_runlevel_end.php
 }
@@ -400,14 +407,15 @@ function api_post_doctype() {
 }
 
 function api_request_token() {
-	$token = param('token', '', FALSE);
-	empty($token) AND $token = param('bbs_token', '', FALSE);
-	if(!empty($token)) return $token;
-
 	$authorization = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '';
 	empty($authorization) AND $authorization = isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) ? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] : '';
 	if(preg_match('/^\s*Bearer\s+(.+?)\s*$/i', $authorization, $m)) {
 		return $m[1];
+	}
+	// Ambient cookies restore a Session; they must not bypass the Session CSRF boundary.
+	foreach(array('token', 'bbs_token') as $key) {
+		$token = isset($_POST[$key]) ? $_POST[$key] : (isset($_GET[$key]) ? $_GET[$key] : '');
+		if(is_string($token) && $token !== '') return $token;
 	}
 	return '';
 }
@@ -416,7 +424,7 @@ function api_auth_uid($required = FALSE) {
 	global $uid, $user, $gid, $group, $grouplist;
 
 	$token = api_request_token();
-	if(!empty($token)) {
+	if($token !== '') {
 		$had_token = array_key_exists('bbs_token', $_REQUEST);
 		$old_token = $had_token ? $_REQUEST['bbs_token'] : NULL;
 		$_REQUEST['bbs_token'] = $token;

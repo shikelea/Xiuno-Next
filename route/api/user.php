@@ -10,7 +10,7 @@ if($action == 'login') {
 	api_method_required('POST');
 
 	$email = param('email');
-	$password = param('password');
+	$password = param('password', '', FALSE);
 
 	if(empty($email)) api_output(-1, lang('email_is_empty'), array(), 422);
 	if(empty($password)) api_output(-1, lang('password_is_empty'), array(), 422);

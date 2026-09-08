@@ -273,7 +273,7 @@ function param($key, $default = NULL, $htmlspecialchars = TRUE, $addslashes = FA
 }
 function user_token_get_do(&$auth_epoch = NULL) {
 	$auth_epoch = 4;
-	return 77;
+	return $_REQUEST['bbs_token'] === 'valid-token' ? 77 : FALSE;
 }
 function user_read($uid, $primary = FALSE) {
 	global $masterUser, $replicaUser, $primaryFlags;
@@ -285,7 +285,9 @@ function group_list_cache() {
 	return array(0=>array('allowpost'=>0), 1=>array('allowpost'=>1));
 }
 function lang($key, $args = array()) { return $key; }
-$_REQUEST = array('token'=>'valid-token');
+$_POST = array('token'=>'valid-token');
+$_GET = array();
+$_REQUEST = $_POST;
 $_SERVER = array();
 $uid = 0;
 $user = array();
@@ -293,11 +295,20 @@ $gid = 0;
 $group = array();
 $grouplist = group_list_cache();
 require APP_PATH.'model/misc.func.php';
+$_COOKIE = array('bbs_token'=>'ambient-cookie');
+$_REQUEST['bbs_token'] = $_COOKIE['bbs_token'];
+$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer explicit-token';
+if(api_request_token() !== 'explicit-token') exit('Bearer must take precedence over parameters and cookies');
+unset($_SERVER['HTTP_AUTHORIZATION'], $_POST['token']);
+if(api_request_token() !== '') exit('Ambient cookies must not bypass Session CSRF');
+$_POST['token'] = 'valid-token';
 $result = api_auth_uid(TRUE);
 if($result !== 77 || $uid !== 77 || $gid !== 0 || $primaryFlags !== array(TRUE)) {
 	fwrite(STDERR, 'stale replica authorization was accepted');
 	exit(1);
 }
+$_POST['token'] = '0';
+if(api_auth_uid(FALSE) !== 0) exit('An explicit invalid token must not fall back to Session identity');
 echo 'OK';
 PHP;
 $authDescriptors = array(

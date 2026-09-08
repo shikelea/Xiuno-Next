@@ -261,6 +261,8 @@ Authorization: Bearer <token>
 
 `token`/`bbs_token` 参数仅为旧客户端兼容，不建议放入 URL。使用浏览器 Session 发起写请求时，仍必须通过 `_token` 或 `X-CSRF-Token` 提交当前 Session 的 CSRF token；Bearer 请求不依赖 Session CSRF。
 
+显式 Bearer 请求头优先于兼容参数，并在计算版块权限前恢复身份；无效显式 token 返回 401，不回退到 Cookie 身份。浏览器自动携带的登录 Cookie 不属于显式 API 凭据，仍受 Session CSRF 约束。
+
 ### 响应与状态
 
 进入 API 路由后的 v1 响应保留统一 JSON envelope：

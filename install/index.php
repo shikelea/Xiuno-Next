@@ -126,12 +126,12 @@ if(empty($action)) {
 		$engine = install_post('engine');
 		$host = install_post('host');
 		$name = install_post('name');
-		$user = install_post('user');
-		$password = install_post('password');
+		$user = install_post('user', '', FALSE);
+		$password = install_post('password', '', FALSE);
 		
 		$adminemail = install_post('adminemail');
 		$adminuser = install_post('adminuser');
-		$adminpass = install_post('adminpass');
+		$adminpass = install_post('adminpass', '', FALSE);
 		
 		// 强制使用 pdo_mysql，防止意外
 		if($type == 'mysql') $type = 'pdo_mysql';

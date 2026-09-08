@@ -12,7 +12,7 @@ export XIUNO_HTTP_PORT="$HTTP_PORT"
 BASE_URL="${XIUNO_HTTP_SMOKE_URL:-http://127.0.0.1:${HTTP_PORT}}"
 ADMIN_USER="${XIUNO_HTTP_SMOKE_ADMIN_USER:-admin}"
 ADMIN_EMAIL="${XIUNO_HTTP_SMOKE_ADMIN_EMAIL:-admin@example.com}"
-ADMIN_PASSWORD="${XIUNO_HTTP_SMOKE_ADMIN_PASSWORD:-XiunoSmoke-451!}"
+ADMIN_PASSWORD="${XIUNO_HTTP_SMOKE_ADMIN_PASSWORD:-XiunoSmoke-451&!}"
 NEW_PASSWORD="${XIUNO_HTTP_SMOKE_NEW_PASSWORD:-XiunoSmoke-452!}"
 DB_NAME="${XIUNO_HTTP_SMOKE_DB_NAME:-xiunobbs}"
 DB_USER="${XIUNO_HTTP_SMOKE_DB_USER:-xiuno}"
@@ -441,7 +441,7 @@ jq -e '(.code | tostring) == "404"' "$WORK_DIR/api-v1-missing.json" >/dev/null \
 grep -Fqi 'X-Xiuno-API-Version: v1' "$WORK_DIR/api-v1-missing.headers" \
 	|| fail 'API v1 response did not identify its contract version.'
 
-V1_METHOD_STATUS="$(api_request GET '/?api-v1-thread-create.htm' "$WORK_DIR/api-v1-method.json" "$WORK_DIR/api-v1-method.headers")"
+V1_METHOD_STATUS="$(api_request DELETE '/?api-v1-thread-create.htm' "$WORK_DIR/api-v1-method.json" "$WORK_DIR/api-v1-method.headers")"
 [[ "$V1_METHOD_STATUS" == '405' ]] || fail "API v1 invalid method returned HTTP $V1_METHOD_STATUS; expected 405."
 grep -Eqi '^Allow: POST' "$WORK_DIR/api-v1-method.headers" \
 	|| fail 'API v1 method rejection did not advertise Allow: POST.'
@@ -464,11 +464,21 @@ jq -e '(.code | tostring) == "0" and (.data.token | type == "string" and length 
 	|| fail 'API v1 login did not return the stable success envelope and token.'
 API_TOKEN="$(jq -r '.data.token' "$WORK_DIR/api-v1-login.json")"
 
+# Make the existing read fixture administrator-only so guest fallback cannot pass unnoticed.
+mysql_query "UPDATE bbs_forum SET accesson = 1 WHERE fid = 1; UPDATE bbs_cache SET expiry = 1 WHERE k = 'bbs_forumlist'" >/dev/null
+V1_GUEST_FORUM_STATUS="$(api_request GET '/?api-v1-forum-list.htm' "$WORK_DIR/api-v1-guest-forums.json" "$WORK_DIR/api-v1-guest-forums.headers")"
+[[ "$V1_GUEST_FORUM_STATUS" == '200' ]] && jq -e '.data.total == 0' "$WORK_DIR/api-v1-guest-forums.json" >/dev/null \
+	|| fail 'Restricted forum fixture remained visible to guests.'
 V1_FORUM_STATUS="$(api_request GET '/?api-v1-forum-list.htm' "$WORK_DIR/api-v1-forums.json" "$WORK_DIR/api-v1-forums.headers" \
 	-H "Authorization: Bearer $API_TOKEN")"
 [[ "$V1_FORUM_STATUS" == '200' ]] || fail "API v1 forum list returned HTTP $V1_FORUM_STATUS; expected 200."
 API_FID="$(jq -r '.data.list[0].fid // empty' "$WORK_DIR/api-v1-forums.json")"
 [[ "$API_FID" =~ ^[1-9][0-9]*$ ]] || fail 'API v1 forum list did not expose a readable forum ID.'
+mysql_query "UPDATE bbs_forum SET accesson = 0 WHERE fid = 1; UPDATE bbs_cache SET expiry = 1 WHERE k = 'bbs_forumlist'" >/dev/null
+
+V1_COOKIE_CSRF_STATUS="$(api_request POST '/?api-v1-thread-create.htm' "$WORK_DIR/api-v1-cookie-csrf.json" "$WORK_DIR/api-v1-cookie-csrf.headers" \
+	-b "$SITE_COOKIES" --data-urlencode 'fid=0')"
+[[ "$V1_COOKIE_CSRF_STATUS" == '403' ]] || fail "Cookie-only API write bypassed CSRF with HTTP $V1_COOKIE_CSRF_STATUS."
 
 API_THREAD_COUNT_BEFORE="$(mysql_query 'SELECT COUNT(*) FROM bbs_thread')"
 V1_DOCTYPE_STATUS="$(api_request POST '/?api-v1-thread-create.htm' "$WORK_DIR/api-v1-doctype.json" "$WORK_DIR/api-v1-doctype.headers" \
