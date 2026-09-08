@@ -129,13 +129,19 @@ class UpgradeCommand extends Command
                 $errors = [];
 
                 $this->stepConfigUpgrade($io, $errors);
-                if (!empty($errors)) throw new \RuntimeException(implode(' | ', $errors));
+                if (!empty($errors)) {
+                    throw new \RuntimeException(implode(' | ', $errors));
+                }
 
                 $this->stepSchemaUpgrade($io, $errors);
-                if (!empty($errors)) throw new \RuntimeException(implode(' | ', $errors));
+                if (!empty($errors)) {
+                    throw new \RuntimeException(implode(' | ', $errors));
+                }
 
                 $this->stepRunMigrations($io, $errors);
-                if (!empty($errors)) throw new \RuntimeException(implode(' | ', $errors));
+                if (!empty($errors)) {
+                    throw new \RuntimeException(implode(' | ', $errors));
+                }
 
                 $this->stepCleanup($io);
 
@@ -184,7 +190,9 @@ class UpgradeCommand extends Command
             $io->success('数据库与配置已由其他协调进程更新，无需重复升级。');
             return Command::SUCCESS;
         }
-        if (!$completed) return $status;
+        if (!$completed) {
+            return $status;
+        }
 
         $io->newLine();
         $io->success('升级成功！当前版本: ' . self::TARGET_VERSION);
@@ -291,7 +299,9 @@ class UpgradeCommand extends Command
 
         $needsVersionUpgrade = $version === 'unknown'
             || version_compare($version, self::TARGET_VERSION, '<');
-        if ($version !== 'unknown' && version_compare($version, self::TARGET_VERSION, '>')) return [];
+        if ($version !== 'unknown' && version_compare($version, self::TARGET_VERSION, '>')) {
+            return [];
+        }
 
         // 1. 检查密码字段类型。Schema 状态未知时必须终止；继续写配置或版本会把
         // 部分升级伪装成完成。
@@ -310,7 +320,9 @@ class UpgradeCommand extends Command
         // 3. 检查待执行的数据库迁移
         $pendingMigrations = $this->getPendingMigrations();
         if (!empty($pendingMigrations)) {
-            $names = array_map(function ($f) { return basename($f, '.php'); }, $pendingMigrations);
+            $names = array_map(function ($f) {
+                return basename($f, '.php');
+            }, $pendingMigrations);
             $steps[] = '数据库迁移: ' . count($pendingMigrations) . ' 个待执行 (' . implode(', ', $names) . ')';
         }
 
@@ -453,18 +465,24 @@ class UpgradeCommand extends Command
      */
     private function stepCleanup(SymfonyStyle $io): void
     {
-		$io->text('清理可再生运行时缓存...');
-		if (!function_exists('runtime_cache_clear_regenerable') || !runtime_cache_clear_regenerable()) {
-			throw new \RuntimeException('运行时缓存正在被使用或无法安全清理，请在活动请求结束后重试。');
-		}
-		$io->text('  已清理可再生缓存；任务锁、恢复备份和安全模式标记保持不变');
+        $io->text('清理可再生运行时缓存...');
+        if (!function_exists('runtime_cache_clear_regenerable') || !runtime_cache_clear_regenerable()) {
+            throw new \RuntimeException('运行时缓存正在被使用或无法安全清理，请在活动请求结束后重试。');
+        }
+        $io->text('  已清理可再生缓存；任务锁、恢复备份和安全模式标记保持不变');
     }
 
     private function bootstrap(string $appPath): void
     {
-        if (!defined('DEBUG')) define('DEBUG', 0);
-        if (!defined('APP_PATH')) define('APP_PATH', $appPath);
-        if (!defined('XIUNOPHP_PATH')) define('XIUNOPHP_PATH', $appPath . 'xiunophp/');
+        if (!defined('DEBUG')) {
+            define('DEBUG', 0);
+        }
+        if (!defined('APP_PATH')) {
+            define('APP_PATH', $appPath);
+        }
+        if (!defined('XIUNOPHP_PATH')) {
+            define('XIUNOPHP_PATH', $appPath . 'xiunophp/');
+        }
 
         $conf = (include $appPath . 'conf/conf.php');
         substr($conf['tmp_path'], 0, 2) == './' and $conf['tmp_path'] = APP_PATH . $conf['tmp_path'];
@@ -476,10 +494,10 @@ class UpgradeCommand extends Command
 
         include_once XIUNOPHP_PATH . 'xiunophp.php';
         include_once APP_PATH . 'model/kv.func.php';
-		include_once APP_PATH . 'model/migration.func.php';
-		global $g_plugin_file_index_generation, $g_plugin_enabled_paths_generation, $g_plugin_enabled_paths;
-		global $g_plugin_file_index_built_generation, $g_plugin_file_index, $g_plugin_include_reader_locks, $g_plugin_include_state_lock;
-		include_once APP_PATH . 'model/plugin.func.php';
+        include_once APP_PATH . 'model/migration.func.php';
+        global $g_plugin_file_index_generation, $g_plugin_enabled_paths_generation, $g_plugin_enabled_paths;
+        global $g_plugin_file_index_built_generation, $g_plugin_file_index, $g_plugin_include_reader_locks, $g_plugin_include_state_lock;
+        include_once APP_PATH . 'model/plugin.func.php';
     }
 
     private function getTablepre(): string
