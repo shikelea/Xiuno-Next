@@ -33,36 +33,36 @@ class MigrateCommand extends Command
         }
 
         $this->bootstrap($appPath);
-		$capability = migration_capability();
-		if (empty($capability['ok'])) {
-			$io->error($capability['error']);
-			return Command::FAILURE;
-		}
-		$lock = migration_advisory_lock_start();
-		if (empty($lock['ok'])) {
-			$io->error($lock['error']);
-			return Command::FAILURE;
-		}
+        $capability = migration_capability();
+        if (empty($capability['ok'])) {
+            $io->error($capability['error']);
+            return Command::FAILURE;
+        }
+        $lock = migration_advisory_lock_start();
+        if (empty($lock['ok'])) {
+            $io->error($lock['error']);
+            return Command::FAILURE;
+        }
 
-		$status = Command::FAILURE;
-		$released = false;
-		try {
-			$status = $this->runMigrationsLocked($io, $appPath);
-		} catch (\Throwable $e) {
-			$io->error('迁移执行失败: ' . $e->getMessage());
-			$status = Command::FAILURE;
-		} finally {
-			$released = migration_advisory_lock_end();
-		}
-		if (!$released) {
-			$io->error('数据库迁移锁未能确认释放；当前进程退出后连接关闭会释放 MySQL advisory lock。');
-			return Command::FAILURE;
-		}
-		return $status;
-	}
+        $status = Command::FAILURE;
+        $released = false;
+        try {
+            $status = $this->runMigrationsLocked($io, $appPath);
+        } catch (\Throwable $e) {
+            $io->error('迁移执行失败: ' . $e->getMessage());
+            $status = Command::FAILURE;
+        } finally {
+            $released = migration_advisory_lock_end();
+        }
+        if (!$released) {
+            $io->error('数据库迁移锁未能确认释放；当前进程退出后连接关闭会释放 MySQL advisory lock。');
+            return Command::FAILURE;
+        }
+        return $status;
+    }
 
-	private function runMigrationsLocked(SymfonyStyle $io, string $appPath): int
-	{
+    private function runMigrationsLocked(SymfonyStyle $io, string $appPath): int
+    {
 
         $migrationsPath = $appPath . 'database/migrations';
         if (!is_dir($migrationsPath)) {
@@ -174,9 +174,15 @@ class MigrateCommand extends Command
 
     private function bootstrap(string $appPath): void
     {
-        if (!defined('DEBUG')) define('DEBUG', 0);
-        if (!defined('APP_PATH')) define('APP_PATH', $appPath);
-        if (!defined('XIUNOPHP_PATH')) define('XIUNOPHP_PATH', $appPath . 'xiunophp/');
+        if (!defined('DEBUG')) {
+            define('DEBUG', 0);
+        }
+        if (!defined('APP_PATH')) {
+            define('APP_PATH', $appPath);
+        }
+        if (!defined('XIUNOPHP_PATH')) {
+            define('XIUNOPHP_PATH', $appPath . 'xiunophp/');
+        }
 
         $conf = (include $appPath . 'conf/conf.php');
         substr($conf['tmp_path'], 0, 2) == './' and $conf['tmp_path'] = APP_PATH . $conf['tmp_path'];
@@ -188,21 +194,21 @@ class MigrateCommand extends Command
 
         include_once XIUNOPHP_PATH . 'xiunophp.php';
         include_once APP_PATH . 'model/kv.func.php';
-		include_once APP_PATH . 'model/migration.func.php';
+        include_once APP_PATH . 'model/migration.func.php';
     }
 
     private function getExecutedMigrations(): array
     {
-		return migration_record_read_primary();
+        return migration_record_read_primary();
     }
 
     private function getTablepre(): string
     {
-		return migration_table_prefix();
+        return migration_table_prefix();
     }
 
     private function recordMigration(string $name, array &$executed): bool
     {
-		return migration_record_append_locked($name, $executed);
+        return migration_record_append_locked($name, $executed);
     }
 }

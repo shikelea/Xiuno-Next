@@ -22,7 +22,7 @@ class MakePluginCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $name = (string) $input->getArgument('name');
-        
+
         // 验证插件名称
         $projectRoot = realpath(dirname(__DIR__, 3));
         if ($projectRoot === false) {
@@ -40,8 +40,8 @@ class MakePluginCommand extends Command
 
         if (!is_dir($pluginRoot)) {
             if (!@mkdir($pluginRoot, 0755, true)) {
-                 $io->error('无法创建 plugin 目录: ' . $pluginRoot);
-                 return Command::FAILURE;
+                $io->error('无法创建 plugin 目录: ' . $pluginRoot);
+                return Command::FAILURE;
             }
         }
 
@@ -54,10 +54,10 @@ class MakePluginCommand extends Command
 
         // 创建目录结构
         if (!@mkdir($pluginPath, 0755, true)) {
-             $io->error('无法创建插件目录。');
-             return Command::FAILURE;
+            $io->error('无法创建插件目录。');
+            return Command::FAILURE;
         }
-        
+
         // 创建基础文件
         try {
             $this->createPluginConf($pluginPath, $name);
@@ -68,7 +68,7 @@ class MakePluginCommand extends Command
             $io->error($e->getMessage());
             return Command::FAILURE;
         }
-        
+
         $io->success(sprintf('插件 "%s" 创建成功！路径: %s', $name, $pluginPath));
 
         return Command::SUCCESS;
@@ -90,7 +90,7 @@ class MakePluginCommand extends Command
 JSON;
         $this->writeFile($path . '/conf.json', $content);
     }
-    
+
     private function createHookExample(string $path): void
     {
         $hookPath = $path . '/hook';
@@ -144,7 +144,7 @@ PHP;
 ?>
 PHP;
         $this->writeFile($path . '/unstall.php', $content);
-        
+
         $content = <<<PHP
 <?php
 
