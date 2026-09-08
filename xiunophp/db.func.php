@@ -232,7 +232,7 @@ function db_create($table, $arr, $d = NULL) {
 	$d = $d ? $d : $db;
 	if(!$d) return FALSE;
 	
-	return db_insert($table, $arr);
+	return db_insert($table, $arr, $d);
 }
 
 function db_insert($table, $arr, $d = NULL) {

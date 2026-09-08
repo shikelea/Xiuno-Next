@@ -8,6 +8,8 @@ if(!extension_loaded('pdo_sqlite')) {
 defined('DEBUG') OR define('DEBUG', 0);
 $root = dirname(__DIR__).'/';
 require_once $root.'xiunophp/db_pdo_sqlite.class.php';
+require_once $root.'xiunophp/db.func.php';
+$_SERVER['db'] = NULL; // The explicit connection must not fall back to a global default.
 
 function sqlite_driver_fail($message) {
 	fwrite(STDERR, "FAIL: $message\n");
@@ -35,7 +37,7 @@ $db->wlink === $db->rlink || sqlite_driver_fail('Single-endpoint SQLite must sha
 
 $db->exec('CREATE TABLE bbs_probe (id INTEGER PRIMARY KEY, value TEXT NOT NULL)') !== FALSE
 	|| sqlite_driver_fail('SQLite primary-read fixture table could not be created.');
-$db->exec("INSERT INTO bbs_probe (id, value) VALUES (1, 'first')") !== FALSE
+db_create('probe', array('id'=>1, 'value'=>'first'), $db) !== FALSE
 	|| sqlite_driver_fail('SQLite primary-read fixture row 1 could not be inserted.');
 $db->exec("INSERT INTO bbs_probe (id, value) VALUES (2, 'second')") !== FALSE
 	|| sqlite_driver_fail('SQLite primary-read fixture row 2 could not be inserted.');
