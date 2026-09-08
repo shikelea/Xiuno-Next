@@ -16,7 +16,7 @@ $grouplist = group_list_cache();
 // Support Token interface (token and session dual match, to facilitate the design of the REST interface, but also to facilitate the use of $_SESSION)
 $uid = intval(_SESSION('uid'));
 $user = array();
-if(empty($uid)) {
+if(empty($uid) && !(param(0) === 'api' && api_request_token() !== '')) {
 	$token_auth_epoch = NULL;
 	$uid = user_token_get($token_auth_epoch);
 	if($uid) {
@@ -48,6 +48,12 @@ if($uid && empty($user)) {
 $gid = empty($user) ? 0 : intval($user['gid']);
 $group = isset($grouplist[$gid]) ? $grouplist[$gid] : $grouplist[0];
 
+// Explicit API credentials define this request's identity before permission-derived state.
+if(param(0) === 'api') {
+	$_SERVER['api_version'] = param(1) === 'v1' ? 'v1' : 'legacy';
+	if(api_request_token() !== '') api_auth_uid(TRUE);
+}
+
 // 版块 / Forum
 $fid = 0;
 $forumlist = forum_list_cache();
@@ -75,7 +81,7 @@ check_runlevel();
 
 $route = param(0, 'index');
 
-if(!in_array($method, array('GET', 'POST'), TRUE)) {
+if(!in_array($method, array('GET', 'POST'), TRUE) && !($route === 'api' && api_is_v1())) {
 	message(-1, 'Method Not Allowed');
 }
 

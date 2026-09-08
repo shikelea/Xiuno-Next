@@ -33,8 +33,8 @@ $admin_thread = read_file_checked($root.'/admin/route/thread.php');
 $admin_route_index = read_file_checked($root.'/admin/route/index.php');
 $admin_header = read_file_checked($root.'/admin/view/htm/header_nav.inc.htm');
 
-strpos($front_index, "if(!in_array(\$method, array('GET', 'POST'), TRUE))") !== FALSE
-	|| fail('Front controller must reject unsupported HTTP methods before route dispatch.');
+strpos($front_index, "if(!in_array(\$method, array('GET', 'POST'), TRUE) && !(\$route === 'api' && api_is_v1()))") !== FALSE
+	|| fail('Front controller must reject unsupported web/legacy methods while v1 uses endpoint method guards.');
 
 strpos($front_entry, "conf/.installed.lock") !== FALSE
 	|| fail('Front entry must create the install lock for existing installations.');
